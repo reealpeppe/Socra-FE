@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Tests and coverage
+test-results/
+playwright-report/
+coverage/
+screenshots/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Platform/editor noise
+.DS_Store
+Thumbs.db
+.vercel/
