@@ -37,13 +37,14 @@ test.beforeEach(async ({ context, page }) => {
 test("dashboard renders responsive operational state", async ({ page }) => {
   await page.goto("/dashboard");
   await expect(page.getByRole("heading", { name: /Ciao Mentee/ })).toBeVisible();
-  await expect(page.getByText("debito 0 crediti")).toBeVisible();
+  await expect(page.getByRole("main").getByText("Crediti").first()).toBeVisible();
+  await expect(page.getByRole("main").getByText("10").first()).toBeVisible();
   await expect(page.getByRole("link", { name: "Trova mentor" })).toBeVisible();
 });
 
 test("global header shows user and notifications", async ({ page }) => {
   await page.goto("/dashboard");
-  await expect(page.getByRole("link", { name: "Socra" })).toBeVisible();
+  await expect(page.locator(".topbar-brand:visible, .sidebar-brand-link:visible").first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Notifiche" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Mentee" })).toBeVisible();
   await page.getByRole("button", { name: "Notifiche" }).click();
@@ -73,7 +74,7 @@ test("onboarding submits score and links to goal", async ({ page }) => {
   await page.getByRole("button", { name: "Non ne sono sicuro/a" }).click();
   await page.getByRole("button", { name: "Non saprei, ci devo pensare" }).click();
   await page.getByRole("button", { name: "Non ci ho mai pensato" }).click();
-  await page.getByRole("button", { name: "Salva livello" }).click();
+  await page.getByRole("button", { name: "Scopri il tuo livello" }).click();
 
   await expect(page.getByRole("heading", { name: "Livello L2" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Definisci obiettivo" })).toBeVisible();
@@ -140,9 +141,9 @@ test("matching shows reasons and can create request", async ({ page }) => {
           nickname: "Anna",
           level: "L2",
           match_score: 84,
-          competence_score: 90,
           is_recommended: true,
-          reason: "Competenza sul topic etf_funds: 90/100; reputazione: 60/100."
+          reason_summary: "In linea con il tuo obiettivo su ETF e con il tuo livello.",
+          public_badges: ["Chiarezza"]
         }
       ]
     });
@@ -150,9 +151,10 @@ test("matching shows reasons and can create request", async ({ page }) => {
   await page.route("**/api/backend/matching/requests", async (route) => route.fulfill({ json: { id: "r1", status: "pending", mentor_id: "mentor1", mentee_id: "u1", expires_at: new Date().toISOString() } }));
 
   await page.goto("/matching?goalId=g1");
-  await expect(page.getByText("Competenza sul topic etf_funds")).toBeVisible();
-  await page.getByRole("button", { name: "Invia richiesta" }).click();
-  await expect(page.getByText("Richiesta inviata")).toBeVisible();
+  await expect(page.getByText("In linea con il tuo obiettivo")).toBeVisible();
+  await expect(page.getByText("90/100")).toHaveCount(0);
+  await page.getByRole("button", { name: "Invia richiesta al mentor" }).click();
+  await expect(page.getByRole("status")).toContainText("attendi la risposta del mentor");
 });
 
 test("wallet hides monetization language and shows internal credits", async ({ page }) => {
@@ -185,11 +187,13 @@ test("paths are grouped by current user role", async ({ page }) => {
     }
   ] }));
 
-  await page.goto("/paths");
-  await expect(page.getByRole("heading", { name: "Percorsi in cui sei mentor" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Percorsi che segui come mentee" })).toBeVisible();
-  await expect(page.getByText("mentor_goal")).toBeVisible();
+  await page.goto("/paths?tab=mentee");
+  await expect(page.getByRole("button", { name: /Come mentee/ })).toBeVisible();
   await expect(page.getByText("mentee_goal")).toBeVisible();
+  await expect(page.getByText("mentor_goal")).toHaveCount(0);
+
+  await page.getByRole("button", { name: /Come mentor/ }).click();
+  await expect(page.getByText("mentor_goal")).toBeVisible();
 });
 
 test("path detail shows only role-specific feedback action", async ({ page }) => {

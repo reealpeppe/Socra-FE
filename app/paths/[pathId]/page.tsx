@@ -9,13 +9,13 @@ import { ClientApiError, clientGet, clientPost } from "@/lib/api";
 import type { CallMetadataSync, CallRoom, PathItem, UserMe } from "@/lib/types";
 
 const STATUS = {
-  open:             { bg: "var(--blue-100)",   color: "var(--blue-600)",  label: "Aperto" },
-  pending:          { bg: "var(--orange-100)", color: "#b07d1a",          label: "In attesa" },
-  feedback_pending: { bg: "var(--orange-100)", color: "#b07d1a",          label: "Feedback" },
-  completed:        { bg: "var(--mint-100)",   color: "var(--mint-600)",  label: "Completato" },
-  accepted:         { bg: "var(--mint-100)",   color: "var(--mint-600)",  label: "Accettata" },
-  rejected:         { bg: "#fee2e2",           color: "#dc2626",          label: "Rifiutata" },
-  expired:          { bg: "var(--line)",       color: "var(--muted)",     label: "Scaduta" },
+  open: { bg: "var(--blue-100)", color: "var(--blue-600)", label: "Aperto" },
+  pending: { bg: "var(--orange-100)", color: "#b07d1a", label: "In attesa" },
+  feedback_pending: { bg: "var(--orange-100)", color: "#b07d1a", label: "Feedback" },
+  completed: { bg: "var(--mint-100)", color: "var(--mint-600)", label: "Completato" },
+  accepted: { bg: "var(--mint-100)", color: "var(--mint-600)", label: "Accettata" },
+  rejected: { bg: "#fee2e2", color: "#dc2626", label: "Rifiutata" },
+  expired: { bg: "var(--line)", color: "var(--muted)", label: "Scaduta" },
 } as const;
 
 function StatusBadge({ status }: { status: string }) {
@@ -92,7 +92,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
     setMessage(null);
     try {
       await clientPost("/reports", { path_id: pathId, reason: "path_issue", details: report });
-      setMessage("Segnalazione inviata alla review manuale.");
+      setMessage("Segnalazione inviata al team Socra.");
       setReport("");
     } catch (err) {
       setError(err instanceof ClientApiError ? err.message : "Segnalazione non inviata");
@@ -106,7 +106,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
       const room = await clientPost<CallRoom>("/calls/first-session/room", { path_id: pathId });
       setCallRoom(room);
       window.open(room.join_url, "_blank", "noopener,noreferrer");
-      setMessage("Link Google Meet pronto. I metadati si sincronizzano dopo la call.");
+      setMessage("Link Google Meet pronto. Le informazioni della sessione saranno aggiornate dopo l'incontro.");
     } catch (err) {
       setError(err instanceof ClientApiError ? err.message : "Meet non disponibile");
     }
@@ -138,15 +138,11 @@ function PathDetailContent({ pathId }: { pathId: string }) {
     setError(null);
     setMessage(null);
     try {
-      const result = await clientPost<CallMetadataSync>("/calls/first-session/sync-metadata", { path_id: pathId });
-      const flags = result.anomaly_flags.length ? ` Flag: ${result.anomaly_flags.join(", ")}.` : "";
-      setMessage(
-        `Metadati sincronizzati: ${result.conferences_synced} call, ${result.participant_sessions_synced} sessioni, ` +
-        `${result.transcripts_synced} trascrizioni, ${result.transcript_entries_synced} righe transcript.${flags}`
-      );
+      await clientPost<CallMetadataSync>("/calls/first-session/sync-metadata", { path_id: pathId });
+      setMessage("Informazioni della sessione aggiornate.");
       await load();
     } catch (err) {
-      setError(err instanceof ClientApiError ? err.message : "Metadati non sincronizzati");
+      setError(err instanceof ClientApiError ? err.message : "Aggiornamento della sessione non riuscito");
     }
   }
 
@@ -157,7 +153,6 @@ function PathDetailContent({ pathId }: { pathId: string }) {
 
   return (
     <div style={{ display: "grid", gap: "24px" }}>
-      {/* Back link */}
       <div>
         <Link
           href="/paths"
@@ -170,14 +165,13 @@ function PathDetailContent({ pathId }: { pathId: string }) {
         </Link>
       </div>
 
-      {/* Page header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
         <div>
           <h1 style={{ color: "var(--navy-950)", fontSize: "clamp(1.6rem, 3vw, 2.4rem)", margin: "0 0 4px" }}>
             {path?.goal?.goal_tag || "Dettaglio percorso"}
           </h1>
           <p style={{ color: "var(--muted)", fontSize: "0.88rem", margin: 0 }}>
-            Nessuna registrazione call — solo metadati della prima sessione per antiabuso.
+            La prima sessione usa solo informazioni essenziali per la sicurezza della piattaforma, senza registrare la chiamata.
           </p>
         </div>
         {path && <StatusBadge status={path.status} />}
@@ -188,7 +182,6 @@ function PathDetailContent({ pathId }: { pathId: string }) {
 
       {path ? (
         <>
-          {/* Hero card: path info */}
           <div className="card">
             <div style={{ display: "grid", gap: "16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
@@ -204,13 +197,11 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                 )}
               </div>
 
-              {/* Mentor + Mentee */}
               <div style={{ display: "grid", gap: "10px", gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
                 <PersonCard role="Mentor" name={path.mentor?.nickname || path.mentor?.user_id || path.mentor_id} />
                 <PersonCard role="Mentee" name={path.mentee?.nickname || path.mentee?.user_id || path.mentee_id} />
               </div>
 
-              {/* Close state indicators */}
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 <ClosePill label="Mentee" closed={!!path.mentee_closed_at} />
                 <ClosePill label="Mentor" closed={!!path.mentor_closed_at} />
@@ -218,9 +209,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
             </div>
           </div>
 
-          {/* Actions grid */}
           <div style={{ display: "grid", gap: "16px", gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
-            {/* Call card */}
             <div className="card">
               <div style={{ display: "grid", gap: "14px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -272,7 +261,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                       <RefreshCcw size={15} /> Crea nuovo link
                     </button>
                     <button className="button secondary" type="button" onClick={syncMetadata}>
-                      <RefreshCcw size={15} /> Sincronizza metadati
+                      <RefreshCcw size={15} /> Aggiorna sessione
                     </button>
                     <span style={{
                       alignSelf: "start", background: "var(--line)", borderRadius: "999px",
@@ -289,7 +278,6 @@ function PathDetailContent({ pathId }: { pathId: string }) {
               </div>
             </div>
 
-            {/* Close side card */}
             <div className="card">
               <div style={{ display: "grid", gap: "14px" }}>
                 <h2 style={{ fontSize: "1rem", fontWeight: 800, margin: 0 }}>Chiudi il tuo lato</h2>
@@ -311,7 +299,6 @@ function PathDetailContent({ pathId }: { pathId: string }) {
             </div>
           </div>
 
-          {/* Report card */}
           <div className="card" style={{ borderColor: "#fda29b" }}>
             <div style={{ display: "grid", gap: "14px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -319,7 +306,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                 <h2 style={{ fontSize: "1rem", fontWeight: 800, margin: 0 }}>Segnala problema</h2>
               </div>
               <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0 }}>
-                La segnalazione va in coda review manuale e non produce blocchi automatici.
+                La segnalazione sarà esaminata dal team Socra e non produce blocchi automatici.
               </p>
               <textarea
                 className="input"

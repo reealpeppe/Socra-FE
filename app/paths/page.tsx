@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import { GraduationCap, UsersRound } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
@@ -33,13 +34,17 @@ export default function PathsPage() {
   return (
     <AppShell>
       <OnboardingGate>
-        <PathsContent />
+        <Suspense fallback={<div className="card"><p className="muted">Caricamento percorsi...</p></div>}>
+          <PathsContent />
+        </Suspense>
       </OnboardingGate>
     </AppShell>
   );
 }
 
 function PathsContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [paths, setPaths] = useState<PathItem[]>([]);
   const [user, setUser] = useState<UserMe | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +58,10 @@ function PathsContent() {
       })
       .catch((err) => setError(err.message || "Percorsi non disponibili"));
   }, []);
+
+  useEffect(() => {
+    setTab(searchParams.get("tab") === "mentor" ? "mentor" : "mentee");
+  }, [searchParams]);
 
   const mentorPaths = paths.filter((path) => path.mentor_id === user?.id);
   const menteePaths = paths.filter((path) => path.mentee_id === user?.id);
@@ -108,7 +117,10 @@ function PathsContent() {
           <button
             key={t}
             type="button"
-            onClick={() => setTab(t)}
+	            onClick={() => {
+	              setTab(t);
+	              router.replace(`/paths?tab=${t}`, { scroll: false });
+	            }}
             style={{
               background: "none",
               border: "none",

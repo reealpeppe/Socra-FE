@@ -40,7 +40,10 @@ export default function WalletPage() {
   return (
     <AppShell>
       <div className="wallet-page">
-        <h1 className="wallet-heading">I tuoi crediti</h1>
+	        <div>
+	          <h1 className="wallet-heading">Crediti Socra</h1>
+	          <p className="wallet-subtitle">Valuta interna non monetizzabile, usata solo per aprire e completare percorsi.</p>
+	        </div>
 
         {error && <div className="wallet-error">{error}</div>}
 
@@ -124,12 +127,16 @@ export default function WalletPage() {
           display: grid;
           gap: 24px;
         }
-        .wallet-heading {
-          font-size: 1.75rem;
-          font-weight: 800;
-          color: var(--ink);
-          margin: 0;
-        }
+	        .wallet-heading {
+	          font-size: 1.75rem;
+	          font-weight: 800;
+	          color: var(--ink);
+	          margin: 0;
+	        }
+	        .wallet-subtitle {
+	          color: var(--muted);
+	          margin: 6px 0 0;
+	        }
         .wallet-error {
           background: #fee2e2;
           border: 1px solid #fca5a5;

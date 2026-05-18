@@ -1,22 +1,27 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Gauge, MessageSquareText, Star } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
-import { ClientApiError, clientPost } from "@/lib/api";
+import { ClientApiError, clientGet, clientPost } from "@/lib/api";
+import type { PathItem } from "@/lib/types";
 
 export default function MentorFeedbackPage({ params }: { params: { pathId: string } }) {
   const router = useRouter();
-  const [effort, setEffort] = useState(8);
-  const [reliability, setReliability] = useState(8);
+  const [effort, setEffort] = useState(4);
+  const [reliability, setReliability] = useState(4);
   const [competence, setCompetence] = useState(7);
-  const [topic, setTopic] = useState("etf_funds");
+  const [topic, setTopic] = useState("");
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const internalScore = Math.round(((effort + reliability) / 20) * 100);
+  useEffect(() => {
+    clientGet<PathItem>(`/paths/${params.pathId}`)
+      .then((path) => setTopic(path.goal?.topic || "undefined"))
+      .catch(() => setTopic("undefined"));
+  }, [params.pathId]);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -25,9 +30,8 @@ export default function MentorFeedbackPage({ params }: { params: { pathId: strin
       await clientPost(`/feedback/${params.pathId}/mentor`, {
         answers: { effort, reliability },
         text_note: text || null,
-        internal_score: internalScore
       });
-      await clientPost(`/feedback/${params.pathId}/mentee-competence`, { topic, score: competence }).catch(() => undefined);
+      await clientPost(`/feedback/${params.pathId}/mentee-competence`, { topic, score: competence });
       router.push(`/paths/${params.pathId}`);
     } catch (err) {
       setError(err instanceof ClientApiError ? err.message : "Feedback non salvato");
@@ -38,17 +42,15 @@ export default function MentorFeedbackPage({ params }: { params: { pathId: strin
     <AppShell>
       <OnboardingGate>
         <form onSubmit={onSubmit} style={{ display: "grid", gap: "24px", maxWidth: "700px" }}>
-          {/* Header */}
           <div>
             <h1 style={{ color: "var(--navy-950)", fontSize: "clamp(1.6rem, 3vw, 2.4rem)", margin: "0 0 4px" }}>
-              Lascia il tuo feedback
+              Feedback sul mentee
             </h1>
             <p style={{ color: "var(--muted)", margin: 0 }}>
-              Valuta impegno e affidabilità del mentee. La competenza resta un segnale controllato.
+              Condividi una valutazione sintetica su partecipazione, affidabilità e progressi del mentee.
             </p>
           </div>
 
-          {/* Score summary card */}
           <div className="card" style={{ display: "flex", alignItems: "center", gap: "16px", padding: "20px 24px" }}>
             <span style={{
               alignItems: "center", background: "var(--navy-950)", borderRadius: "999px",
@@ -59,37 +61,26 @@ export default function MentorFeedbackPage({ params }: { params: { pathId: strin
             </span>
             <div>
               <p style={{ color: "var(--muted)", fontSize: "0.75rem", fontWeight: 800, letterSpacing: "0.08em", margin: "0 0 2px", textTransform: "uppercase" }}>
-                Score interno calcolato
+                Valutazione del percorso
               </p>
-              <strong style={{ color: "var(--navy-950)", fontSize: "2rem", lineHeight: 1 }}>{internalScore}</strong>
+              <strong style={{ color: "var(--navy-950)", fontSize: "1.05rem", lineHeight: 1 }}>Usa le scale qui sotto per descrivere l&apos;esperienza</strong>
             </div>
           </div>
 
           {error ? <p className="error">{error}</p> : null}
 
-          {/* Form card */}
           <div className="card">
             <div style={{ display: "grid", gap: "20px" }}>
-              <div style={{
-                background: "#fff8e8", border: "1px solid rgba(245,182,47,0.3)",
-                borderRadius: "var(--radius-sm)", padding: "12px 14px"
-              }}>
-                <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0 }}>
-                  Usa valori da 1 a 10. La nota è opzionale e resta nel flusso feedback.
-                </p>
-              </div>
-
               <div style={{ display: "grid", gap: "16px", gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
-                <NumberField label="Impegno" value={effort} onChange={setEffort} />
-                <NumberField label="Affidabilità" value={reliability} onChange={setReliability} />
-                <NumberField label="Competenza topic" value={competence} onChange={setCompetence} />
+                <NumberField label="Impegno e partecipazione" min={1} max={5} value={effort} onChange={setEffort} />
+                <NumberField label="Affidabilità" min={1} max={5} value={reliability} onChange={setReliability} />
+                <NumberField label="Conoscenza dell&apos;argomento oggi" min={1} max={10} value={competence} onChange={setCompetence} />
                 <div style={{ display: "grid", gap: "6px" }}>
-                  <label style={{ color: "var(--navy-950)", fontSize: "0.85rem", fontWeight: 800 }}>Topic</label>
-                  <input className="input" value={topic} onChange={(e) => setTopic(e.target.value)} />
+                  <label style={{ color: "var(--navy-950)", fontSize: "0.85rem", fontWeight: 800 }}>Argomento del percorso</label>
+                  <input className="input" value={topic} onChange={(e) => setTopic(e.target.value)} required />
                 </div>
               </div>
 
-              {/* Textarea full width */}
               <div style={{ display: "grid", gap: "6px" }}>
                 <label style={{
                   alignItems: "center", color: "var(--navy-950)",
@@ -103,7 +94,7 @@ export default function MentorFeedbackPage({ params }: { params: { pathId: strin
           </div>
 
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <button className="button dark" type="submit" style={{ gap: "8px", minWidth: "200px" }}>
+            <button className="button dark" type="submit" disabled={!topic} style={{ gap: "8px", minWidth: "200px" }}>
               <Star size={16} aria-hidden /> Invia feedback
             </button>
           </div>
@@ -113,7 +104,19 @@ export default function MentorFeedbackPage({ params }: { params: { pathId: strin
   );
 }
 
-function NumberField({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) {
+function NumberField({
+  label,
+  value,
+  onChange,
+  min,
+  max,
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+  min: number;
+  max: number;
+}) {
   return (
     <div style={{ display: "grid", gap: "6px" }}>
       <label style={{ color: "var(--navy-950)", fontSize: "0.85rem", fontWeight: 800 }}>{label}</label>
@@ -121,8 +124,8 @@ function NumberField({ label, value, onChange }: { label: string; value: number;
         <input
           className="input"
           type="range"
-          min={1}
-          max={10}
+          min={min}
+          max={max}
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
           style={{ accentColor: "var(--gold-500)", paddingLeft: 0, paddingRight: 0 }}
@@ -130,8 +133,8 @@ function NumberField({ label, value, onChange }: { label: string; value: number;
         <input
           className="input"
           type="number"
-          min={1}
-          max={10}
+          min={min}
+          max={max}
           value={value}
           onChange={(e) => onChange(Number(e.target.value))}
           style={{ textAlign: "center" }}

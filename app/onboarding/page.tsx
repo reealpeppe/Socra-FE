@@ -221,7 +221,7 @@ export default function OnboardingPage() {
                   <h3>Livello {completed.level}</h3>
                   <p className="muted">Livello corrente: {completed.level}</p>
                   <p className="muted">
-                    La survey iniziale e gia stata salvata. Per questa versione non puo essere ricompilata liberamente.
+	                    La survey iniziale è già stata salvata. Per questa versione non può essere ricompilata liberamente.
                   </p>
                   <div className="cluster">
                     <ButtonLink href="/goal">Definisci obiettivo</ButtonLink>
@@ -239,10 +239,11 @@ export default function OnboardingPage() {
                   <span className="workflow-symbol"><CheckCircle2 size={26} aria-hidden /></span>
                   <p className="eyebrow">Risultato</p>
                   <h2>Livello {result.derived_level}</h2>
-                  <p className="muted">
-                    Score: {result.total_score}. {result.is_coach ? "Puoi ricevere richieste come mentor." : "Parti come mentee."}
-                  </p>
-                  <ButtonLink href="/goal">Definisci obiettivo</ButtonLink>
+                  <LevelReveal level={result.derived_level} isCoach={result.is_coach} />
+                  <div className="cluster">
+                    <ButtonLink href="/goal">Definisci obiettivo</ButtonLink>
+                    <ButtonLink href="/dashboard" variant="secondary">Vai alla dashboard</ButtonLink>
+                  </div>
                 </div>
               </Card>
             </div>
@@ -309,7 +310,7 @@ export default function OnboardingPage() {
                   <span className="icon-disc"><ShieldCheck size={20} aria-hidden /></span>
                   <div>
                     <strong>Le tue risposte sono private</strong>
-                    <p className="muted">Servono per livello, branching e matching. Il backend resta autorevole.</p>
+                    <p className="muted">Servono per assegnare il livello e proporti percorsi coerenti.</p>
                   </div>
                 </div>
               </Card>
@@ -446,8 +447,8 @@ function renderPage(
   }
   return (
     <>
-      <p className="muted">Il backend calcolera Score_A, Score_B, Score_C e livello massimo L2.</p>
-      <button className="button primary" type="button" onClick={actions.submit}>Salva livello</button>
+      <p className="muted">Conferma le risposte: salveremo il tuo livello iniziale e potrai definire il primo obiettivo.</p>
+      <button className="button primary" type="button" onClick={actions.submit}>Scopri il tuo livello</button>
     </>
   );
 }
@@ -465,6 +466,60 @@ function ChoicePage({ prompt, options, onChoose }: { prompt: string; options: Se
         ))}
       </div>
     </>
+  );
+}
+
+function LevelReveal({ level, isCoach }: { level: string; isCoach: boolean }) {
+  const levelCopy: Record<string, { title: string; description: string }> = {
+    L0: {
+      title: "Base di partenza",
+      description: "Puoi definire il primo obiettivo e trovare un mentor adatto al tuo livello."
+    },
+    L1: {
+      title: "Prime basi operative",
+      description: "Hai sbloccato percorsi guidati con mentor compatibili con il tuo obiettivo."
+    },
+    L2: {
+      title: "Mentor in attivazione",
+      description: "Puoi ricevere richieste compatibili e continuare a costruire reputazione con i percorsi."
+    },
+    L3: {
+      title: "Mentor solido",
+      description: "Il profilo mentor e visibile per richieste coerenti con livello e competenze."
+    },
+    L4: {
+      title: "Mentor avanzato",
+      description: "Puoi seguire percorsi piu complessi e consolidare il tuo profilo nella community."
+    },
+    L5: {
+      title: "Mentor esperto",
+      description: "Sei tra i profili di riferimento per percorsi ad alta complessita."
+    }
+  };
+  const copy = levelCopy[level] || {
+    title: "Livello Socra",
+    description: "Il tuo profilo e pronto per iniziare il prossimo passo su Socra."
+  };
+  const unlocks = isCoach
+    ? ["Profilo mentor visibile", "Richieste compatibili abilitate", "Reputazione costruita sui percorsi"]
+    : ["Obiettivo personale", "Matching con mentor", "Percorso guidato con feedback"];
+
+  return (
+    <div className="level-reveal">
+      <div className="level-reveal-badge" aria-label={`Livello ${level}`}>
+        <span>{level}</span>
+      </div>
+      <div className="level-reveal-copy">
+        <p className="eyebrow">Sbloccato</p>
+        <h3>{copy.title}</h3>
+        <p className="muted">{copy.description}</p>
+        <div className="level-reveal-unlocks">
+          {unlocks.map((unlock) => (
+            <span key={unlock}>{unlock}</span>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -665,8 +720,11 @@ function WorkflowStyles() {
 
       .workflow-choice-grid .button {
         justify-content: flex-start;
+        line-height: 1.25;
         min-height: 56px;
+        overflow-wrap: anywhere;
         text-align: left;
+        white-space: normal;
         width: 100%;
       }
 
@@ -712,6 +770,57 @@ function WorkflowStyles() {
         padding: clamp(22px, 4vw, 34px);
       }
 
+      .level-reveal {
+        align-items: center;
+        background: linear-gradient(145deg, #fff8e8, #ffffff);
+        border: 1px solid #ffe0a0;
+        border-radius: var(--radius, 12px);
+        display: grid;
+        gap: 18px;
+        grid-template-columns: auto 1fr;
+        padding: 18px;
+      }
+
+      .level-reveal-badge {
+        align-items: center;
+        background: var(--navy-950, #07172d);
+        border: 4px solid var(--gold-500, #f5b62f);
+        border-radius: 999px;
+        color: white;
+        display: inline-flex;
+        font-size: 1.35rem;
+        font-weight: 950;
+        height: 86px;
+        justify-content: center;
+        width: 86px;
+      }
+
+      .level-reveal-copy {
+        display: grid;
+        gap: 8px;
+      }
+
+      .level-reveal-copy h3 {
+        color: var(--navy-950, #07172d);
+        font-size: 1.15rem;
+      }
+
+      .level-reveal-unlocks {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .level-reveal-unlocks span {
+        background: #fff;
+        border: 1px solid rgba(17, 24, 39, 0.10);
+        border-radius: 999px;
+        color: var(--navy-950, #07172d);
+        font-size: 0.78rem;
+        font-weight: 800;
+        padding: 7px 10px;
+      }
+
       @media (max-width: 900px) {
         .survey-layout {
           grid-template-columns: 1fr;
@@ -729,6 +838,10 @@ function WorkflowStyles() {
 
         .workflow-panel-head {
           display: grid;
+        }
+
+        .level-reveal {
+          grid-template-columns: 1fr;
         }
       }
     `}</style>

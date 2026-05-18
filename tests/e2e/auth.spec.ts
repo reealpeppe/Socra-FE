@@ -4,9 +4,9 @@ test("registration form keeps V1 password auth explicit", async ({ page }) => {
   await page.goto("/register");
 
   await expect(page.getByRole("heading", { name: "Crea il tuo account" })).toBeVisible();
-  await expect(page.getByText("Nessun invio email o SMS in V1.")).toBeVisible();
+  await expect(page.getByText("senza codici SMS")).toBeVisible();
   await expect(page.getByLabel("Username")).toBeVisible();
-  await expect(page.getByLabel("Password")).toBeVisible();
+  await expect(page.getByLabel("Password", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Accetto il trattamento essenziale per usare Socra.")).toBeChecked();
 });
 
@@ -35,9 +35,9 @@ test("login posts through BFF and reaches dashboard", async ({ page }) => {
 
   await page.goto("/login");
   await page.getByLabel("Username o email").fill("user");
-  await page.getByLabel("Password").fill("StrongPass123");
+  await page.getByLabel("Password", { exact: true }).fill("StrongPass123");
   await page.getByRole("button", { name: "Accedi" }).click();
 
   await expect(page).toHaveURL(/\/dashboard/);
-  await expect(page.getByText("Livello")).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Ciao User/ })).toBeVisible();
 });

@@ -1,14 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { OnboardingGate } from "@/components/OnboardingGate";
 import { UserAvatar, LevelBadge } from "@/components/Ui";
 import { ClientApiError, clientGet, clientPost } from "@/lib/api";
-import type { GoalsMe, MatchCandidate, MatchRequestItem, UserMe } from "@/lib/types";
+import type { Goal, GoalsMe, MatchCandidate, MatchRequestItem, UserMe } from "@/lib/types";
 
 export default function MatchingPage() {
+  return (
+    <AppShell>
+      <OnboardingGate>
+        <Suspense fallback={<div className="card"><p className="muted">Caricamento matching...</p></div>}>
+          <MatchingContent />
+        </Suspense>
+      </OnboardingGate>
+    </AppShell>
+  );
+}
+
+function MatchingContent() {
+  const searchParams = useSearchParams();
+  const goalIdFromQuery = searchParams.get("goalId");
   const [me, setMe] = useState<UserMe | null>(null);
   const [goals, setGoals] = useState<GoalsMe | null>(null);
   const [candidates, setCandidates] = useState<MatchCandidate[]>([]);
@@ -22,61 +38,65 @@ export default function MatchingPage() {
   useEffect(() => {
     let active = true;
 
-    // Fetch me + goals in parallelo
-    Promise.allSettled([
-      clientGet<UserMe>("/auth/me"),
-      clientGet<GoalsMe>("/goals/me")
-    ]).then(([meResult, goalsResult]) => {
+    async function load() {
+      setLoading(true);
+      setError(null);
+      const [meResult, goalsResult] = await Promise.allSettled([
+        clientGet<UserMe>("/auth/me"),
+        clientGet<GoalsMe>("/goals/me")
+      ]);
+
       if (!active) return;
 
-      let fetchedMe: UserMe | null = null;
-      let fetchedGoals: GoalsMe | null = null;
-
-      if (meResult.status === "fulfilled") {
-        fetchedMe = meResult.value;
-        setMe(fetchedMe);
-      }
-
-      if (goalsResult.status === "fulfilled") {
-        fetchedGoals = goalsResult.value;
-        setGoals(fetchedGoals);
-      } else {
-        setError(goalsResult.reason?.message || "Obiettivo non disponibile");
-      }
-
+      const fetchedMe = meResult.status === "fulfilled" ? meResult.value : null;
+      const fetchedGoals = goalsResult.status === "fulfilled" ? goalsResult.value : null;
+      setMe(fetchedMe);
+      setGoals(fetchedGoals);
       setLoading(false);
 
-      // Se c'è un goal attivo, lancia il matching
-      const activeGoal = fetchedGoals?.active_goal || fetchedGoals?.current;
-      if (activeGoal?.id) {
-        setLoadingCandidates(true);
-        clientPost<MatchCandidate[]>("/matching/candidates", { goal_id: activeGoal.id })
-          .then(items => {
-            if (!active) return;
-            setCandidates(Array.isArray(items) ? items : []);
-          })
-          .catch(err => {
-            if (!active) return;
-            setCandidates([]);
-            setError(err?.message || "Matching non disponibile");
-          })
-          .finally(() => {
-            if (active) setLoadingCandidates(false);
-          });
+      if (goalsResult.status === "rejected") {
+        setError(goalsResult.reason?.message || "Obiettivo non disponibile");
+        return;
       }
-    });
 
-    return () => { active = false; };
-  }, []);
+      const selectedGoal = pickGoal(fetchedGoals, goalIdFromQuery);
+      if (!selectedGoal?.id) {
+        setCandidates([]);
+        return;
+      }
 
-  const activeGoal = goals?.active_goal || goals?.current || null;
+      setLoadingCandidates(true);
+      clientPost<MatchCandidate[]>("/matching/candidates", { goal_id: selectedGoal.id })
+        .then((items) => {
+          if (!active) return;
+          const safeItems = Array.isArray(items)
+            ? items.filter((item) => item.mentor_id !== fetchedMe?.id)
+            : [];
+          setCandidates(safeItems);
+        })
+        .catch((err) => {
+          if (!active) return;
+          setCandidates([]);
+          setError(err?.message || "Matching non disponibile");
+        })
+        .finally(() => {
+          if (active) setLoadingCandidates(false);
+        });
+    }
 
+    load();
+    return () => {
+      active = false;
+    };
+  }, [goalIdFromQuery]);
+
+  const activeGoal = useMemo(() => pickGoal(goals, goalIdFromQuery), [goals, goalIdFromQuery]);
   const filteredCandidates = filter === "top"
-    ? candidates.filter(c => c.match_score >= 70)
+    ? candidates.filter((candidate) => candidate.match_score >= 70)
     : candidates;
 
   async function requestMentor(candidate: MatchCandidate) {
-    if (!activeGoal?.id) return;
+    if (!activeGoal?.id || candidate.mentor_id === me?.id) return;
     setError(null);
     setMessage(null);
     try {
@@ -84,496 +104,142 @@ export default function MatchingPage() {
         mentor_id: candidate.mentor_id,
         goal_id: activeGoal.id
       });
-      setRequestedMentors(prev => new Set(prev).add(candidate.mentor_id));
-      setMessage(`Richiesta inviata a ${candidate.nickname || "mentor"}.`);
+      setRequestedMentors((prev) => new Set(prev).add(candidate.mentor_id));
+      setMessage("Richiesta inviata, attendi la risposta del mentor.");
     } catch (err) {
       setError(err instanceof ClientApiError ? err.message : "Richiesta non inviata");
     }
   }
 
   return (
-    <AppShell>
-      <div className="matching-page">
-
-        {/* Header */}
-        <div className="matching-header">
-          <div>
-            <h1>I mentor ideali per te</h1>
-            <p>
-              Sei al{" "}
-              <LevelBadge level={me?.level || "L0"} />{" "}
-              I mentor compatibili sono selezionati in linea con il tuo livello (max ±1 livello).
-            </p>
-          </div>
-          <Link href="/come-funziona" className="button secondary">
-            Scopri come funziona →
-          </Link>
+    <div className="matching-page">
+      <div className="matching-header">
+        <div>
+          <p className="eyebrow">Matching mentor</p>
+          <h1>I mentor piu adatti al tuo obiettivo</h1>
+          <p>
+            <span>Sei al</span>
+            <LevelBadge level={me?.level || "L0"} />
+            <span>Mostriamo solo compatibilita finale e motivazioni leggibili.</span>
+          </p>
         </div>
-
-        {/* Feedback messages */}
-        {error && (
-          <div className="matching-error" role="alert">{error}</div>
-        )}
-        {message && (
-          <div className="matching-success" role="status">{message}</div>
-        )}
-
-        <div className="matching-layout">
-
-          {/* ── Colonna principale ── */}
-          <div className="matching-main">
-
-            {/* Filtri */}
-            <div className="matching-filters">
-              <button
-                className={`matching-filter-btn${filter === "all" ? " active" : ""}`}
-                onClick={() => setFilter("all")}
-                type="button"
-              >
-                Tutti ({candidates.length})
-              </button>
-              <button
-                className={`matching-filter-btn${filter === "top" ? " active" : ""}`}
-                onClick={() => setFilter("top")}
-                type="button"
-              >
-                Alta compatibilità
-              </button>
-            </div>
-
-            {/* Contenuto lista */}
-            {loading ? (
-              <div className="matching-skeleton">
-                <div className="matching-skeleton-card" />
-                <div className="matching-skeleton-card" />
-                <div className="matching-skeleton-card" />
-              </div>
-            ) : !activeGoal ? (
-              <div className="card matching-empty">
-                <p style={{ fontWeight: 700, margin: "0 0 8px", color: "var(--ink)" }}>
-                  Definisci prima il tuo obiettivo
-                </p>
-                <p style={{ color: "var(--muted)", margin: "0 0 16px", fontSize: "0.875rem" }}>
-                  Il matching richiede un obiettivo attivo per trovare il mentor più adatto a te.
-                </p>
-                <Link href="/goal" className="button">Crea il tuo obiettivo</Link>
-              </div>
-            ) : loadingCandidates ? (
-              <div className="matching-skeleton">
-                <div className="matching-skeleton-card" />
-                <div className="matching-skeleton-card" />
-                <div className="matching-skeleton-card" />
-              </div>
-            ) : filteredCandidates.length === 0 ? (
-              <div className="card matching-empty">
-                <p style={{ fontWeight: 700, margin: "0 0 8px", color: "var(--ink)" }}>
-                  Nessun mentor disponibile
-                </p>
-                <p style={{ color: "var(--muted)", margin: 0, fontSize: "0.875rem" }}>
-                  Riprova più tardi o modifica il tuo obiettivo.
-                </p>
-              </div>
-            ) : (
-              <div className="matching-list">
-                {filteredCandidates.map(c => (
-                  <MentorCandidateCard
-                    key={c.mentor_id}
-                    candidate={c}
-                    requested={requestedMentors.has(c.mentor_id)}
-                    onRequest={() => requestMentor(c)}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Bottom empty-goal CTA */}
-            {!activeGoal && !loading && (
-              <div className="matching-bottom-cta">
-                <p>Non hai ancora un goal?</p>
-                <Link href="/goal" className="button secondary">Crea il tuo obiettivo</Link>
-              </div>
-            )}
-          </div>
-
-          {/* ── Sidebar destra ── */}
-          <div className="matching-sidebar">
-            <div className="card" style={{ marginBottom: "16px" }}>
-              <p style={{ fontWeight: 700, margin: "0 0 10px", color: "var(--ink)" }}>
-                Come funziona il matching
-              </p>
-              <p style={{ color: "var(--muted)", fontSize: "0.875rem", margin: "0 0 12px", lineHeight: 1.5 }}>
-                I mentor vengono selezionati in base al tuo livello, ai tuoi obiettivi e alle competenze più rilevanti per il tuo percorso.
-              </p>
-              <Link href="/come-funziona" className="matching-sidebar-link">
-                Scopri di più →
-              </Link>
-            </div>
-
-            {activeGoal && (
-              <div className="card">
-                <p style={{ fontWeight: 700, margin: "0 0 10px", color: "var(--ink)" }}>
-                  Il tuo obiettivo attivo
-                </p>
-                <p style={{ margin: "0 0 4px", fontWeight: 600, fontSize: "0.9rem", color: "var(--ink)" }}>
-                  {activeGoal.goal_tag}
-                </p>
-                <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: "0 0 12px" }}>
-                  {activeGoal.topic}
-                </p>
-                <Link href="/goal" className="matching-sidebar-link">
-                  Modifica →
-                </Link>
-              </div>
-            )}
-
-            {!loading && !activeGoal && (
-              <div className="card">
-                <p style={{ fontWeight: 700, margin: "0 0 10px", color: "var(--ink)" }}>
-                  Il tuo obiettivo
-                </p>
-                <p style={{ color: "var(--muted)", fontSize: "0.875rem", margin: "0 0 12px" }}>
-                  Nessun obiettivo attivo. Definiscine uno per sbloccare il matching.
-                </p>
-                <Link href="/goal" className="button" style={{ width: "100%", justifyContent: "center", fontSize: "0.85rem" }}>
-                  Crea obiettivo
-                </Link>
-              </div>
-            )}
-          </div>
-
-        </div>
+        <Link href="/come-funziona" className="button secondary">
+          Scopri come funziona
+        </Link>
       </div>
 
-      <style jsx global>{`
-        /* ── Matching page ── */
-        .matching-page {
-          display: grid;
-          gap: 24px;
-          max-width: 1200px;
-        }
+      {error ? <div className="matching-error" role="alert">{error}</div> : null}
+      {message ? <div className="matching-success" role="status">{message}</div> : null}
 
-        .matching-header {
-          align-items: flex-start;
-          display: flex;
-          flex-wrap: wrap;
-          gap: 16px;
-          justify-content: space-between;
-        }
+      <div className="matching-layout">
+        <main className="matching-main">
+          <div className="matching-filters" aria-label="Filtra mentor">
+            <button
+              className={`matching-filter-btn${filter === "all" ? " active" : ""}`}
+              onClick={() => setFilter("all")}
+              type="button"
+            >
+              Tutti ({candidates.length})
+            </button>
+            <button
+              className={`matching-filter-btn${filter === "top" ? " active" : ""}`}
+              onClick={() => setFilter("top")}
+              type="button"
+            >
+              Alta compatibilita
+            </button>
+          </div>
 
-        .matching-header h1 {
-          color: var(--ink);
-          font-size: clamp(1.5rem, 3vw, 2rem);
-          margin: 0 0 10px;
-        }
+          {loading || loadingCandidates ? (
+            <MatchingSkeleton />
+          ) : !activeGoal ? (
+            <EmptyGoal />
+          ) : filteredCandidates.length === 0 ? (
+            <div className="card matching-empty">
+              <Sparkles size={30} aria-hidden />
+              <strong>Nessun mentor disponibile ora</strong>
+              <p className="muted">Riprova piu tardi o aggiorna il tuo obiettivo per ampliare le possibilita.</p>
+              <Link href="/goal" className="button secondary">Modifica obiettivo</Link>
+            </div>
+          ) : (
+            <div className="matching-list">
+              {filteredCandidates.map((candidate) => (
+                <MentorCandidateCard
+                  key={candidate.mentor_id}
+                  candidate={candidate}
+                  requested={requestedMentors.has(candidate.mentor_id)}
+                  onRequest={() => requestMentor(candidate)}
+                />
+              ))}
+            </div>
+          )}
+        </main>
 
-        .matching-header p {
-          align-items: center;
-          color: var(--muted);
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-          margin: 0;
-        }
+        <aside className="matching-sidebar">
+          <div className="card stack">
+            <p className="eyebrow">Criteri visibili</p>
+            <h3>Come leggere il match</h3>
+            <p className="muted">
+              La percentuale sintetizza la compatibilita con obiettivo, livello e disponibilita del mentor. I dettagli interni restano privati.
+            </p>
+            <Link href="/come-funziona" className="matching-sidebar-link">
+              Approfondisci <ArrowRight size={14} aria-hidden />
+            </Link>
+          </div>
 
-        .matching-error {
-          background: #fee4e2;
-          border: 1px solid #fda29b;
-          border-radius: var(--radius-sm, 10px);
-          color: #b42318;
-          font-size: 0.875rem;
-          padding: 12px 16px;
-        }
+          {activeGoal ? (
+            <div className="card stack">
+              <p className="eyebrow">Obiettivo attivo</p>
+              <h3>{activeGoal.goal_tag}</h3>
+              <p className="muted">{activeGoal.topic}</p>
+              <Link href="/goal" className="matching-sidebar-link">
+                Modifica <ArrowRight size={14} aria-hidden />
+              </Link>
+            </div>
+          ) : null}
+        </aside>
+      </div>
 
-        .matching-success {
-          background: #dcfce7;
-          border: 1px solid #86efac;
-          border-radius: var(--radius-sm, 10px);
-          color: #15803d;
-          font-size: 0.875rem;
-          padding: 12px 16px;
-        }
-
-        /* ── Layout ── */
-        .matching-layout {
-          display: grid;
-          gap: 24px;
-          grid-template-columns: 1fr 300px;
-          align-items: start;
-        }
-
-        .matching-main {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        /* ── Filters ── */
-        .matching-filters {
-          display: flex;
-          gap: 8px;
-        }
-
-        .matching-filter-btn {
-          background: var(--card, white);
-          border: 1.5px solid var(--line, #e4e8ef);
-          border-radius: 999px;
-          color: var(--muted);
-          cursor: pointer;
-          font-size: 0.875rem;
-          font-weight: 600;
-          padding: 8px 18px;
-          transition: all 0.15s;
-        }
-
-        .matching-filter-btn.active {
-          background: var(--navy-950, #0c1f38);
-          border-color: var(--navy-950, #0c1f38);
-          color: white;
-        }
-
-        .matching-filter-btn:not(.active):hover {
-          border-color: var(--ink);
-          color: var(--ink);
-        }
-
-        /* ── Skeleton ── */
-        .matching-skeleton {
-          display: grid;
-          gap: 12px;
-        }
-
-        .matching-skeleton-card {
-          animation: matchSkeletonPulse 1.4s ease-in-out infinite;
-          background: linear-gradient(90deg, #eef2f6, #f8fafc, #eef2f6);
-          border-radius: var(--radius-lg, 16px);
-          height: 120px;
-        }
-
-        .matching-skeleton-card:nth-child(2) { animation-delay: 0.15s; }
-        .matching-skeleton-card:nth-child(3) { animation-delay: 0.3s; }
-
-        @keyframes matchSkeletonPulse {
-          0%, 100% { opacity: 0.6; }
-          50% { opacity: 1; }
-        }
-
-        /* ── Empty state ── */
-        .matching-empty {
-          padding: 40px !important;
-          text-align: center;
-        }
-
-        /* ── Mentor candidate list ── */
-        .matching-list {
-          display: grid;
-          gap: 12px;
-        }
-
-        /* ── Mentor candidate card ── */
-        .mentor-candidate-card {
-          background: var(--card, white);
-          border: 1px solid var(--line, #e4e8ef);
-          border-radius: var(--radius-lg, 16px);
-          box-shadow: 0 2px 8px rgba(12, 31, 56, 0.06);
-          display: grid;
-          gap: 16px;
-          grid-template-columns: auto 1fr auto;
-          padding: 20px;
-          transition: box-shadow 0.2s, transform 0.15s;
-        }
-
-        .mentor-candidate-card:hover {
-          box-shadow: 0 6px 20px rgba(12, 31, 56, 0.1);
-          transform: translateY(-1px);
-        }
-
-        /* ── Card meta ── */
-        .mcc-meta {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          min-width: 0;
-        }
-
-        .mcc-name {
-          color: var(--ink);
-          font-size: 1rem;
-          font-weight: 700;
-          margin: 0;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .mcc-title-row {
-          align-items: center;
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-
-        .mcc-title {
-          color: var(--muted);
-          font-size: 0.82rem;
-        }
-
-        .mcc-competencies {
-          align-items: center;
-          display: flex;
-          flex-wrap: wrap;
-          gap: 6px;
-          margin-top: 4px;
-        }
-
-        .mcc-competency-tag {
-          background: #eef4ff;
-          border-radius: 999px;
-          color: #1d4ed8;
-          font-size: 0.72rem;
-          font-weight: 700;
-          padding: 3px 10px;
-        }
-
-        .mcc-reason {
-          color: var(--muted);
-          font-size: 0.8rem;
-          line-height: 1.45;
-          margin-top: 6px;
-          max-width: 600px;
-        }
-
-        /* ── Card actions ── */
-        .mcc-actions {
-          align-items: flex-end;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          justify-content: space-between;
-        }
-
-        .mcc-score-block {
-          text-align: center;
-        }
-
-        .mcc-score-pct {
-          color: var(--mint-600, #129b68);
-          font-size: 1.2rem;
-          font-weight: 800;
-          line-height: 1;
-        }
-
-        .mcc-score-label {
-          color: var(--muted);
-          font-size: 0.7rem;
-          font-weight: 700;
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
-        }
-
-        .mcc-request-btn {
-          background: var(--navy-950, #0c1f38);
-          border: none;
-          border-radius: 999px;
-          color: white;
-          cursor: pointer;
-          font-size: 0.78rem;
-          font-weight: 800;
-          padding: 8px 14px;
-          transition: opacity 0.15s;
-          white-space: nowrap;
-        }
-
-        .mcc-request-btn:disabled {
-          background: #dcfce7;
-          color: #15803d;
-          cursor: default;
-        }
-
-        .mcc-request-btn:not(:disabled):hover {
-          opacity: 0.85;
-        }
-
-        .mcc-profile-link {
-          align-items: center;
-          color: var(--navy-950, #0c1f38);
-          display: inline-flex;
-          font-size: 0.8rem;
-          font-weight: 700;
-          gap: 4px;
-          text-decoration: none;
-          white-space: nowrap;
-        }
-
-        .mcc-profile-link:hover {
-          text-decoration: underline;
-        }
-
-        /* ── Sidebar ── */
-        .matching-sidebar-link {
-          color: var(--navy-950, #0c1f38);
-          font-size: 0.85rem;
-          font-weight: 700;
-          text-decoration: none;
-        }
-
-        .matching-sidebar-link:hover {
-          text-decoration: underline;
-        }
-
-        /* ── Bottom CTA ── */
-        .matching-bottom-cta {
-          align-items: center;
-          background: var(--paper, #f7f8fa);
-          border: 1px solid var(--line, #e4e8ef);
-          border-radius: var(--radius-lg, 16px);
-          display: flex;
-          gap: 16px;
-          justify-content: space-between;
-          padding: 16px 20px;
-        }
-
-        .matching-bottom-cta p {
-          color: var(--muted);
-          font-size: 0.875rem;
-          margin: 0;
-        }
-
-        /* ── Responsive ── */
-        @media (max-width: 960px) {
-          .matching-layout {
-            grid-template-columns: 1fr;
-          }
-
-          .matching-sidebar {
-            display: none;
-          }
-        }
-
-        @media (max-width: 640px) {
-          .mentor-candidate-card {
-            grid-template-columns: auto 1fr;
-            gap: 12px;
-          }
-
-          .mcc-actions {
-            display: none;
-          }
-
-          .mcc-reason {
-            display: none;
-          }
-        }
-      `}</style>
-    </AppShell>
+      <MatchingStyles />
+    </div>
   );
 }
 
-/* ── MentorCandidateCard helper ── */
+function pickGoal(goals: GoalsMe | null, requestedId: string | null): Goal | null {
+  if (!goals) return null;
+  if (requestedId) {
+    const fromList = goals.goals.find((goal) => goal.id === requestedId);
+    if (fromList) return fromList;
+  }
+  return goals.active_goal || goals.current || null;
+}
+
+function MatchingSkeleton() {
+  return (
+    <div className="matching-skeleton" aria-label="Caricamento mentor">
+      <div className="matching-skeleton-card" />
+      <div className="matching-skeleton-card" />
+      <div className="matching-skeleton-card" />
+    </div>
+  );
+}
+
+function EmptyGoal() {
+  return (
+    <div className="card matching-empty">
+      <Sparkles size={30} aria-hidden />
+      <strong>Definisci prima il tuo obiettivo</strong>
+      <p className="muted">Il matching parte da un obiettivo attivo: cosi possiamo proporti mentor davvero coerenti.</p>
+      <Link href="/goal" className="button">Crea il tuo obiettivo</Link>
+    </div>
+  );
+}
+
 function titleFromScore(score: number): string {
-  if (score >= 90) return "Mentor eccellente";
-  if (score >= 75) return "Mentor affidabile";
-  if (score >= 60) return "Buona compatibilità";
-  return "Mentor disponibile";
+  if (score >= 90) return "Match molto forte";
+  if (score >= 75) return "Match consigliato";
+  if (score >= 60) return "Buona compatibilita";
+  return "Profilo da valutare";
 }
 
 function MentorCandidateCard({
@@ -585,44 +251,335 @@ function MentorCandidateCard({
   requested: boolean;
   onRequest: () => void;
 }) {
-  const displayName = candidate.nickname || "Socra Mentor";
+  const displayName = candidate.nickname || "Mentor Socra";
   const score = Math.max(0, Math.min(100, Math.round(candidate.match_score)));
+  const reason = candidate.reason_summary || "In linea con il tuo obiettivo e il tuo livello.";
 
   return (
-    <div className="mentor-candidate-card">
+    <article className="mentor-candidate-card">
       <UserAvatar name={displayName} size="lg" />
 
       <div className="mcc-meta">
-        <p className="mcc-name">{displayName}</p>
-        <div className="mcc-title-row">
-          <span className="mcc-title">{titleFromScore(candidate.match_score)}</span>
-          <LevelBadge level={candidate.level} />
+        <div className="mcc-head">
+          <div>
+            <h2>{displayName}</h2>
+            <div className="mcc-title-row">
+              <span>{titleFromScore(candidate.match_score)}</span>
+              <LevelBadge level={candidate.level} />
+              {candidate.is_recommended ? <span className="pill green">Consigliato</span> : null}
+            </div>
+          </div>
+          <div className="mcc-score-block">
+            <strong>{score}%</strong>
+            <span>compatibilita</span>
+          </div>
         </div>
-        {candidate.reason && (
-          <p className="mcc-reason">{candidate.reason}</p>
-        )}
+
+        <p className="mcc-reason">{reason}</p>
+
+        {candidate.public_badges?.length ? (
+          <div className="mcc-badge-row" aria-label="Badge mentor">
+            {candidate.public_badges.slice(0, 3).map((badge) => (
+              <span key={badge} className="mcc-quality-badge">{badge}</span>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <div className="mcc-actions">
-        <div className="mcc-score-block">
-          <div className="mcc-score-pct">{score}%</div>
-          <div className="mcc-score-label">compatibilità</div>
-        </div>
-        <button
-          className="mcc-request-btn"
-          type="button"
-          disabled={requested}
-          onClick={onRequest}
-        >
-          {requested ? "Richiesta inviata" : "Invia richiesta"}
+        <button className="mcc-request-btn" type="button" disabled={requested} onClick={onRequest}>
+          {requested ? "Richiesta inviata" : "Invia richiesta al mentor"}
         </button>
         <Link
-          href={`/profiles/${candidate.mentor_id}?score=${score}&reason=${encodeURIComponent(candidate.reason || "")}`}
+          href={`/profiles/${candidate.mentor_id}?score=${score}&reason=${encodeURIComponent(reason)}`}
           className="mcc-profile-link"
         >
-          Vedi profilo <ArrowRight size={14} />
+          Vedi profilo <ArrowRight size={14} aria-hidden />
         </Link>
       </div>
-    </div>
+    </article>
+  );
+}
+
+function MatchingStyles() {
+  return (
+    <style jsx global>{`
+      .matching-page {
+        display: grid;
+        gap: 22px;
+        max-width: 1180px;
+      }
+
+      .matching-header {
+        align-items: flex-end;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        justify-content: space-between;
+      }
+
+      .matching-header h1 {
+        color: var(--navy-950, #07172d);
+        font-size: clamp(1.8rem, 3.4vw, 3rem);
+        margin: 0 0 10px;
+      }
+
+      .matching-header p:not(.eyebrow) {
+        align-items: center;
+        color: var(--muted);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        max-width: 760px;
+      }
+
+      .matching-error,
+      .matching-success {
+        border-radius: var(--radius-sm, 10px);
+        font-size: 0.875rem;
+        font-weight: 750;
+        padding: 12px 16px;
+      }
+
+      .matching-error {
+        background: #fff1ee;
+        border: 1px solid #ffc9c1;
+        color: #b42318;
+      }
+
+      .matching-success {
+        background: var(--mint-100, #dcfce7);
+        border: 1px solid #b9ecd3;
+        color: var(--mint-600, #15803d);
+      }
+
+      .matching-layout {
+        align-items: start;
+        display: grid;
+        gap: 24px;
+        grid-template-columns: minmax(0, 1fr) 310px;
+      }
+
+      .matching-main,
+      .matching-list,
+      .matching-sidebar,
+      .matching-skeleton {
+        display: grid;
+        gap: 14px;
+      }
+
+      .matching-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .matching-filter-btn {
+        background: var(--card, white);
+        border: 1.5px solid var(--line, #e4e8ef);
+        border-radius: 999px;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 0.875rem;
+        font-weight: 750;
+        padding: 8px 18px;
+      }
+
+      .matching-filter-btn.active {
+        background: var(--navy-950, #07172d);
+        border-color: var(--navy-950, #07172d);
+        color: white;
+      }
+
+      .matching-skeleton-card {
+        animation: matchSkeletonPulse 1.4s ease-in-out infinite;
+        background: linear-gradient(90deg, #eef2f6, #f8fafc, #eef2f6);
+        border-radius: var(--radius-lg, 16px);
+        height: 142px;
+      }
+
+      .matching-skeleton-card:nth-child(2) { animation-delay: 0.15s; }
+      .matching-skeleton-card:nth-child(3) { animation-delay: 0.3s; }
+
+      @keyframes matchSkeletonPulse {
+        0%, 100% { opacity: 0.6; }
+        50% { opacity: 1; }
+      }
+
+      .matching-empty {
+        align-items: center;
+        display: grid;
+        gap: 12px;
+        justify-items: center;
+        min-height: 240px;
+        text-align: center;
+      }
+
+      .matching-empty svg {
+        color: var(--gold-500, #f5b62f);
+      }
+
+      .matching-empty strong {
+        color: var(--navy-950, #07172d);
+        font-size: 1.1rem;
+      }
+
+      .mentor-candidate-card {
+        align-items: start;
+        background: var(--card, white);
+        border: 1px solid var(--line, #e4e8ef);
+        border-radius: var(--radius-lg, 16px);
+        box-shadow: var(--shadow-tight, 0 10px 26px rgba(18, 35, 61, 0.06));
+        display: grid;
+        gap: 16px;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        padding: 20px;
+      }
+
+      .mcc-meta {
+        display: grid;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .mcc-head {
+        align-items: flex-start;
+        display: flex;
+        gap: 14px;
+        justify-content: space-between;
+      }
+
+      .mcc-head h2 {
+        color: var(--navy-950, #07172d);
+        font-size: 1.1rem;
+        margin: 0 0 6px;
+      }
+
+      .mcc-title-row,
+      .mcc-badge-row {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .mcc-title-row > span:first-child {
+        color: var(--muted);
+        font-size: 0.84rem;
+        font-weight: 750;
+      }
+
+      .mcc-score-block {
+        display: grid;
+        gap: 2px;
+        justify-items: end;
+        text-align: right;
+      }
+
+      .mcc-score-block strong {
+        color: var(--mint-600, #129b68);
+        font-size: 1.7rem;
+        line-height: 1;
+      }
+
+      .mcc-score-block span {
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-weight: 800;
+      }
+
+      .mcc-reason {
+        color: var(--muted);
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+
+      .mcc-quality-badge {
+        background: #fff8e8;
+        border: 1px solid #ffe0a0;
+        border-radius: 999px;
+        color: var(--navy-950, #07172d);
+        font-size: 0.74rem;
+        font-weight: 850;
+        padding: 5px 9px;
+      }
+
+      .mcc-actions {
+        align-items: flex-end;
+        display: grid;
+        gap: 10px;
+        justify-items: end;
+      }
+
+      .mcc-request-btn {
+        background: var(--gold-500, #f5b62f);
+        border: none;
+        border-radius: 999px;
+        color: var(--navy-950, #07172d);
+        cursor: pointer;
+        font-size: 0.82rem;
+        font-weight: 900;
+        min-height: 42px;
+        padding: 9px 16px;
+        white-space: nowrap;
+      }
+
+      .mcc-request-btn:disabled {
+        background: var(--mint-100, #dcfce7);
+        color: var(--mint-600, #15803d);
+        cursor: default;
+      }
+
+      .mcc-profile-link,
+      .matching-sidebar-link {
+        align-items: center;
+        color: var(--navy-950, #07172d);
+        display: inline-flex;
+        font-size: 0.84rem;
+        font-weight: 800;
+        gap: 4px;
+        text-decoration: none;
+      }
+
+      .mcc-profile-link:hover,
+      .matching-sidebar-link:hover {
+        text-decoration: underline;
+      }
+
+      @media (max-width: 960px) {
+        .matching-layout {
+          grid-template-columns: 1fr;
+        }
+
+        .matching-sidebar {
+          display: none;
+        }
+      }
+
+      @media (max-width: 680px) {
+        .mentor-candidate-card {
+          grid-template-columns: auto minmax(0, 1fr);
+        }
+
+        .mcc-actions {
+          grid-column: 1 / -1;
+          justify-items: stretch;
+          width: 100%;
+        }
+
+        .mcc-profile-link {
+          justify-content: center;
+        }
+
+        .mcc-head {
+          display: grid;
+        }
+
+        .mcc-score-block {
+          justify-items: start;
+          text-align: left;
+        }
+      }
+    `}</style>
   );
 }

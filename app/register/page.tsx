@@ -48,8 +48,8 @@ export default function RegisterPage() {
         <div className="auth-brand">
           <Brand variant="dark" />
         </div>
-        <h1 className="auth-title">Inizia il tuo percorso</h1>
-        <p className="auth-sub">Crea il tuo account Socra — è gratuito</p>
+	        <h1 className="auth-title">Crea il tuo account</h1>
+	        <p className="auth-sub">Inizia il tuo percorso Socra. Per ora usi email o username e password, senza codici SMS.</p>
 
         {error && <div className="auth-error">{error}</div>}
 

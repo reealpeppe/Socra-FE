@@ -2,11 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Award } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { UserAvatar, LevelBadge, MetricStat } from "@/components/Ui";
 import { clientGet } from "@/lib/api";
-import type { GoalsMe, MatchRequestItem, PathItem, UserMe, Wallet } from "@/lib/types";
+import type { GoalsMe, MatchRequestItem, PathItem, PublicProfile, UserMe, Wallet } from "@/lib/types";
 
 type DashboardErrorKey = "user" | "wallet" | "goals" | "requests" | "paths";
 
@@ -16,6 +16,7 @@ export default function DashboardPage() {
   const [goals, setGoals] = useState<GoalsMe | null>(null);
   const [requests, setRequests] = useState<MatchRequestItem[]>([]);
   const [paths, setPaths] = useState<PathItem[]>([]);
+  const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [errors, setErrors] = useState<Partial<Record<DashboardErrorKey, string>>>({});
   const [loading, setLoading] = useState(true);
 
@@ -55,7 +56,14 @@ export default function DashboardPage() {
     });
 
     return () => { active = false; };
-  }, []);
+	  }, []);
+
+  useEffect(() => {
+    if (!me?.id) return;
+    clientGet<PublicProfile>(`/profiles/${me.id}`)
+      .then(setProfile)
+      .catch(() => setProfile(null));
+  }, [me?.id]);
 
   const activeGoal = goals?.active_goal || goals?.current || null;
   const displayName = me?.nickname || me?.username || "Socra user";
@@ -72,19 +80,20 @@ export default function DashboardPage() {
     () => requests.filter(r => r.status === "pending" && r.mentor_id === me?.id),
     [requests, me?.id]
   );
+  const mentorBadges = profile?.public_badges || [];
 
   return (
     <AppShell>
       <div className="dash-page" aria-busy={loading}>
         {/* Greeting */}
         <div className="dash-greeting">
-          <h1>Ciao {displayName}! 👋</h1>
+          <h1>Ciao {displayName}</h1>
           <p>Benvenuto nella tua dashboard. Qui trovi tutto quello che ti serve per il tuo percorso Socra.</p>
         </div>
 
         {Object.keys(errors).length > 0 && (
           <div className="dash-alert" role="status">
-            Alcuni dati non sono disponibili. La pagina mostra quello che il backend ha restituito.
+            Alcuni dati non sono disponibili al momento. Mostriamo solo le informazioni già verificate.
           </div>
         )}
 
@@ -95,9 +104,9 @@ export default function DashboardPage() {
             {/* Card MENTOR */}
             <div className="card dash-identity-card">
               <div className="dash-identity-header">
-                <span className="dash-identity-label">La tua identità di MENTOR</span>
+                <span className="dash-identity-label">La tua identità di mentor</span>
                 {me?.is_coach && (
-                  <span className="dash-active-badge">Diventa mentore</span>
+                  <span className="dash-active-badge">Mentor attivo</span>
                 )}
               </div>
 
@@ -108,7 +117,7 @@ export default function DashboardPage() {
                   <div className="dash-identity-meta">
                     <LevelBadge level={me?.level || "L0"} />
                     <span className="dash-identity-role">
-                      {me?.is_coach ? "Mentor" : "Può diventare mentor"}
+                      {me?.is_coach ? "Mentor" : "Percorso verso mentor"}
                     </span>
                   </div>
                 </div>
@@ -117,17 +126,17 @@ export default function DashboardPage() {
                   <ul className="dash-aside-list">
                     <li>Il tuo livello influisce sulla portata delle sessioni</li>
                     <li>Puoi ricevere richieste dai mentee adatti al tuo profilo</li>
-                    <li>Ogni percorso completato migliora la tua reputazione</li>
+                    <li>Ogni percorso completato rafforza il tuo profilo</li>
                   </ul>
                   {!me?.is_coach && (
                     <Link href="/settings" className="dash-aside-cta">
-                      Attiva profilo mentor →
+                      Prepara profilo mentor
                     </Link>
                   )}
                 </div>
               </div>
 
-              {/* Le tue competenze — placeholder: il backend non espone competencies dirette */}
+              {/* Le tue competenze */}
               <div className="dash-section-divider">
                 <span className="dash-section-label">Le tue competenze</span>
               </div>
@@ -135,6 +144,16 @@ export default function DashboardPage() {
                 Le competenze sono derivate dai tuoi percorsi completati e dai badge ottenuti.
                 Completa percorsi come mentor per aggiornare questo pannello.
               </p>
+
+              {mentorBadges.length > 0 && (
+                <div className="dash-badge-row" aria-label="Badge qualitativi piu ricevuti">
+                  {mentorBadges.map((badge) => (
+                    <span className="dash-quality-badge" key={badge}>
+                      <Award size={13} aria-hidden /> {badge}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               {/* Performance mentor */}
               <div className="dash-section-divider" style={{ marginTop: "16px" }}>
@@ -157,14 +176,14 @@ export default function DashboardPage() {
 
               <div className="dash-mentor-footer">
                 <span className="dash-muted-hint">I tuoi percorsi da mentor</span>
-                <Link href="/paths" className="dash-link-small">Vedi tutti</Link>
+                <Link href="/paths?tab=mentor" className="dash-link-small">Vedi tutti</Link>
               </div>
             </div>
 
             {/* Card MENTEE */}
             <div className="card dash-identity-card" style={{ marginTop: "16px" }}>
               <div className="dash-identity-header">
-                <span className="dash-identity-label">La tua identità di MENTEE</span>
+                <span className="dash-identity-label">La tua identità di mentee</span>
               </div>
               <div style={{ marginTop: "12px" }}>
                 {activeGoal ? (
@@ -176,7 +195,7 @@ export default function DashboardPage() {
                       <Link href="/goal" className="button secondary" style={{ fontSize: "0.8rem" }}>
                         Modifica obiettivo
                       </Link>
-                      <Link href="/matching" className="button" style={{ fontSize: "0.8rem" }}>
+                      <Link href={`/matching?goalId=${activeGoal.id}`} className="button" style={{ fontSize: "0.8rem" }}>
                         Trova un mentor
                       </Link>
                     </div>
@@ -202,7 +221,7 @@ export default function DashboardPage() {
               <div className="dash-identity-header">
                 <span className="dash-identity-label">Il tuo obiettivo</span>
                 {activeGoal && (
-                  <Link href="/goal" className="dash-link-small">Modifica →</Link>
+                  <Link href="/goal" className="dash-link-small">Modifica</Link>
                 )}
               </div>
               {activeGoal ? (
@@ -213,7 +232,7 @@ export default function DashboardPage() {
                   <p className="dash-muted-hint" style={{ margin: "0 0 16px" }}>
                     {activeGoal.topic}
                   </p>
-                  <Link href="/matching" className="button" style={{ width: "100%", justifyContent: "center" }}>
+                  <Link href={`/matching?goalId=${activeGoal.id}`} className="button" style={{ width: "100%", justifyContent: "center" }}>
                     Trova mentor
                   </Link>
                 </div>
@@ -233,7 +252,7 @@ export default function DashboardPage() {
             <div className="card" style={{ marginTop: "16px" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
                 <span className="dash-identity-label">I tuoi percorsi da mentee</span>
-                <Link href="/paths" className="dash-link-small">Vedi tutti</Link>
+                <Link href="/paths?tab=mentee" className="dash-link-small">Vedi tutti</Link>
               </div>
               {loading ? (
                 <p className="dash-muted-hint">Caricamento...</p>
@@ -253,15 +272,15 @@ export default function DashboardPage() {
               <span className="dash-identity-label" style={{ marginBottom: "12px", display: "block" }}>Azioni rapide</span>
               <div className="dash-quick-list">
                 <Link href="/goal" className="dash-quick-item">
-                  <span className="dash-quick-icon">🎯</span>
+	                  <span className="dash-quick-icon" aria-hidden>O</span>
                   <span>Modifica i tuoi obiettivi</span>
                 </Link>
-                <Link href="/settings" className="dash-quick-item">
-                  <span className="dash-quick-icon">📝</span>
-                  <span>Rifai il survey</span>
+	                <Link href="/livelli" className="dash-quick-item">
+	                  <span className="dash-quick-icon" aria-hidden>L</span>
+	                  <span>Scopri i livelli</span>
                 </Link>
                 <Link href="/matching" className="dash-quick-item">
-                  <span className="dash-quick-icon">🔍</span>
+	                  <span className="dash-quick-icon" aria-hidden>M</span>
                   <span>Trova un mentor</span>
                 </Link>
               </div>
@@ -273,7 +292,7 @@ export default function DashboardPage() {
         {/* Banner bottom */}
         <div className="dash-banner">
           <div className="dash-banner-content">
-            <p className="dash-banner-icon">💡</p>
+	            <p className="dash-banner-icon">Socra</p>
             <div>
               <p style={{ fontWeight: 700, margin: "0 0 2px", color: "white" }}>
                 Ogni passo si avvicina ai tuoi obiettivi!
@@ -434,12 +453,32 @@ export default function DashboardPage() {
           text-transform: uppercase;
         }
 
-        .dash-muted-hint {
+	        .dash-muted-hint {
           color: var(--muted);
           font-size: 0.85rem;
           line-height: 1.5;
           margin: 8px 0 0;
-        }
+	        }
+
+	        .dash-badge-row {
+	          display: flex;
+	          flex-wrap: wrap;
+	          gap: 8px;
+	          margin-top: 12px;
+	        }
+
+	        .dash-quality-badge {
+	          align-items: center;
+	          background: #eef4ff;
+	          border: 1px solid #cfdbff;
+	          border-radius: 999px;
+	          color: #1d4ed8;
+	          display: inline-flex;
+	          font-size: 0.76rem;
+	          font-weight: 800;
+	          gap: 5px;
+	          padding: 5px 10px;
+	        }
 
         /* ── Mentor stats ── */
         .dash-mentor-stats {
@@ -579,7 +618,9 @@ export default function DashboardPage() {
         }
 
         .dash-banner-icon {
+          color: var(--gold-500);
           font-size: 1.5rem;
+          font-weight: 900;
           margin: 0;
         }
 

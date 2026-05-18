@@ -1,30 +1,123 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BadgeCheck, MessageSquareText, Star } from "lucide-react";
+import { Award, MessageSquareText, Star } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
-import { ClientApiError, clientPost } from "@/lib/api";
+import { ClientApiError, clientGet, clientPost } from "@/lib/api";
+import type { PathItem } from "@/lib/types";
+
+const QUESTIONS = [
+  {
+    key: "outcome",
+    label: "Come si è concluso il tuo percorso?",
+    options: [
+      ["goal_reached", "Obiettivo raggiunto"],
+      ["strong_improvement", "Forte miglioramento"],
+      ["partial_improvement", "Miglioramento parziale"],
+      ["no_change", "Nessun cambiamento"],
+      ["negative", "Esperienza negativa"],
+    ],
+  },
+  {
+    key: "concrete_change",
+    label: "Quanto è cambiata concretamente la tua situazione?",
+    options: [
+      ["much", "Molto"],
+      ["enough", "Abbastanza"],
+      ["little", "Poco"],
+      ["none", "Per niente"],
+    ],
+  },
+  {
+    key: "guidance",
+    label: "Quanto ti sei sentito guidato durante il percorso?",
+    options: [
+      ["always", "Sempre guidato"],
+      ["often", "Spesso guidato"],
+      ["little", "Poco guidato"],
+      ["none", "Per niente guidato"],
+    ],
+  },
+  {
+    key: "autonomy",
+    label: "Oggi ti senti più autonomo nelle decisioni rispetto a prima?",
+    options: [
+      ["much_more", "Molto più autonomo"],
+      ["more", "Più autonomo"],
+      ["little_more", "Poco più autonomo"],
+      ["not_more", "Per niente"],
+    ],
+  },
+  {
+    key: "would_repeat",
+    label: "Rifaresti questo percorso con questa persona?",
+    options: [
+      ["immediately", "Sì, subito"],
+      ["with_improvements", "Sì, ma con qualche miglioramento"],
+      ["unsure", "Non sono sicuro"],
+      ["no", "No"],
+    ],
+  },
+  {
+    key: "result_dependency",
+    label: "Da cosa è dipeso il risultato?",
+    options: [
+      ["mentor", "Principalmente dal mentor"],
+      ["balanced", "Equilibrato"],
+      ["me", "Principalmente da me"],
+    ],
+  },
+] as const;
+
+const BADGES = [
+  ["clear", "Chiaro e comprensibile"],
+  ["goal_focused", "Focalizzato sugli obiettivi"],
+  ["practical", "Pratico e concreto"],
+  ["competent", "Competente"],
+  ["present", "Presente e disponibile"],
+] as const;
 
 export default function MenteeFeedbackPage({ params }: { params: { pathId: string } }) {
   const router = useRouter();
-  const [goalReached, setGoalReached] = useState("true");
-  const [internalScore, setInternalScore] = useState(80);
-  const [badge, setBadge] = useState("clear");
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [badges, setBadges] = useState<string[]>([]);
+  const [externalPromotion, setExternalPromotion] = useState(false);
+  const [competence, setCompetence] = useState(7);
+  const [topic, setTopic] = useState("");
   const [text, setText] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    clientGet<PathItem>(`/paths/${params.pathId}`)
+      .then((path) => setTopic(path.goal?.topic || "undefined"))
+      .catch(() => setTopic("undefined"));
+  }, [params.pathId]);
+
+  const isComplete = useMemo(
+    () => QUESTIONS.every((question) => answers[question.key]) && badges.length <= 3 && !!topic,
+    [answers, badges.length, topic]
+  );
+
+  function toggleBadge(value: string) {
+    setBadges((current) => {
+      if (current.includes(value)) return current.filter((badge) => badge !== value);
+      if (current.length >= 3) return current;
+      return [...current, value];
+    });
+  }
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
     try {
       await clientPost(`/feedback/${params.pathId}/mentee`, {
-        answers: { goal_reached: goalReached === "true" },
-        badges: [badge],
+        answers: { ...answers, external_promotion: externalPromotion },
+        badges,
         text_note: text || null,
-        internal_score: internalScore
       });
+      await clientPost(`/feedback/${params.pathId}/mentee-competence`, { topic, score: competence });
       router.push(`/paths/${params.pathId}`);
     } catch (err) {
       setError(err instanceof ClientApiError ? err.message : "Feedback non salvato");
@@ -34,109 +127,97 @@ export default function MenteeFeedbackPage({ params }: { params: { pathId: strin
   return (
     <AppShell>
       <OnboardingGate>
-        <form onSubmit={onSubmit} style={{ display: "grid", gap: "24px", maxWidth: "700px" }}>
-          {/* Header */}
+        <form onSubmit={onSubmit} style={{ display: "grid", gap: "24px", maxWidth: "760px" }}>
           <div>
             <h1 style={{ color: "var(--navy-950)", fontSize: "clamp(1.6rem, 3vw, 2.4rem)", margin: "0 0 4px" }}>
-              Lascia il tuo feedback
+              Feedback sul mentor
             </h1>
             <p style={{ color: "var(--muted)", margin: 0 }}>
-              Valuta il percorso. Il feedback non viene mostrato all&apos;altra parte prima dell&apos;invio reciproco.
+              Racconta com&apos;è andato il percorso: useremo le risposte per migliorare l&apos;esperienza e valorizzare i punti di forza del mentor.
             </p>
-          </div>
-
-          {/* Score summary card */}
-          <div className="card" style={{ display: "flex", alignItems: "center", gap: "16px", padding: "20px 24px" }}>
-            <span style={{
-              alignItems: "center", background: "var(--navy-950)", borderRadius: "999px",
-              color: "var(--gold-500)", display: "inline-flex", flexShrink: 0,
-              height: "44px", justifyContent: "center", width: "44px"
-            }}>
-              <BadgeCheck size={22} aria-hidden />
-            </span>
-            <div>
-              <p style={{ color: "var(--muted)", fontSize: "0.75rem", fontWeight: 800, letterSpacing: "0.08em", margin: "0 0 2px", textTransform: "uppercase" }}>
-                Punteggio interno (non pubblico)
-              </p>
-              <strong style={{ color: "var(--navy-950)", fontSize: "2rem", lineHeight: 1 }}>{internalScore}</strong>
-            </div>
           </div>
 
           {error ? <p className="error">{error}</p> : null}
 
-          {/* Form card */}
-          <div className="card">
-            <div style={{ display: "grid", gap: "20px" }}>
-              <div style={{
-                background: "#fff8e8", border: "1px solid rgba(245,182,47,0.3)",
-                borderRadius: "var(--radius-sm)", padding: "12px 14px"
-              }}>
-                <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0 }}>
-                  Il punteggio interno non è pubblico; badge e metriche aggregate restano la superficie reputazionale.
-                </p>
+          <div className="card" style={{ display: "grid", gap: "18px" }}>
+            {QUESTIONS.map((question) => (
+              <div key={question.key} style={{ display: "grid", gap: "8px" }}>
+                <label style={{ color: "var(--navy-950)", fontSize: "0.88rem", fontWeight: 800 }}>{question.label}</label>
+                <select
+                  className="input"
+                  value={answers[question.key] || ""}
+                  onChange={(event) => setAnswers((current) => ({ ...current, [question.key]: event.target.value }))}
+                  required
+                >
+                  <option value="">Seleziona</option>
+                  {question.options.map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
               </div>
+            ))}
+          </div>
 
-              <div style={{ display: "grid", gap: "16px", gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
-                {/* Obiettivo raggiunto */}
-                <div style={{ display: "grid", gap: "6px" }}>
-                  <label style={{ color: "var(--navy-950)", fontSize: "0.85rem", fontWeight: 800 }}>Obiettivo raggiunto</label>
-                  <select className="input" value={goalReached} onChange={(e) => setGoalReached(e.target.value)}>
-                    <option value="true">Sì</option>
-                    <option value="false">Non ancora</option>
-                  </select>
-                </div>
+          <div className="card" style={{ display: "grid", gap: "18px" }}>
+            <div>
+              <label style={{ alignItems: "center", color: "var(--navy-950)", display: "flex", fontSize: "0.88rem", fontWeight: 800, gap: "6px" }}>
+                <Award size={16} aria-hidden /> Punti di forza del mentor
+              </label>
+              <p style={{ color: "var(--muted)", fontSize: "0.82rem", margin: "4px 0 0" }}>
+                Puoi selezionarne al massimo 3. Quelli più ricorrenti potranno comparire sul profilo del mentor.
+              </p>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+              {BADGES.map(([value, label]) => {
+                const selected = badges.includes(value);
+                return (
+                  <button
+                    key={value}
+                    className={selected ? "button dark" : "button secondary"}
+                    type="button"
+                    onClick={() => toggleBadge(value)}
+                    style={{ fontSize: "0.82rem" }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
 
-                {/* Badge */}
-                <div style={{ display: "grid", gap: "6px" }}>
-                  <label style={{ color: "var(--navy-950)", fontSize: "0.85rem", fontWeight: 800 }}>Badge</label>
-                  <select className="input" value={badge} onChange={(e) => setBadge(e.target.value)}>
-                    <option value="clear">Chiaro</option>
-                    <option value="patient">Paziente</option>
-                    <option value="practical">Pratico</option>
-                  </select>
-                </div>
+            <label style={{ alignItems: "center", color: "var(--navy-950)", display: "flex", gap: "8px", fontSize: "0.88rem", fontWeight: 800 }}>
+              <input
+                checked={externalPromotion}
+                onChange={(event) => setExternalPromotion(event.target.checked)}
+                type="checkbox"
+              />
+              Il mentor ha promosso corsi, consulenze, prodotti o servizi esterni
+            </label>
 
-                {/* Score slider — full width */}
-                <div style={{ display: "grid", gap: "6px", gridColumn: "1 / -1" }}>
-                  <label style={{ color: "var(--navy-950)", fontSize: "0.85rem", fontWeight: 800 }}>Valutazione interna</label>
-                  <div style={{ alignItems: "center", display: "grid", gap: "10px", gridTemplateColumns: "minmax(0, 1fr) 84px" }}>
-                    <input
-                      className="input"
-                      type="range"
-                      min={1}
-                      max={100}
-                      value={internalScore}
-                      onChange={(e) => setInternalScore(Number(e.target.value))}
-                      style={{ accentColor: "var(--gold-500)", paddingLeft: 0, paddingRight: 0 }}
-                    />
-                    <input
-                      className="input"
-                      type="number"
-                      min={1}
-                      max={100}
-                      value={internalScore}
-                      onChange={(e) => setInternalScore(Number(e.target.value))}
-                      style={{ textAlign: "center" }}
-                    />
-                  </div>
-                </div>
+            <div style={{ display: "grid", gap: "6px" }}>
+              <label style={{ color: "var(--navy-950)", fontSize: "0.88rem", fontWeight: 800 }}>
+                Come valuti la tua conoscenza su questo argomento oggi?
+              </label>
+              <div style={{ alignItems: "center", display: "grid", gap: "10px", gridTemplateColumns: "minmax(0, 1fr) 72px" }}>
+                <input className="input" min={1} max={10} type="range" value={competence} onChange={(event) => setCompetence(Number(event.target.value))} />
+                <input className="input" min={1} max={10} type="number" value={competence} onChange={(event) => setCompetence(Number(event.target.value))} style={{ textAlign: "center" }} />
               </div>
+            </div>
 
-              {/* Textarea */}
-              <div style={{ display: "grid", gap: "6px" }}>
-                <label style={{
-                  alignItems: "center", color: "var(--navy-950)",
-                  display: "flex", fontSize: "0.85rem", fontWeight: 800, gap: "6px"
-                }}>
-                  <MessageSquareText size={15} aria-hidden /> Nota opzionale
-                </label>
-                <textarea className="input" value={text} onChange={(e) => setText(e.target.value)} />
-              </div>
+            <div style={{ display: "grid", gap: "6px" }}>
+              <label style={{ color: "var(--navy-950)", fontSize: "0.88rem", fontWeight: 800 }}>Argomento del percorso</label>
+              <input className="input" value={topic} onChange={(event) => setTopic(event.target.value)} required />
+            </div>
+
+            <div style={{ display: "grid", gap: "6px" }}>
+              <label style={{ alignItems: "center", color: "var(--navy-950)", display: "flex", fontSize: "0.88rem", fontWeight: 800, gap: "6px" }}>
+                <MessageSquareText size={15} aria-hidden /> Nota opzionale
+              </label>
+              <textarea className="input" value={text} onChange={(event) => setText(event.target.value)} />
             </div>
           </div>
 
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
-            <button className="button dark" type="submit" style={{ gap: "8px", minWidth: "200px" }}>
+            <button className="button dark" type="submit" disabled={!isComplete} style={{ gap: "8px", minWidth: "200px" }}>
               <Star size={16} aria-hidden /> Invia feedback
             </button>
           </div>

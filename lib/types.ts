@@ -67,9 +67,9 @@ export type MatchCandidate = {
   nickname: string | null;
   level: string;
   match_score: number;
-  competence_score: number;
+  public_badges?: string[];
   is_recommended: boolean;
-  reason: string;
+  reason_summary: string;
 };
 
 export type PublicProfile = {
@@ -79,6 +79,7 @@ export type PublicProfile = {
   is_coach: boolean;
   completed_paths: number;
   public_badges: string[];
+  top_topics: string[];
   aggregate_metrics: Record<string, unknown>;
 };
 
@@ -90,8 +91,6 @@ export type MatchRequestItem = {
   goal_id: string;
   expires_at: string;
   reason?: string | null;
-  snapshot_score?: number;
-  snapshot_reason?: string | null;
   mentor?: UserSummary | null;
   mentee?: UserSummary | null;
   goal?: Goal | null;

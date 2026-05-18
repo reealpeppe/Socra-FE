@@ -1,32 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
 import { ClientApiError, clientGet, clientPost } from "@/lib/api";
-import type { MatchRequestItem } from "@/lib/types";
+import type { MatchRequestItem, UserMe } from "@/lib/types";
 
-const STATUS = {
-  open:             { bg: "var(--blue-100)",   color: "var(--blue-600)",  label: "Aperto" },
-  pending:          { bg: "var(--orange-100)", color: "#b07d1a",          label: "In attesa" },
-  feedback_pending: { bg: "var(--orange-100)", color: "#b07d1a",          label: "Feedback" },
-  completed:        { bg: "var(--mint-100)",   color: "var(--mint-600)",  label: "Completato" },
-  accepted:         { bg: "var(--mint-100)",   color: "var(--mint-600)",  label: "Accettata" },
-  rejected:         { bg: "#fee2e2",           color: "#dc2626",          label: "Rifiutata" },
-  expired:          { bg: "var(--line)",       color: "var(--muted)",     label: "Scaduta" },
-} as const;
-
-function StatusBadge({ status }: { status: string }) {
-  const s = STATUS[status as keyof typeof STATUS] || { bg: "var(--line)", color: "var(--muted)", label: status };
-  return (
-    <span style={{
-      background: s.bg, color: s.color,
-      borderRadius: "999px", fontSize: "0.75rem", fontWeight: 800,
-      padding: "4px 10px", whiteSpace: "nowrap"
-    }}>{s.label}</span>
-  );
-}
+const STATUS_LABELS: Record<string, { label: string; className: string }> = {
+  pending: { label: "In attesa", className: "amber" },
+  accepted: { label: "Accettata", className: "green" },
+  rejected: { label: "Rifiutata", className: "danger" },
+  expired: { label: "Scaduta", className: "" }
+};
 
 export default function RequestsPage() {
   return (
@@ -39,16 +26,26 @@ export default function RequestsPage() {
 }
 
 function RequestsContent() {
+  const [me, setMe] = useState<UserMe | null>(null);
   const [requests, setRequests] = useState<MatchRequestItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [tab, setTab] = useState<"received" | "sent">("received");
+  const [loading, setLoading] = useState(true);
 
   async function load() {
+    setError(null);
     try {
-      setRequests(await clientGet<MatchRequestItem[]>("/matching/requests/me?role=all"));
+      const [user, items] = await Promise.all([
+        clientGet<UserMe>("/auth/me"),
+        clientGet<MatchRequestItem[]>("/matching/requests/me?role=all")
+      ]);
+      setMe(user);
+      setRequests(Array.isArray(items) ? items : []);
     } catch (err) {
       setError(err instanceof ClientApiError ? err.message : "Richieste non disponibili");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -61,201 +58,291 @@ function RequestsContent() {
     setMessage(null);
     try {
       await clientPost(`/matching/requests/${id}/respond`, { accept });
-      setMessage(accept ? "Richiesta accettata. Percorso aperto." : "Richiesta rifiutata.");
+      setMessage(accept ? "Richiesta accettata. Il percorso è aperto." : "Richiesta rifiutata.");
       await load();
     } catch (err) {
       setError(err instanceof ClientApiError ? err.message : "Risposta non salvata");
     }
   }
 
-  // Determine sent vs received by mentor_id presence heuristic:
-  // received = requests where the current user is the mentor (mentor sees pending ones to act on)
-  // We use snapshot_reason or role from the API — since API returns all, we split by direction.
-  // The existing code didn't differentiate; we introduce a tab filter as a UI layer.
-  // "Ricevute" = status pending (action needed) or accepted from the mentor side
-  // "Inviate" = requests initiated by the mentee (sent out)
-  // Since we don't have a role field in MatchRequestItem, we split heuristically:
-  // pending items most likely are received; others are sent — we show all in both tabs
-  // but filter: "received" = pending, "sent" = non-pending.
-  const received = requests.filter((r) => r.status === "pending" || r.status === "accepted");
-  const sent = requests.filter((r) => r.status !== "pending" && r.status !== "accepted");
+  const received = useMemo(
+    () => requests.filter((request) => request.mentor_id === me?.id),
+    [requests, me?.id]
+  );
+  const sent = useMemo(
+    () => requests.filter((request) => request.mentee_id === me?.id),
+    [requests, me?.id]
+  );
   const displayed = tab === "received" ? received : sent;
 
   return (
-    <div style={{ display: "grid", gap: "24px" }}>
-      {/* Page header */}
-      <div>
-        <h1 style={{ color: "var(--navy-950)", fontSize: "clamp(1.6rem, 3vw, 2.4rem)", margin: "0 0 4px" }}>
-          Richieste di matching
-        </h1>
-        <p style={{ color: "var(--muted)", margin: 0 }}>
-          Il mentor vede livello e goal solo nel contesto della richiesta.
-        </p>
+    <div className="requests-page">
+      <div className="requests-header">
+        <div>
+          <p className="eyebrow">Matching</p>
+          <h1>Richieste mentor</h1>
+          <p className="muted">Il percorso si apre solo quando il mentor accetta la richiesta.</p>
+        </div>
+        <Link href="/matching" className="button secondary">Trova un mentor</Link>
       </div>
 
-      {/* Stats row */}
-      <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-        <div className="card" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 20px", minWidth: "140px" }}>
-          <div>
-            <p style={{ color: "var(--muted)", fontSize: "0.75rem", fontWeight: 800, letterSpacing: "0.08em", margin: "0 0 2px", textTransform: "uppercase" }}>Totale</p>
-            <strong style={{ color: "var(--navy-950)", fontSize: "1.6rem", lineHeight: 1 }}>{requests.length}</strong>
-          </div>
-        </div>
-        <div className="card" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 20px", minWidth: "140px" }}>
-          <div>
-            <p style={{ color: "var(--muted)", fontSize: "0.75rem", fontWeight: 800, letterSpacing: "0.08em", margin: "0 0 2px", textTransform: "uppercase" }}>In attesa</p>
-            <strong style={{ color: "#b07d1a", fontSize: "1.6rem", lineHeight: 1 }}>
-              {requests.filter((r) => r.status === "pending").length}
-            </strong>
-          </div>
-        </div>
+      <div className="requests-stats">
+        <StatCard label="Ricevute" value={received.length} />
+        <StatCard label="Inviate" value={sent.length} />
+        <StatCard label="In attesa" value={requests.filter((request) => request.status === "pending").length} />
       </div>
 
       {error ? <p className="error">{error}</p> : null}
       {message ? <p className="success">{message}</p> : null}
 
-      {/* Tabs */}
-      <div style={{ borderBottom: "2px solid var(--line)", display: "flex", gap: "0" }}>
-        {(["received", "sent"] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setTab(t)}
-            style={{
-              background: "none",
-              border: "none",
-              borderBottom: tab === t ? "2px solid var(--navy-950)" : "2px solid transparent",
-              color: tab === t ? "var(--navy-950)" : "var(--muted)",
-              cursor: "pointer",
-              fontWeight: tab === t ? 800 : 600,
-              fontSize: "0.9rem",
-              marginBottom: "-2px",
-              padding: "10px 20px",
-              transition: "color 0.15s",
-            }}
-          >
-            {t === "received" ? `Ricevute (${received.length})` : `Inviate (${sent.length})`}
-          </button>
-        ))}
+      <div className="requests-tabs" role="tablist" aria-label="Richieste">
+        <button className={tab === "received" ? "active" : ""} type="button" onClick={() => setTab("received")}>
+          Ricevute ({received.length})
+        </button>
+        <button className={tab === "sent" ? "active" : ""} type="button" onClick={() => setTab("sent")}>
+          Inviate ({sent.length})
+        </button>
       </div>
 
-      {/* List */}
-      {displayed.length === 0 ? (
-        <div className="card" style={{
-          alignItems: "center", borderStyle: "dashed", boxShadow: "none",
-          display: "flex", flexDirection: "column", gap: "8px", padding: "48px 24px", textAlign: "center"
-        }}>
-          <p style={{ color: "var(--muted)", fontWeight: 700, margin: 0 }}>Nessuna richiesta</p>
-          <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0 }}>
-            Le richieste {tab === "received" ? "ricevute" : "inviate"} appariranno qui.
-          </p>
+      {loading ? (
+        <div className="card requests-empty"><p className="muted">Caricamento richieste...</p></div>
+      ) : displayed.length === 0 ? (
+        <div className="card requests-empty">
+          <strong>Nessuna richiesta</strong>
+          <p className="muted">Le richieste {tab === "received" ? "ricevute" : "inviate"} appariranno qui.</p>
         </div>
       ) : (
-        <div style={{ display: "grid", gap: "12px" }}>
-          {displayed.map((request) => {
-            const nickname = request.mentor?.nickname || request.mentee?.nickname || "Utente";
-            const goalTag = request.goal?.goal_tag || "Richiesta percorso";
-            const topic = request.goal?.topic || "";
-            const isReceived = tab === "received";
-
-            return (
-              <div
-                key={request.id}
-                style={{
-                  background: "var(--card)",
-                  border: "1px solid var(--line)",
-                  borderRadius: "var(--radius-lg)",
-                  padding: "16px 20px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "12px",
-                  boxShadow: "var(--shadow-tight)"
-                }}
-              >
-                {/* Top row: avatar+name, goal, status */}
-                <div style={{
-                  display: "flex", alignItems: "center", gap: "12px",
-                  justifyContent: "space-between", flexWrap: "wrap"
-                }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-                    {/* Avatar circle */}
-                    <div style={{
-                      alignItems: "center",
-                      background: "linear-gradient(180deg, #153255, #07172d)",
-                      borderRadius: "999px",
-                      color: "white",
-                      display: "inline-flex",
-                      flexShrink: 0,
-                      fontWeight: 800,
-                      height: "40px",
-                      justifyContent: "center",
-                      width: "40px",
-                      fontSize: "0.9rem"
-                    }}>
-                      {nickname.slice(0, 1).toUpperCase()}
-                    </div>
-                    <div>
-                      <p style={{ fontWeight: 700, margin: 0 }}>{nickname}</p>
-                      {topic && (
-                        <p style={{ color: "var(--muted)", fontSize: "0.8rem", margin: 0 }}>{topic}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
-                    {/* Goal tag pill */}
-                    <span style={{
-                      background: "var(--blue-100)", color: "var(--blue-600)",
-                      borderRadius: "999px", fontSize: "0.75rem", fontWeight: 700,
-                      padding: "4px 10px", whiteSpace: "nowrap"
-                    }}>
-                      {goalTag}
-                    </span>
-                    <StatusBadge status={request.status} />
-                  </div>
-                </div>
-
-                {/* Snapshot reason if present */}
-                {request.snapshot_reason ? (
-                  <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0 }}>{request.snapshot_reason}</p>
-                ) : null}
-
-                {/* Meta row */}
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                  <span style={{ color: "var(--muted)", fontSize: "0.8rem" }}>
-                    Mentor: <strong style={{ color: "var(--ink)" }}>{request.mentor?.nickname || request.mentor_id}</strong>
-                  </span>
-                  <span style={{ color: "var(--muted)", fontSize: "0.8rem" }}>
-                    &nbsp;·&nbsp; Mentee: <strong style={{ color: "var(--ink)" }}>{request.mentee?.nickname || request.mentee_id}</strong>
-                  </span>
-                </div>
-
-                {/* Action buttons — only for received + pending */}
-                {isReceived && request.status === "pending" ? (
-                  <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-                    <button
-                      className="button dark"
-                      type="button"
-                      onClick={() => respond(request.id, true)}
-                      style={{ gap: "6px" }}
-                    >
-                      <CheckCircle2 size={16} aria-hidden /> Accetta
-                    </button>
-                    <button
-                      className="button secondary"
-                      type="button"
-                      onClick={() => respond(request.id, false)}
-                      style={{ gap: "6px" }}
-                    >
-                      <XCircle size={16} aria-hidden /> Rifiuta
-                    </button>
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
+        <div className="requests-list">
+          {displayed.map((request) => (
+            <RequestRow
+              key={request.id}
+              request={request}
+              isReceived={tab === "received"}
+              onRespond={respond}
+            />
+          ))}
         </div>
       )}
+
+      <RequestsStyles />
     </div>
+  );
+}
+
+function StatCard({ label, value }: { label: string; value: number }) {
+  return (
+    <div className="card requests-stat">
+      <p>{label}</p>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function RequestRow({
+  request,
+  isReceived,
+  onRespond
+}: {
+  request: MatchRequestItem;
+  isReceived: boolean;
+  onRespond: (id: string, accept: boolean) => void;
+}) {
+  const person = isReceived ? request.mentee : request.mentor;
+  const personName = person?.nickname || person?.username || "Utente Socra";
+  const status = STATUS_LABELS[request.status] || { label: request.status, className: "" };
+
+  return (
+    <article className="requests-row">
+      <div className="requests-avatar" aria-hidden>{personName.slice(0, 1).toUpperCase()}</div>
+      <div className="requests-row-main">
+        <div className="requests-row-head">
+          <div>
+            <h2>{personName}</h2>
+            <p className="muted">{isReceived ? "Vuole iniziare un percorso con te" : "Richiesta inviata al mentor"}</p>
+          </div>
+          <span className={`pill ${status.className}`.trim()}>{status.label}</span>
+        </div>
+        <div className="requests-goal">
+          <strong>{request.goal?.goal_tag || "Obiettivo Socra"}</strong>
+          {request.goal?.topic ? <span>{request.goal.topic}</span> : null}
+        </div>
+        <div className="requests-meta">
+          <span>Mentor: {request.mentor?.nickname || request.mentor_id}</span>
+          <span>Mentee: {request.mentee?.nickname || request.mentee_id}</span>
+        </div>
+        {isReceived && request.status === "pending" ? (
+          <div className="requests-actions">
+            <button className="button dark" type="button" onClick={() => onRespond(request.id, true)}>
+              <CheckCircle2 size={16} aria-hidden /> Accetta
+            </button>
+            <button className="button secondary" type="button" onClick={() => onRespond(request.id, false)}>
+              <XCircle size={16} aria-hidden /> Rifiuta
+            </button>
+          </div>
+        ) : null}
+      </div>
+    </article>
+  );
+}
+
+function RequestsStyles() {
+  return (
+    <style jsx global>{`
+      .requests-page {
+        display: grid;
+        gap: 20px;
+        max-width: 980px;
+      }
+
+      .requests-header {
+        align-items: flex-end;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        justify-content: space-between;
+      }
+
+      .requests-header h1 {
+        color: var(--navy-950, #07172d);
+        font-size: clamp(1.8rem, 3vw, 2.6rem);
+        margin: 0 0 6px;
+      }
+
+      .requests-stats {
+        display: grid;
+        gap: 12px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .requests-stat {
+        padding: 16px;
+      }
+
+      .requests-stat p {
+        color: var(--muted);
+        font-size: 0.75rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        margin: 0 0 4px;
+        text-transform: uppercase;
+      }
+
+      .requests-stat strong {
+        color: var(--navy-950, #07172d);
+        font-size: 1.8rem;
+      }
+
+      .requests-tabs {
+        border-bottom: 1px solid var(--line);
+        display: flex;
+        gap: 4px;
+      }
+
+      .requests-tabs button {
+        background: transparent;
+        border: 0;
+        border-bottom: 3px solid transparent;
+        color: var(--muted);
+        font-weight: 800;
+        margin-bottom: -1px;
+        padding: 12px 16px;
+      }
+
+      .requests-tabs button.active {
+        border-bottom-color: var(--gold-500, #f5b62f);
+        color: var(--navy-950, #07172d);
+      }
+
+      .requests-empty {
+        display: grid;
+        gap: 8px;
+        justify-items: center;
+        padding: 42px 20px;
+        text-align: center;
+      }
+
+      .requests-list {
+        display: grid;
+        gap: 12px;
+      }
+
+      .requests-row {
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-lg, 16px);
+        box-shadow: var(--shadow-tight, 0 10px 26px rgba(18, 35, 61, 0.06));
+        display: grid;
+        gap: 14px;
+        grid-template-columns: auto minmax(0, 1fr);
+        padding: 18px;
+      }
+
+      .requests-avatar {
+        align-items: center;
+        background: linear-gradient(180deg, #153255, #07172d);
+        border-radius: 999px;
+        color: white;
+        display: inline-flex;
+        font-weight: 900;
+        height: 44px;
+        justify-content: center;
+        width: 44px;
+      }
+
+      .requests-row-main {
+        display: grid;
+        gap: 12px;
+        min-width: 0;
+      }
+
+      .requests-row-head {
+        align-items: flex-start;
+        display: flex;
+        gap: 12px;
+        justify-content: space-between;
+      }
+
+      .requests-row-head h2 {
+        color: var(--navy-950, #07172d);
+        font-size: 1rem;
+        margin: 0 0 2px;
+      }
+
+      .requests-goal {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm, 10px);
+        display: grid;
+        gap: 2px;
+        padding: 10px 12px;
+      }
+
+      .requests-goal span,
+      .requests-meta {
+        color: var(--muted);
+        font-size: 0.82rem;
+      }
+
+      .requests-meta,
+      .requests-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      @media (max-width: 680px) {
+        .requests-stats {
+          grid-template-columns: 1fr;
+        }
+
+        .requests-row {
+          grid-template-columns: 1fr;
+        }
+
+        .requests-row-head {
+          display: grid;
+        }
+      }
+    `}</style>
   );
 }

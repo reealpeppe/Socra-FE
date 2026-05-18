@@ -18,34 +18,42 @@ import {
   Target,
   WalletCards
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { UserAvatar, LevelBadge } from "@/components/Ui";
 import { authPost, clientGet, clientPost } from "@/lib/api";
 import type { NotificationItem, UserMe } from "@/lib/types";
 
-function buildNavGroups(userId?: string, isCoach?: boolean) {
+type NavItem = {
+  id: string;
+  href: string;
+  label: string;
+  icon: LucideIcon;
+};
+
+function buildNavGroups(userId?: string, isCoach?: boolean): Array<{ label: string; items: NavItem[] }> {
   return [
     {
       label: "Mentor",
       items: [
-        { href: "/settings", label: isCoach ? "Profilo mentor" : "Diventa mentor", icon: Star },
-        { href: "/paths", label: "Percorsi da mentor", icon: Route },
-        { href: userId ? `/profiles/${userId}` : "/settings", label: "Livello e competenze", icon: BarChart2 },
+        { id: "mentor-profile", href: userId ? `/profiles/${userId}` : "/dashboard", label: isCoach ? "Profilo mentor" : "Stato mentor", icon: Star },
+        { id: "mentor-paths", href: "/paths?tab=mentor", label: "Percorsi da mentor", icon: Route },
+        { id: "levels", href: "/livelli", label: "Livelli Socra", icon: BarChart2 },
       ]
     },
     {
       label: "Mentee",
       items: [
-        { href: "/paths", label: "Percorsi da mentee", icon: GraduationCap },
-        { href: "/goal", label: "Modifica obiettivi", icon: Target },
-        { href: "/matching", label: "Trova un mentor", icon: Search },
+        { id: "mentee-paths", href: "/paths?tab=mentee", label: "Percorsi da mentee", icon: GraduationCap },
+        { id: "goals", href: "/goal", label: "Modifica obiettivi", icon: Target },
+        { id: "matching", href: "/matching", label: "Trova un mentor", icon: Search },
       ]
     },
     {
       label: "Generale",
       items: [
-        { href: "/wallet", label: "Crediti", icon: WalletCards },
-        { href: "/settings", label: "Impostazioni", icon: Settings },
+        { id: "wallet", href: "/wallet", label: "Crediti", icon: WalletCards },
+        { id: "settings", href: "/settings", label: "Impostazioni", icon: Settings },
       ]
     }
   ];
@@ -66,9 +74,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
-  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const [currentTab, setCurrentTab] = useState<string | null>(null);
   const unreadCount = useMemo(() => notifications.filter((notification) => !notification.read_at).length, [notifications]);
   const navGroups = useMemo(() => buildNavGroups(user?.id, user?.is_coach), [user?.id, user?.is_coach]);
+
+  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  const isNavActive = (item: NavItem) => {
+    if (item.id === "mentor-paths") return pathname === "/paths" && currentTab === "mentor";
+    if (item.id === "mentee-paths") return pathname === "/paths" && currentTab !== "mentor";
+    if (item.id === "settings") return pathname === "/settings";
+    if (item.id === "mentor-profile" && user?.id) return pathname === `/profiles/${user.id}`;
+    return isActive(item.href.split("?")[0]);
+  };
+
+  useEffect(() => {
+    setCurrentTab(new URLSearchParams(window.location.search).get("tab"));
+  });
 
   useEffect(() => {
     clientGet<UserMe>("/auth/me").then(setUser).catch(() => undefined);
@@ -118,7 +139,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {group.items.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <Link key={`${group.label}-${item.href}-${item.label}`} href={item.href} className={`nav-link ${isActive(item.href) ? "active" : ""}`}>
+                  <Link key={item.id} href={item.href} className={`nav-link ${isNavActive(item) ? "active" : ""}`}>
                     <Icon size={18} aria-hidden />
                     <span>{item.label}</span>
                   </Link>
@@ -128,17 +149,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
         <div className="sidebar-level-card">
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div className="sidebar-account-row">
             <UserAvatar name={user?.nickname || user?.username || "User"} size="sm" />
-            <div style={{ minWidth: 0 }}>
-              <strong style={{ display: "block", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {user?.nickname || user?.username || "Account"}
-              </strong>
-              <small>{user?.email ? user.email.slice(0, 22) + (user.email.length > 22 ? "…" : "") : "Socra"}</small>
+            <div className="sidebar-account-copy">
+              <strong>{user?.nickname || user?.username || "Account"}</strong>
+              <small>{user?.email ? user.email.slice(0, 22) + (user.email.length > 22 ? "..." : "") : "Socra"}</small>
             </div>
             <LevelBadge level={user?.level || "L0"} />
           </div>
-          <Link href={user ? `/profiles/${user.id}` : "/settings"} style={{ marginTop: "8px" }}>Vedi il tuo profilo →</Link>
+          <Link href={user ? `/profiles/${user.id}` : "/settings"}>Vedi il tuo profilo -&gt;</Link>
         </div>
       </aside>
       <div className="app-content">
@@ -147,7 +166,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="topbar-actions">
             <Link className="topbar-shortcut" href="/matching">
               <Compass size={17} aria-hidden />
-              <span>Esplora opportunita</span>
+              <span>Esplora opportunità</span>
             </Link>
             <div className="menu-wrap">
               <button className="icon-button" type="button" aria-label="Notifiche" aria-expanded={notificationsOpen} onClick={() => setNotificationsOpen((open) => !open)}>

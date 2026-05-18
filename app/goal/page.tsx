@@ -97,31 +97,31 @@ export default function GoalPage() {
               <div>
                 <p style={{ color: "var(--navy-950)", fontWeight: 800, margin: "0 0 4px" }}>Definisci il tuo obiettivo</p>
                 <p style={{ color: "var(--muted)", fontSize: "0.88rem", margin: 0 }}>
-                  Il mentor vede il livello e il goal — il capitale resta privato.
+	                  Il mentor vede livello e obiettivo; il capitale resta privato.
                 </p>
               </div>
 
               <div style={{ display: "grid", gap: "16px", gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
                 <SelectField
-                  label="D1 — Area"
+	                  label="Area di interesse"
                   value={form.topic}
                   onChange={updateTopic}
                   options={availableTopics}
                 />
                 <SelectField
-                  label="D2 — Obiettivo concreto"
+	                  label="Obiettivo concreto"
                   value={form.goal_tag}
                   onChange={(value) => setForm({ ...form, goal_tag: value })}
                   options={availableGoals}
                 />
                 <SelectField
-                  label="D3 — Capitale"
+	                  label="Capitale indicativo"
                   value={form.capital_goal}
                   onChange={(value) => setForm({ ...form, capital_goal: value })}
                   options={availableCapital}
                 />
                 <SelectField
-                  label="D4 — Profilo di rischio"
+	                  label="Profilo di rischio"
                   value={form.risk}
                   onChange={(value) => setForm({ ...form, risk: value })}
                   options={riskOptions}
@@ -136,8 +136,8 @@ export default function GoalPage() {
             border: "1px solid rgba(245,182,47,0.3)", borderRadius: "var(--radius-sm)",
             color: "var(--muted)", display: "flex", fontSize: "0.85rem", gap: "10px", padding: "12px 16px"
           }}>
-            <span style={{ color: "var(--gold-500)", flexShrink: 0 }}>ⓘ</span>
-            Il backend salva il goal e avvia la ricerca mentor solo se tutti i dati sono validi.
+	            <span style={{ color: "var(--gold-500)", flexShrink: 0 }}>i</span>
+	            Salviamo l'obiettivo e ti proponiamo mentor coerenti solo quando i dati sono completi.
           </div>
 
           <div style={{ display: "flex", justifyContent: "flex-end" }}>

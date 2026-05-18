@@ -73,7 +73,7 @@ export default function SettingsPage() {
           <div className="settings-level-row">
             {me ? <LevelBadge level={me.level} /> : <span className="settings-field-value">-</span>}
             <p className="settings-level-text">
-              Il tuo livello riflette il percorso completato e la reputazione guadagnata su Socra.
+              Il tuo livello riflette i percorsi completati e i segnali qualitativi maturati su Socra.
               {me?.is_coach && " Sei attivo come mentor."}
             </p>
           </div>
@@ -87,7 +87,7 @@ export default function SettingsPage() {
         <div className="card settings-card">
           <h2 className="settings-section-title">Account</h2>
           <p className="settings-account-note">
-            Sessione browser con cookie httpOnly. Username, email e password come metodo di accesso.
+            Accedi con username o email e password.
           </p>
           <button className="button danger" onClick={logout}>
             <LogOut size={16} aria-hidden />
