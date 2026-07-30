@@ -1,32 +1,74 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { ButtonLink, Card } from "@/components/Ui";
-import { clientGet } from "@/lib/api";
+import { ClientApiError, clientGet } from "@/lib/api";
 
 type OnboardingState = {
   latest_answer_id: string | null;
 };
 
-export function OnboardingGate({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<"loading" | "complete" | "missing" | "error">("loading");
+type GateState = "loading" | "complete" | "missing" | "unauthenticated" | "error";
 
-  useEffect(() => {
+export function OnboardingGate({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const [state, setState] = useState<GateState>("loading");
+  const [loginHref, setLoginHref] = useState("/login");
+
+  const verify = useCallback(() => {
+    setState("loading");
     clientGet<OnboardingState>("/surveys/onboarding/me")
       .then((response) => setState(response.latest_answer_id ? "complete" : "missing"))
-      .catch(() => setState("error"));
-  }, []);
+      .catch((error) => {
+        if (error instanceof ClientApiError && error.status === 401) {
+          const search = typeof window === "undefined" ? "" : window.location.search;
+          setLoginHref(`/login?next=${encodeURIComponent(`${pathname}${search}`)}`);
+          setState("unauthenticated");
+          return;
+        }
+        setState("error");
+      });
+  }, [pathname]);
+
+  useEffect(() => {
+    verify();
+  }, [verify]);
 
   if (state === "loading") {
     return (
       <Card>
-        <p className="muted">Verifica onboarding...</p>
+        <p className="muted" role="status">Verifica onboarding…</p>
       </Card>
     );
   }
 
-  if (state === "complete") {
-    return <>{children}</>;
+  if (state === "complete") return <>{children}</>;
+
+  if (state === "unauthenticated") {
+    return (
+      <Card>
+        <div className="stack">
+          <p className="eyebrow">Sessione scaduta</p>
+          <h2>Accedi per continuare</h2>
+          <p className="muted">Dopo l&apos;accesso potrai riprendere il flusso da qui.</p>
+          <ButtonLink href={loginHref}>Vai all&apos;accesso</ButtonLink>
+        </div>
+      </Card>
+    );
+  }
+
+  if (state === "error") {
+    return (
+      <Card>
+        <div className="stack">
+          <p className="eyebrow">Verifica non disponibile</p>
+          <h2>Non riusciamo a controllare la survey</h2>
+          <p className="muted">Riprova tra poco: i flussi operativi restano protetti finché la verifica non riesce.</p>
+          <button className="button secondary" type="button" onClick={verify}>Riprova</button>
+        </div>
+      </Card>
+    );
   }
 
   return (
@@ -35,9 +77,8 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
         <p className="eyebrow">Survey obbligatoria</p>
         <h2>Completa la survey prima di continuare</h2>
         <p className="muted">
-          Puoi esplorare l&apos;app, ma goal, matching, richieste, percorsi e feedback restano bloccati finché il livello non viene salvato.
+          Obiettivo, matching, richieste, percorsi e feedback si attivano quando il livello iniziale è stato salvato.
         </p>
-        {state === "error" ? <p className="error">Non riesco a verificare lo stato onboarding.</p> : null}
         <ButtonLink href="/onboarding">Riprendi survey</ButtonLink>
       </div>
     </Card>

@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { AlertTriangle, ClipboardList, Database, ShieldAlert } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
-import { clientGet } from "@/lib/api";
+import { ClientApiError, clientGet } from "@/lib/api";
 
 type ReviewItem = {
   id: string;
@@ -63,6 +64,8 @@ function readableValue(value: unknown): string {
 export default function AdminPage() {
   const [items, setItems] = useState<ReviewItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [accessDenied, setAccessDenied] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const openItems = items.filter((item) => item.status !== "resolved" && item.status !== "closed").length;
   const highSeverityItems = items.filter((item) => ["high", "critical"].includes(item.severity.toLowerCase())).length;
@@ -70,8 +73,32 @@ export default function AdminPage() {
   useEffect(() => {
     clientGet<ReviewItem[]>("/admin/review-queue")
       .then(setItems)
-      .catch((err) => setError(err.message || "Coda admin non disponibile"));
+      .catch((err) => {
+        if (err instanceof ClientApiError && err.status === 403) {
+          setAccessDenied(true);
+          return;
+        }
+        setError(err instanceof Error ? err.message : "Coda admin non disponibile");
+      })
+      .finally(() => setLoading(false));
   }, []);
+
+  if (accessDenied) {
+    return (
+      <AppShell>
+        <section className="card" role="alert" style={{ display: "grid", gap: "12px", maxWidth: "680px" }}>
+          <ShieldAlert size={28} aria-hidden />
+          <h1 style={{ color: "var(--navy-950)", margin: 0 }}>Area riservata</h1>
+          <p className="muted" style={{ margin: 0 }}>
+            Questo account non dispone dei permessi amministrativi.
+          </p>
+          <div>
+            <Link href="/dashboard" className="button">Torna alla dashboard</Link>
+          </div>
+        </section>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>
@@ -86,8 +113,10 @@ export default function AdminPage() {
           </p>
         </div>
 
+        {loading ? <p className="muted" role="status">Caricamento coda di revisione…</p> : null}
+
         {/* Metric cards */}
-        <div style={{ display: "grid", gap: "12px", gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+        {!loading ? <div style={{ display: "grid", gap: "12px", gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
           <MetricCard
             icon={<ClipboardList size={20} aria-hidden />}
             iconBg="var(--blue-100)"
@@ -112,12 +141,12 @@ export default function AdminPage() {
             value="read"
             sub="Nessuna mutazione admin in V1"
           />
-        </div>
+        </div> : null}
 
         {error ? <p className="error">{error}</p> : null}
 
         {/* Review Queue */}
-        <div className="card">
+        {!loading ? <div className="card">
           <div style={{ display: "grid", gap: "16px" }}>
             <h2 style={{ color: "var(--navy-950)", fontSize: "1.1rem", fontWeight: 800, margin: 0 }}>
               Review Queue
@@ -222,7 +251,7 @@ export default function AdminPage() {
               </div>
             )}
           </div>
-        </div>
+        </div> : null}
       </div>
     </AppShell>
   );

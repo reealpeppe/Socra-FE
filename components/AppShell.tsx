@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BarChart2,
   Bell,
@@ -46,12 +46,13 @@ function buildNavGroups(userId?: string, isCoach?: boolean): Array<{ label: stri
       items: [
         { id: "mentee-paths", href: "/paths?tab=mentee", label: "Percorsi da mentee", icon: GraduationCap },
         { id: "goals", href: "/goal", label: "Modifica obiettivi", icon: Target },
-        { id: "matching", href: "/matching", label: "Trova un mentor", icon: Search },
+        { id: "matching", href: "/matching", label: "Matching", icon: Search },
       ]
     },
     {
       label: "Generale",
       items: [
+        { id: "requests", href: "/requests", label: "Richieste", icon: ClipboardCheck },
         { id: "wallet", href: "/wallet", label: "Crediti", icon: WalletCards },
         { id: "settings", href: "/settings", label: "Impostazioni", icon: Settings },
       ]
@@ -72,9 +73,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<UserMe | null>(null);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [notificationsError, setNotificationsError] = useState<string | null>(null);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [currentTab, setCurrentTab] = useState<string | null>(null);
+  const notificationsWrapRef = useRef<HTMLDivElement>(null);
+  const accountWrapRef = useRef<HTMLDivElement>(null);
+  const notificationsButtonRef = useRef<HTMLButtonElement>(null);
+  const accountButtonRef = useRef<HTMLButtonElement>(null);
+  const currentLocationSearch = typeof window === "undefined" ? "" : window.location.search;
   const unreadCount = useMemo(() => notifications.filter((notification) => !notification.read_at).length, [notifications]);
   const navGroups = useMemo(() => buildNavGroups(user?.id, user?.is_coach), [user?.id, user?.is_coach]);
 
@@ -86,22 +94,64 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (item.id === "mentor-profile" && user?.id) return pathname === `/profiles/${user.id}`;
     return isActive(item.href.split("?")[0]);
   };
+  const refreshNotifications = useCallback(async () => {
+    setNotificationsLoading(true);
+    try {
+      const items = await clientGet<NotificationItem[]>("/notifications/me");
+      setNotifications(Array.isArray(items) ? items : []);
+      setNotificationsError(null);
+    } catch {
+      setNotificationsError("Notifiche non aggiornate. Riprova.");
+    } finally {
+      setNotificationsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    setCurrentTab(new URLSearchParams(window.location.search).get("tab"));
-  });
+    setCurrentTab(new URLSearchParams(currentLocationSearch).get("tab"));
+  }, [pathname, currentLocationSearch]);
 
   useEffect(() => {
     clientGet<UserMe>("/auth/me").then(setUser).catch(() => undefined);
-    clientGet<NotificationItem[]>("/notifications/me")
-      .then((items) => setNotifications(Array.isArray(items) ? items : []))
-      .catch(() => setNotifications([]));
-  }, []);
+    void refreshNotifications();
+  }, [refreshNotifications]);
+
+  useEffect(() => {
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target as Node;
+      if (!notificationsWrapRef.current?.contains(target)) setNotificationsOpen(false);
+      if (!accountWrapRef.current?.contains(target)) setAccountOpen(false);
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      if (notificationsOpen) {
+        setNotificationsOpen(false);
+        notificationsButtonRef.current?.focus();
+      }
+      if (accountOpen) {
+        setAccountOpen(false);
+        accountButtonRef.current?.focus();
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [accountOpen, notificationsOpen]);
 
   async function markNotificationRead(notification: NotificationItem) {
     if (!notification.read_at) {
-      await clientPost(`/notifications/${notification.id}/read`).catch(() => undefined);
-      setNotifications((current) => current.map((item) => item.id === notification.id ? { ...item, read_at: new Date().toISOString() } : item));
+      try {
+        await clientPost(`/notifications/${notification.id}/read`);
+        setNotifications((current) => current.map((item) => item.id === notification.id ? { ...item, read_at: new Date().toISOString() } : item));
+        setNotificationsError(null);
+      } catch {
+        setNotificationsError("Non siamo riusciti a segnare la notifica come letta.");
+      }
     }
     const link = notification.payload.link;
     if (typeof link === "string") {
@@ -111,9 +161,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   async function markAllRead() {
-    await clientPost("/notifications/read-all").catch(() => undefined);
-    const now = new Date().toISOString();
-    setNotifications((current) => current.map((notification) => ({ ...notification, read_at: notification.read_at || now })));
+    try {
+      await clientPost("/notifications/read-all");
+      const now = new Date().toISOString();
+      setNotifications((current) => current.map((notification) => ({ ...notification, read_at: notification.read_at || now })));
+      setNotificationsError(null);
+    } catch {
+      setNotificationsError("Non siamo riusciti a segnare le notifiche come lette.");
+    }
   }
 
   async function logout() {
@@ -124,6 +179,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="app-shell">
+      <a className="skip-link" href="#main-content">Vai al contenuto principale</a>
       <aside className="sidebar">
         <Link className="sidebar-brand-link" href="/dashboard" aria-label="Socra">
           <Brand variant="light" />
@@ -139,7 +195,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {group.items.map((item) => {
                 const Icon = item.icon;
                 return (
-                  <Link key={item.id} href={item.href} className={`nav-link ${isNavActive(item) ? "active" : ""}`}>
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    className={`nav-link ${isNavActive(item) ? "active" : ""}`}
+                    aria-current={isNavActive(item) ? "page" : undefined}
+                  >
                     <Icon size={18} aria-hidden />
                     <span>{item.label}</span>
                   </Link>
@@ -153,7 +214,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <UserAvatar name={user?.nickname || user?.username || "User"} size="sm" />
             <div className="sidebar-account-copy">
               <strong>{user?.nickname || user?.username || "Account"}</strong>
-              <small>{user?.email ? user.email.slice(0, 22) + (user.email.length > 22 ? "..." : "") : "Socra"}</small>
+              <small>{user?.email ? user.email.slice(0, 22) + (user.email.length > 22 ? "…" : "") : "Socra"}</small>
             </div>
             <LevelBadge level={user?.level || "L0"} />
           </div>
@@ -166,20 +227,48 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="topbar-actions">
             <Link className="topbar-shortcut" href="/matching">
               <Compass size={17} aria-hidden />
-              <span>Esplora opportunità</span>
+              <span>Trova mentor compatibili</span>
             </Link>
-            <div className="menu-wrap">
-              <button className="icon-button" type="button" aria-label="Notifiche" aria-expanded={notificationsOpen} onClick={() => setNotificationsOpen((open) => !open)}>
+            <div className="menu-wrap" ref={notificationsWrapRef}>
+              <button
+                ref={notificationsButtonRef}
+                className="icon-button"
+                type="button"
+                aria-label="Notifiche"
+                aria-expanded={notificationsOpen}
+                aria-controls="notifications-menu"
+                aria-haspopup="dialog"
+                onClick={() => {
+                  setAccountOpen(false);
+                  setNotificationsOpen((open) => {
+                    const nextOpen = !open;
+                    if (nextOpen) void refreshNotifications();
+                    return nextOpen;
+                  });
+                }}
+              >
                 <Bell size={19} aria-hidden />
                 {unreadCount > 0 ? <span className="badge">{unreadCount}</span> : null}
               </button>
               {notificationsOpen ? (
-                <div className="dropdown notifications-menu">
+                <div id="notifications-menu" className="dropdown notifications-menu" role="dialog" aria-label="Notifiche">
                   <div className="row">
                     <p className="eyebrow">Notifiche</p>
-                    <button className="text-button" type="button" onClick={markAllRead}>Segna lette</button>
+                    <button className="text-button" type="button" onClick={markAllRead} disabled={unreadCount === 0 || notificationsLoading}>
+                      Segna lette
+                    </button>
                   </div>
-                  {notifications.length === 0 ? (
+                  {notificationsError ? (
+                    <div className="notification-error" role="alert">
+                      <span>{notificationsError}</span>
+                      <button className="text-button" type="button" onClick={() => void refreshNotifications()}>
+                        Riprova
+                      </button>
+                    </div>
+                  ) : null}
+                  {notificationsLoading && notifications.length === 0 ? (
+                    <p className="muted" role="status">Aggiornamento notifiche…</p>
+                  ) : notifications.length === 0 ? (
                     <p className="muted">Nessuna notifica.</p>
                   ) : (
                     <div className="notification-list">
@@ -199,13 +288,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </div>
               ) : null}
             </div>
-            <div className="menu-wrap">
+            <div className="menu-wrap" ref={accountWrapRef}>
               <button
+                ref={accountButtonRef}
                 className="account-button"
                 type="button"
                 aria-label={user?.nickname || user?.username || "Account"}
                 aria-expanded={accountOpen}
-                onClick={() => setAccountOpen((open) => !open)}
+                aria-controls="account-menu"
+                aria-haspopup="dialog"
+                onClick={() => {
+                  setNotificationsOpen(false);
+                  setAccountOpen((open) => !open);
+                }}
               >
                 <span className="account-avatar">{(user?.nickname || user?.username || "A").slice(0, 1).toUpperCase()}</span>
                 <span className="account-copy">
@@ -214,7 +309,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 </span>
               </button>
               {accountOpen ? (
-                <div className="dropdown account-menu">
+                <div id="account-menu" className="dropdown account-menu" role="dialog" aria-label="Menu account">
                   <p className="muted">{user?.email || "Sessione attiva"}</p>
                   <button className="button secondary" type="button" onClick={logout}>
                     <LogOut size={16} aria-hidden />
@@ -225,13 +320,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </header>
-        <main className="main">{children}</main>
+        <main className="main" id="main-content" tabIndex={-1}>{children}</main>
       </div>
       <nav className="mobile-nav" aria-label="Navigazione mobile">
         {mobileNav.map((item) => {
           const Icon = item.icon;
           return (
-            <Link key={item.href} href={item.href} className={isActive(item.href) ? "active" : ""}>
+            <Link
+              key={item.href}
+              href={item.href}
+              className={isActive(item.href) ? "active" : ""}
+              aria-current={isActive(item.href) ? "page" : undefined}
+            >
               <Icon size={18} aria-hidden />
               <span>{item.label}</span>
             </Link>

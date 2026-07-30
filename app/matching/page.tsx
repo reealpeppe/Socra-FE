@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
@@ -14,7 +14,7 @@ export default function MatchingPage() {
   return (
     <AppShell>
       <OnboardingGate>
-        <Suspense fallback={<div className="card"><p className="muted">Caricamento matching...</p></div>}>
+        <Suspense fallback={<div className="card"><p className="muted" role="status">Caricamento matching…</p></div>}>
           <MatchingContent />
         </Suspense>
       </OnboardingGate>
@@ -23,6 +23,7 @@ export default function MatchingPage() {
 }
 
 function MatchingContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const goalIdFromQuery = searchParams.get("goalId");
   const [me, setMe] = useState<UserMe | null>(null);
@@ -31,9 +32,13 @@ function MatchingContent() {
   const [loading, setLoading] = useState(true);
   const [loadingCandidates, setLoadingCandidates] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [candidateError, setCandidateError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [requestedMentors, setRequestedMentors] = useState<Set<string>>(new Set());
-  const [filter, setFilter] = useState<"all" | "top">("all");
+  const [requestStateReady, setRequestStateReady] = useState(false);
+  const [pendingMentors, setPendingMentors] = useState<Set<string>>(new Set());
+  const [retryVersion, setRetryVersion] = useState(0);
+  const filter = searchParams.get("view") === "recommended" ? "top" : "all";
 
   useEffect(() => {
     let active = true;
@@ -41,9 +46,12 @@ function MatchingContent() {
     async function load() {
       setLoading(true);
       setError(null);
-      const [meResult, goalsResult] = await Promise.allSettled([
+      setCandidateError(null);
+      setRequestStateReady(false);
+      const [meResult, goalsResult, requestsResult] = await Promise.allSettled([
         clientGet<UserMe>("/auth/me"),
-        clientGet<GoalsMe>("/goals/me")
+        clientGet<GoalsMe>("/goals/me"),
+        clientGet<MatchRequestItem[]>("/matching/requests/me?role=mentee")
       ]);
 
       if (!active) return;
@@ -53,6 +61,17 @@ function MatchingContent() {
       setMe(fetchedMe);
       setGoals(fetchedGoals);
       setLoading(false);
+
+      if (meResult.status === "rejected") {
+        setCandidates([]);
+        setError(meResult.reason?.message || "Sessione utente non disponibile");
+        return;
+      }
+      if (!fetchedMe) {
+        setCandidates([]);
+        setError("Sessione utente non disponibile");
+        return;
+      }
 
       if (goalsResult.status === "rejected") {
         setError(goalsResult.reason?.message || "Obiettivo non disponibile");
@@ -65,19 +84,30 @@ function MatchingContent() {
         return;
       }
 
+      if (requestsResult.status === "fulfilled") {
+        const pendingIds = (Array.isArray(requestsResult.value) ? requestsResult.value : [])
+          .filter((request) => request.status === "pending" && request.goal_id === selectedGoal.id)
+          .map((request) => request.mentor_id);
+        setRequestedMentors(new Set(pendingIds));
+        setRequestStateReady(true);
+      } else {
+        setRequestedMentors(new Set());
+        setError(requestsResult.reason?.message || "Richieste già inviate non disponibili. Riprova prima di inviarne una nuova.");
+      }
+
       setLoadingCandidates(true);
       clientPost<MatchCandidate[]>("/matching/candidates", { goal_id: selectedGoal.id })
         .then((items) => {
           if (!active) return;
           const safeItems = Array.isArray(items)
-            ? items.filter((item) => item.mentor_id !== fetchedMe?.id)
+            ? items.filter((item) => item.mentor_id !== fetchedMe.id).slice(0, 10)
             : [];
           setCandidates(safeItems);
         })
         .catch((err) => {
           if (!active) return;
           setCandidates([]);
-          setError(err?.message || "Matching non disponibile");
+          setCandidateError(err instanceof ClientApiError ? err.message : "Matching non disponibile");
         })
         .finally(() => {
           if (active) setLoadingCandidates(false);
@@ -88,27 +118,44 @@ function MatchingContent() {
     return () => {
       active = false;
     };
-  }, [goalIdFromQuery]);
+  }, [goalIdFromQuery, retryVersion]);
 
   const activeGoal = useMemo(() => pickGoal(goals, goalIdFromQuery), [goals, goalIdFromQuery]);
   const filteredCandidates = filter === "top"
-    ? candidates.filter((candidate) => candidate.match_score >= 70)
+    ? candidates.filter((candidate) => candidate.is_recommended)
     : candidates;
+  const hasRecommendedCandidates = candidates.some((candidate) => candidate.is_recommended);
+  const hasAvailabilityFallback = candidates.some((candidate) => candidate.availability_fallback);
 
   async function requestMentor(candidate: MatchCandidate) {
-    if (!activeGoal?.id || candidate.mentor_id === me?.id) return;
+    if (!activeGoal?.id || !requestStateReady || candidate.mentor_id === me?.id || pendingMentors.has(candidate.mentor_id)) return;
     setError(null);
     setMessage(null);
+    setPendingMentors((current) => new Set(current).add(candidate.mentor_id));
     try {
       await clientPost<MatchRequestItem>("/matching/requests", {
         mentor_id: candidate.mentor_id,
         goal_id: activeGoal.id
       });
       setRequestedMentors((prev) => new Set(prev).add(candidate.mentor_id));
-      setMessage("Richiesta inviata, attendi la risposta del mentor.");
+      setMessage("Richiesta inviata. Il mentor ha 48 ore per rispondere.");
     } catch (err) {
       setError(err instanceof ClientApiError ? err.message : "Richiesta non inviata");
+    } finally {
+      setPendingMentors((current) => {
+        const next = new Set(current);
+        next.delete(candidate.mentor_id);
+        return next;
+      });
     }
+  }
+
+  function setFilter(next: "all" | "top") {
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === "top") params.set("view", "recommended");
+    else params.delete("view");
+    const query = params.toString();
+    router.replace(`/matching${query ? `?${query}` : ""}`);
   }
 
   return (
@@ -116,28 +163,34 @@ function MatchingContent() {
       <div className="matching-header">
         <div>
           <p className="eyebrow">Matching mentor</p>
-          <h1>I mentor piu adatti al tuo obiettivo</h1>
+          <h1>I mentor più adatti al tuo obiettivo</h1>
           <p>
             <span>Sei al</span>
             <LevelBadge level={me?.level || "L0"} />
-            <span>Mostriamo solo compatibilita finale e motivazioni leggibili.</span>
+            <span>Mostriamo solo compatibilità finale e motivazioni leggibili.</span>
           </p>
         </div>
-        <Link href="/come-funziona" className="button secondary">
-          Scopri come funziona
-        </Link>
+        <div className="cluster">
+          {me?.is_coach ? (
+            <Link href="/matching/mentees" className="button dark">Cerca mentee</Link>
+          ) : null}
+          <Link href="/come-funziona" className="button secondary">
+            Scopri come funziona
+          </Link>
+        </div>
       </div>
 
       {error ? <div className="matching-error" role="alert">{error}</div> : null}
       {message ? <div className="matching-success" role="status">{message}</div> : null}
 
       <div className="matching-layout">
-        <main className="matching-main">
+        <div className="matching-main">
           <div className="matching-filters" aria-label="Filtra mentor">
             <button
               className={`matching-filter-btn${filter === "all" ? " active" : ""}`}
               onClick={() => setFilter("all")}
               type="button"
+              aria-pressed={filter === "all"}
             >
               Tutti ({candidates.length})
             </button>
@@ -145,21 +198,54 @@ function MatchingContent() {
               className={`matching-filter-btn${filter === "top" ? " active" : ""}`}
               onClick={() => setFilter("top")}
               type="button"
+              aria-pressed={filter === "top"}
             >
-              Alta compatibilita
+              Consigliati ({candidates.filter((candidate) => candidate.is_recommended).length})
             </button>
           </div>
+
+          {!loading && !loadingCandidates && activeGoal && candidates.length > 0 && !hasRecommendedCandidates ? (
+            <div className="card" role="status">
+              <strong>Nessun profilo emerge ancora come consigliato.</strong>
+              <p className="muted">Puoi comunque confrontare i mentor disponibili leggendo con attenzione le motivazioni.</p>
+            </div>
+          ) : null}
+
+          {!loading && !loadingCandidates && hasAvailabilityFallback ? (
+            <div className="card" role="status">
+              <strong>Poche alternative disponibili in questo momento.</strong>
+              <p className="muted">
+                Abbiamo ampliato i suggerimenti per non lasciarti senza opzioni. I profili interessati sono segnalati in ogni scheda.
+              </p>
+            </div>
+          ) : null}
 
           {loading || loadingCandidates ? (
             <MatchingSkeleton />
           ) : !activeGoal ? (
             <EmptyGoal />
+          ) : candidateError ? (
+            <div className="card matching-empty" role="alert">
+              <Sparkles size={30} aria-hidden />
+              <strong>Matching temporaneamente non disponibile</strong>
+              <p className="muted">{candidateError}</p>
+              <button className="button secondary" type="button" onClick={() => setRetryVersion((value) => value + 1)}>
+                Riprova
+              </button>
+            </div>
+          ) : filter === "top" && filteredCandidates.length === 0 && candidates.length > 0 ? (
+            <div className="card matching-empty">
+              <Sparkles size={30} aria-hidden />
+              <strong>Nessun match consigliato al momento</strong>
+              <p className="muted">Sono disponibili altri mentor compatibili con il tuo livello.</p>
+              <button className="button secondary" type="button" onClick={() => setFilter("all")}>Mostra tutti i mentor</button>
+            </div>
           ) : filteredCandidates.length === 0 ? (
             <div className="card matching-empty">
               <Sparkles size={30} aria-hidden />
               <strong>Nessun mentor disponibile ora</strong>
-              <p className="muted">Riprova piu tardi o aggiorna il tuo obiettivo per ampliare le possibilita.</p>
-              <Link href="/goal" className="button secondary">Modifica obiettivo</Link>
+              <p className="muted">Riprova più tardi o aggiorna il tuo obiettivo per ampliare le possibilità.</p>
+              <Link href="/goal?edit=1" className="button secondary">Modifica obiettivo</Link>
             </div>
           ) : (
             <div className="matching-list">
@@ -168,19 +254,21 @@ function MatchingContent() {
                   key={candidate.mentor_id}
                   candidate={candidate}
                   requested={requestedMentors.has(candidate.mentor_id)}
+                  pending={pendingMentors.has(candidate.mentor_id)}
+                  requestStateReady={requestStateReady}
                   onRequest={() => requestMentor(candidate)}
                 />
               ))}
             </div>
           )}
-        </main>
+        </div>
 
         <aside className="matching-sidebar">
           <div className="card stack">
-            <p className="eyebrow">Criteri visibili</p>
+            <p className="eyebrow">Una lettura semplice</p>
             <h3>Come leggere il match</h3>
             <p className="muted">
-              La percentuale sintetizza la compatibilita con obiettivo, livello e disponibilita del mentor. I dettagli interni restano privati.
+              La percentuale riassume la coerenza del profilo con il tuo percorso. Le formule interne non vengono esposte.
             </p>
             <Link href="/come-funziona" className="matching-sidebar-link">
               Approfondisci <ArrowRight size={14} aria-hidden />
@@ -192,7 +280,7 @@ function MatchingContent() {
               <p className="eyebrow">Obiettivo attivo</p>
               <h3>{activeGoal.goal_tag}</h3>
               <p className="muted">{activeGoal.topic}</p>
-              <Link href="/goal" className="matching-sidebar-link">
+              <Link href="/goal?edit=1" className="matching-sidebar-link">
                 Modifica <ArrowRight size={14} aria-hidden />
               </Link>
             </div>
@@ -209,9 +297,11 @@ function pickGoal(goals: GoalsMe | null, requestedId: string | null): Goal | nul
   if (!goals) return null;
   if (requestedId) {
     const fromList = goals.goals.find((goal) => goal.id === requestedId);
-    if (fromList) return fromList;
+    if (fromList && fromList.is_active !== false) return fromList;
   }
-  return goals.active_goal || goals.current || null;
+  const current = goals.active_goal || goals.current || null;
+  if (!current || current.is_active === false) return null;
+  return current;
 }
 
 function MatchingSkeleton() {
@@ -229,31 +319,33 @@ function EmptyGoal() {
     <div className="card matching-empty">
       <Sparkles size={30} aria-hidden />
       <strong>Definisci prima il tuo obiettivo</strong>
-      <p className="muted">Il matching parte da un obiettivo attivo: cosi possiamo proporti mentor davvero coerenti.</p>
+      <p className="muted">Il matching parte da un obiettivo attivo: così possiamo proporti mentor davvero coerenti.</p>
       <Link href="/goal" className="button">Crea il tuo obiettivo</Link>
     </div>
   );
 }
 
 function titleFromScore(score: number): string {
-  if (score >= 90) return "Match molto forte";
-  if (score >= 75) return "Match consigliato";
-  if (score >= 60) return "Buona compatibilita";
-  return "Profilo da valutare";
+  return score >= 55 ? "Match consigliato" : "Profilo compatibile per livello";
 }
 
 function MentorCandidateCard({
   candidate,
   requested,
+  pending,
+  requestStateReady,
   onRequest
 }: {
   candidate: MatchCandidate;
   requested: boolean;
+  pending: boolean;
+  requestStateReady: boolean;
   onRequest: () => void;
 }) {
   const displayName = candidate.nickname || "Mentor Socra";
   const score = Math.max(0, Math.min(100, Math.round(candidate.match_score)));
   const reason = candidate.reason_summary || "In linea con il tuo obiettivo e il tuo livello.";
+  const cost = candidate.path_cost;
 
   return (
     <article className="mentor-candidate-card">
@@ -266,12 +358,13 @@ function MentorCandidateCard({
             <div className="mcc-title-row">
               <span>{titleFromScore(candidate.match_score)}</span>
               <LevelBadge level={candidate.level} />
+              {candidate.availability_fallback ? <span className="pill amber">Disponibilità limitata</span> : null}
               {candidate.is_recommended ? <span className="pill green">Consigliato</span> : null}
             </div>
           </div>
           <div className="mcc-score-block">
             <strong>{score}%</strong>
-            <span>compatibilita</span>
+            <span>compatibilità</span>
           </div>
         </div>
 
@@ -287,11 +380,20 @@ function MentorCandidateCard({
       </div>
 
       <div className="mcc-actions">
-        <button className="mcc-request-btn" type="button" disabled={requested} onClick={onRequest}>
-          {requested ? "Richiesta inviata" : "Invia richiesta al mentor"}
+        {Number.isFinite(cost) ? (
+          <span className="mcc-cost">Costo se accetta: {cost} {cost === 1 ? "credito" : "crediti"}</span>
+        ) : null}
+        <button className="mcc-request-btn" type="button" disabled={!requestStateReady || requested || pending} onClick={onRequest}>
+          {requested
+            ? "Richiesta inviata"
+            : pending
+              ? "Invio in corso…"
+              : requestStateReady
+                ? "Invia richiesta al mentor"
+                : "Verifica richieste non disponibile"}
         </button>
         <Link
-          href={`/profiles/${candidate.mentor_id}?score=${score}&reason=${encodeURIComponent(reason)}`}
+          href={`/profiles/${candidate.mentor_id}`}
           className="mcc-profile-link"
         >
           Vedi profilo <ArrowRight size={14} aria-hidden />
@@ -511,6 +613,14 @@ function MatchingStyles() {
         justify-items: end;
       }
 
+      .mcc-cost {
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-weight: 750;
+        max-width: 180px;
+        text-align: right;
+      }
+
       .mcc-request-btn {
         background: var(--gold-500, #f5b62f);
         border: none;
@@ -565,6 +675,11 @@ function MatchingStyles() {
           grid-column: 1 / -1;
           justify-items: stretch;
           width: 100%;
+        }
+
+        .mcc-cost {
+          max-width: none;
+          text-align: left;
         }
 
         .mcc-profile-link {

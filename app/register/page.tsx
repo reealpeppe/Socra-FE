@@ -14,10 +14,7 @@ export default function RegisterPage() {
     email: "",
     password: "",
     nickname: "",
-    consent_essential: true,
-    consent_section_d: false,
-    consent_commercial: false,
-    consent_marketing: false
+    consent_essential: false
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -43,7 +40,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="auth-page">
+    <main className="auth-page" id="main-content">
       <div className="auth-card">
         <div className="auth-brand">
           <Brand variant="dark" />
@@ -51,7 +48,7 @@ export default function RegisterPage() {
 	        <h1 className="auth-title">Crea il tuo account</h1>
 	        <p className="auth-sub">Inizia il tuo percorso Socra. Per ora usi email o username e password, senza codici SMS.</p>
 
-        {error && <div className="auth-error">{error}</div>}
+        {error && <div className="auth-error" role="alert">{error}</div>}
 
         <form className="auth-form" onSubmit={onSubmit}>
           <div className="auth-grid-two">
@@ -59,11 +56,13 @@ export default function RegisterPage() {
               <label className="auth-label" htmlFor="username">Username</label>
               <input
                 id="username"
+                name="username"
                 className="input"
                 value={form.username}
                 onChange={(e) => update("username", e.target.value)}
                 minLength={3}
                 autoComplete="username"
+                spellCheck={false}
                 required
               />
             </div>
@@ -71,6 +70,7 @@ export default function RegisterPage() {
               <label className="auth-label" htmlFor="nickname">Nome visibile</label>
               <input
                 id="nickname"
+                name="nickname"
                 className="input"
                 value={form.nickname}
                 onChange={(e) => update("nickname", e.target.value)}
@@ -83,11 +83,13 @@ export default function RegisterPage() {
             <label className="auth-label" htmlFor="email">Email</label>
             <input
               id="email"
+              name="email"
               className="input"
               type="email"
               value={form.email}
               onChange={(e) => update("email", e.target.value)}
               autoComplete="email"
+              spellCheck={false}
               required
             />
           </div>
@@ -97,11 +99,14 @@ export default function RegisterPage() {
             <div className="auth-password-row">
               <input
                 id="password"
+                name="password"
                 className="input"
                 type={showPassword ? "text" : "password"}
                 value={form.password}
                 onChange={(e) => update("password", e.target.value)}
                 minLength={10}
+                pattern="(?=.*[A-Za-z])(?=.*[0-9]).{10,}"
+                title="Usa almeno 10 caratteri, con almeno una lettera e un numero."
                 autoComplete="new-password"
                 required
               />
@@ -111,47 +116,36 @@ export default function RegisterPage() {
                 onClick={() => setShowPassword((current) => !current)}
                 aria-label={showPassword ? "Nascondi password" : "Mostra password"}
               >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
               </button>
             </div>
+            <p className="auth-password-hint">Almeno 10 caratteri, con almeno una lettera e un numero.</p>
           </div>
 
           <div className="auth-consents">
             <label className="auth-check">
               <input
+                name="consent_essential"
                 type="checkbox"
                 checked={form.consent_essential}
                 onChange={(e) => update("consent_essential", e.target.checked)}
                 required
               />
-              <span>Accetto il trattamento essenziale per usare Socra.</span>
+              <span>Accetto i Termini della community e dichiaro di aver letto l&apos;informativa privacy (obbligatorio).</span>
             </label>
-            <label className="auth-check">
-              <input
-                type="checkbox"
-                checked={form.consent_section_d}
-                onChange={(e) => update("consent_section_d", e.target.checked)}
-              />
-              <span>Consento l&apos;uso aggregato dei dati opzionali della sezione D.</span>
-            </label>
-            <label className="auth-check">
-              <input
-                type="checkbox"
-                checked={form.consent_marketing}
-                onChange={(e) => update("consent_marketing", e.target.checked)}
-              />
-              <span>Consenso marketing opzionale.</span>
-            </label>
+            <p className="auth-consent-note">
+              Non ti chiediamo consensi facoltativi in anticipo: ogni scelta verrà proposta solo quando servirà davvero.
+            </p>
           </div>
 
           <button
             type="submit"
             className="button dark"
             style={{ width: "100%" }}
-            disabled={loading}
+            disabled={loading || !form.consent_essential}
             aria-busy={loading}
           >
-            {loading ? "Creazione..." : "Crea account"}
+            {loading ? "Creazione…" : "Crea account"}
           </button>
         </form>
 
@@ -221,6 +215,11 @@ export default function RegisterPage() {
         .auth-password-row .input {
           flex: 1;
         }
+        .auth-password-hint {
+          color: var(--muted);
+          font-size: 0.78rem;
+          margin: 6px 0 0;
+        }
         .auth-consents {
           display: grid;
           gap: 10px;
@@ -239,6 +238,14 @@ export default function RegisterPage() {
           margin-top: 2px;
           flex-shrink: 0;
           accent-color: var(--navy-950);
+        }
+        .auth-consent-note {
+          border-left: 2px solid var(--gold-500);
+          color: var(--muted);
+          font-size: 0.78rem;
+          line-height: 1.5;
+          margin: 0 0 0 2px;
+          padding-left: 12px;
         }
         .auth-error {
           background: #fee2e2;
@@ -263,7 +270,15 @@ export default function RegisterPage() {
         .auth-footer a:hover {
           text-decoration: underline;
         }
+        @media (max-width: 560px) {
+          .auth-card {
+            padding: 28px 20px;
+          }
+          .auth-grid-two {
+            grid-template-columns: 1fr;
+          }
+        }
       `}</style>
-    </div>
+    </main>
   );
 }

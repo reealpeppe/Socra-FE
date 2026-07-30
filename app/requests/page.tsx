@@ -2,18 +2,46 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
 import { ClientApiError, clientGet, clientPost } from "@/lib/api";
 import type { MatchRequestItem, UserMe } from "@/lib/types";
 
+type MatchRespondResult = {
+  id: string;
+  status: string;
+};
+
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   pending: { label: "In attesa", className: "amber" },
   accepted: { label: "Accettata", className: "green" },
   rejected: { label: "Rifiutata", className: "danger" },
-  expired: { label: "Scaduta", className: "" }
+  expired: { label: "Scaduta", className: "" },
+  expired_by_timeout: { label: "Scaduta", className: "" }
 };
+
+const expiryFormatter = new Intl.DateTimeFormat("it-IT", {
+  day: "2-digit",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit"
+});
+
+function requestTiming(request: MatchRequestItem): string | null {
+  const terminalTimestamp = request.updated_at || request.created_at;
+  const timestamp = request.status === "pending" || request.status.startsWith("expired")
+    ? request.expires_at
+    : terminalTimestamp;
+  if (!timestamp || Number.isNaN(new Date(timestamp).getTime())) return null;
+  const formatted = expiryFormatter.format(new Date(timestamp));
+  if (request.status === "pending") return `Scade il: ${formatted}`;
+  if (request.status.startsWith("expired")) return `Scaduta il: ${formatted}`;
+  if (request.status === "accepted") return `Accettata il: ${formatted}`;
+  if (request.status === "rejected") return `Rifiutata il: ${formatted}`;
+  return null;
+}
 
 export default function RequestsPage() {
   return (
@@ -26,12 +54,14 @@ export default function RequestsPage() {
 }
 
 function RequestsContent() {
+  const router = useRouter();
   const [me, setMe] = useState<UserMe | null>(null);
   const [requests, setRequests] = useState<MatchRequestItem[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [tab, setTab] = useState<"received" | "sent">("received");
   const [loading, setLoading] = useState(true);
+  const [pendingResponses, setPendingResponses] = useState<Set<string>>(new Set());
 
   async function load() {
     setError(null);
@@ -50,27 +80,64 @@ function RequestsContent() {
   }
 
   useEffect(() => {
+    const requestedTab = new URLSearchParams(window.location.search).get("tab");
+    if (requestedTab === "sent" || requestedTab === "received") setTab(requestedTab);
     load();
   }, []);
 
   async function respond(id: string, accept: boolean) {
+    if (pendingResponses.has(id)) return;
+    if (!accept && !window.confirm("Vuoi rifiutare questa proposta? L'altra persona potrà continuare la ricerca.")) return;
     setError(null);
     setMessage(null);
+    setPendingResponses((current) => new Set(current).add(id));
     try {
-      await clientPost(`/matching/requests/${id}/respond`, { accept });
-      setMessage(accept ? "Richiesta accettata. Il percorso è aperto." : "Richiesta rifiutata.");
+      const result = await clientPost<MatchRespondResult>(`/matching/requests/${id}/respond`, { accept });
+      if (result.status === "expired" || result.status === "expired_by_timeout") {
+        setMessage("La richiesta è scaduta prima della risposta. Nessun percorso è stato aperto.");
+      } else if (accept && result.status === "open") {
+        setMessage("Proposta accettata. Il percorso è aperto.");
+      } else if (!accept && result.status === "rejected") {
+        setMessage("Richiesta rifiutata.");
+      } else {
+        setError("La risposta è stata salvata, ma lo stato ricevuto non è riconosciuto. Aggiorna la pagina.");
+      }
       await load();
     } catch (err) {
-      setError(err instanceof ClientApiError ? err.message : "Risposta non salvata");
+      if (err instanceof ClientApiError && err.status === 409 && err.message.includes("expired_by_timeout")) {
+        setMessage("La richiesta è scaduta prima della risposta. Nessun percorso è stato aperto.");
+        await load();
+      } else {
+        setError(err instanceof ClientApiError ? err.message : "Risposta non salvata");
+      }
+    } finally {
+      setPendingResponses((current) => {
+        const next = new Set(current);
+        next.delete(id);
+        return next;
+      });
     }
   }
 
+  function selectTab(next: "received" | "sent") {
+    setTab(next);
+    router.replace(`/requests?tab=${next}`);
+  }
+
   const received = useMemo(
-    () => requests.filter((request) => request.mentor_id === me?.id),
+    () => requests.filter((request) => (
+      request.initiator_role === "mentor"
+        ? request.mentee_id === me?.id
+        : request.mentor_id === me?.id
+    )),
     [requests, me?.id]
   );
   const sent = useMemo(
-    () => requests.filter((request) => request.mentee_id === me?.id),
+    () => requests.filter((request) => (
+      request.initiator_role === "mentor"
+        ? request.mentor_id === me?.id
+        : request.mentee_id === me?.id
+    )),
     [requests, me?.id]
   );
   const displayed = tab === "received" ? received : sent;
@@ -80,10 +147,13 @@ function RequestsContent() {
       <div className="requests-header">
         <div>
           <p className="eyebrow">Matching</p>
-          <h1>Richieste mentor</h1>
-          <p className="muted">Il percorso si apre solo quando il mentor accetta la richiesta.</p>
+          <h1>Proposte di percorso</h1>
+          <p className="muted">Chi riceve la proposta decide: il percorso si apre soltanto dopo l’accettazione.</p>
         </div>
-        <Link href="/matching" className="button secondary">Trova un mentor</Link>
+        <div className="cluster">
+          {me?.is_coach ? <Link href="/matching/mentees" className="button dark">Cerca mentee</Link> : null}
+          <Link href="/matching" className="button secondary">Trova un mentor</Link>
+        </div>
       </div>
 
       <div className="requests-stats">
@@ -92,20 +162,37 @@ function RequestsContent() {
         <StatCard label="In attesa" value={requests.filter((request) => request.status === "pending").length} />
       </div>
 
-      {error ? <p className="error">{error}</p> : null}
-      {message ? <p className="success">{message}</p> : null}
+      {error ? <p className="error" role="alert">{error}</p> : null}
+      {message ? <p className="success" role="status">{message}</p> : null}
 
       <div className="requests-tabs" role="tablist" aria-label="Richieste">
-        <button className={tab === "received" ? "active" : ""} type="button" onClick={() => setTab("received")}>
+        <button
+          id="requests-tab-received"
+          className={tab === "received" ? "active" : ""}
+          type="button"
+          role="tab"
+          aria-selected={tab === "received"}
+          aria-controls="requests-panel"
+          onClick={() => selectTab("received")}
+        >
           Ricevute ({received.length})
         </button>
-        <button className={tab === "sent" ? "active" : ""} type="button" onClick={() => setTab("sent")}>
+        <button
+          id="requests-tab-sent"
+          className={tab === "sent" ? "active" : ""}
+          type="button"
+          role="tab"
+          aria-selected={tab === "sent"}
+          aria-controls="requests-panel"
+          onClick={() => selectTab("sent")}
+        >
           Inviate ({sent.length})
         </button>
       </div>
 
+      <div id="requests-panel" role="tabpanel" aria-labelledby={`requests-tab-${tab}`}>
       {loading ? (
-        <div className="card requests-empty"><p className="muted">Caricamento richieste...</p></div>
+        <div className="card requests-empty"><p className="muted" role="status">Caricamento richieste…</p></div>
       ) : displayed.length === 0 ? (
         <div className="card requests-empty">
           <strong>Nessuna richiesta</strong>
@@ -118,11 +205,14 @@ function RequestsContent() {
               key={request.id}
               request={request}
               isReceived={tab === "received"}
+              canRespond={request.initiator_role === "mentor" || me?.is_coach === true}
+              pending={pendingResponses.has(request.id)}
               onRespond={respond}
             />
           ))}
         </div>
       )}
+      </div>
 
       <RequestsStyles />
     </div>
@@ -141,15 +231,23 @@ function StatCard({ label, value }: { label: string; value: number }) {
 function RequestRow({
   request,
   isReceived,
+  canRespond,
+  pending,
   onRespond
 }: {
   request: MatchRequestItem;
   isReceived: boolean;
+  canRespond: boolean;
+  pending: boolean;
   onRespond: (id: string, accept: boolean) => void;
 }) {
-  const person = isReceived ? request.mentee : request.mentor;
+  const initiatedByMentor = request.initiator_role === "mentor";
+  const person = isReceived
+    ? (initiatedByMentor ? request.mentor : request.mentee)
+    : (initiatedByMentor ? request.mentee : request.mentor);
   const personName = person?.nickname || person?.username || "Utente Socra";
   const status = STATUS_LABELS[request.status] || { label: request.status, className: "" };
+  const timing = requestTiming(request);
 
   return (
     <article className="requests-row">
@@ -158,26 +256,44 @@ function RequestRow({
         <div className="requests-row-head">
           <div>
             <h2>{personName}</h2>
-            <p className="muted">{isReceived ? "Vuole iniziare un percorso con te" : "Richiesta inviata al mentor"}</p>
+            <p className="muted">
+              {isReceived
+                ? initiatedByMentor
+                  ? "Ti propone di iniziare un percorso insieme"
+                  : "Vuole iniziare un percorso con te"
+                : initiatedByMentor
+                  ? "Proposta inviata al mentee"
+                  : "Richiesta inviata al mentor"}
+            </p>
           </div>
           <span className={`pill ${status.className}`.trim()}>{status.label}</span>
         </div>
         <div className="requests-goal">
           <strong>{request.goal?.goal_tag || "Obiettivo Socra"}</strong>
           {request.goal?.topic ? <span>{request.goal.topic}</span> : null}
+          {isReceived && request.mentee?.level ? <span>Livello mentee: {request.mentee.level}</span> : null}
         </div>
         <div className="requests-meta">
-          <span>Mentor: {request.mentor?.nickname || request.mentor_id}</span>
-          <span>Mentee: {request.mentee?.nickname || request.mentee_id}</span>
+          <span>Mentor: {request.mentor?.nickname || "Profilo mentor"}</span>
+          <span>Mentee: {request.mentee?.nickname || "Profilo mentee"}</span>
+          {timing ? <span>{timing}</span> : null}
         </div>
-        {isReceived && request.status === "pending" ? (
+        {request.status === "accepted" && request.path_id ? (
+          <Link className="button secondary" href={`/paths/${request.path_id}`}>Apri il percorso</Link>
+        ) : null}
+        {isReceived && request.status === "pending" && canRespond ? (
           <div className="requests-actions">
-            <button className="button dark" type="button" onClick={() => onRespond(request.id, true)}>
-              <CheckCircle2 size={16} aria-hidden /> Accetta
+            <button className="button dark" type="button" disabled={pending} onClick={() => onRespond(request.id, true)}>
+              <CheckCircle2 size={16} aria-hidden /> {pending ? "Salvataggio…" : "Accetta"}
             </button>
-            <button className="button secondary" type="button" onClick={() => onRespond(request.id, false)}>
+            <button className="button secondary" type="button" disabled={pending} onClick={() => onRespond(request.id, false)}>
               <XCircle size={16} aria-hidden /> Rifiuta
             </button>
+          </div>
+        ) : isReceived && request.status === "pending" ? (
+          <div className="requests-action-blocked">
+            <p>La disponibilità come mentor è disattivata. Riattivala prima di rispondere.</p>
+            <Link className="button secondary" href="/settings">Gestisci ruolo mentor</Link>
           </div>
         ) : null}
       </div>
@@ -328,6 +444,25 @@ function RequestsStyles() {
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
+      }
+
+      .requests-action-blocked {
+        align-items: flex-start;
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm, 10px);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: space-between;
+        padding: 10px 12px;
+      }
+
+      .requests-action-blocked p {
+        color: var(--muted);
+        flex: 1 1 260px;
+        font-size: 0.84rem;
+        margin: 0;
       }
 
       @media (max-width: 680px) {

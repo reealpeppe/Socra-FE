@@ -8,8 +8,9 @@ export function getBackendUrl(path: string): string {
   return `${backendBaseUrl.replace(/\/$/, "")}/${path.replace(/^\//, "")}`;
 }
 
-export function getSessionToken(): string | undefined {
-  return cookies().get(sessionCookie)?.value;
+export async function getSessionToken(): Promise<string | undefined> {
+  const cookieStore = await cookies();
+  return cookieStore.get(sessionCookie)?.value;
 }
 
 export function setSessionCookie(response: NextResponse, token: string): void {
@@ -55,10 +56,12 @@ export async function proxyBackend(request: NextRequest, path: string[]): Promis
   }
 
   const text = await response.text();
-  return new NextResponse(text, {
+  const proxiedResponse = new NextResponse(text, {
     status: response.status,
     headers: {
       "Content-Type": response.headers.get("Content-Type") || "application/json"
     }
   });
+  if (response.status === 401) clearSessionCookie(proxiedResponse);
+  return proxiedResponse;
 }

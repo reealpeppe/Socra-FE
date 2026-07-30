@@ -11,19 +11,17 @@ const protectedPrefixes = [
   "/profiles",
   "/requests",
   "/settings",
+  "/tour",
   "/wallet"
 ];
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const isProtected = protectedPrefixes.some((prefix) => request.nextUrl.pathname.startsWith(prefix));
   const hasSession = Boolean(request.cookies.get("socra_session")?.value);
   if (isProtected && !hasSession) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("next", request.nextUrl.pathname);
+    loginUrl.searchParams.set("next", `${request.nextUrl.pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(loginUrl);
-  }
-  if ((request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/register") && hasSession) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
   }
   return NextResponse.next();
 }

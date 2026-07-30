@@ -4,9 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Award } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { OnboardingGate } from "@/components/OnboardingGate";
 import { UserAvatar, LevelBadge, MetricStat } from "@/components/Ui";
-import { clientGet } from "@/lib/api";
-import type { GoalsMe, MatchRequestItem, PathItem, PublicProfile, UserMe, Wallet } from "@/lib/types";
+import { ClientApiError, clientGet, clientPost } from "@/lib/api";
+import type { GoalsMe, MatchCandidate, MatchRequestItem, PathItem, PublicProfile, UserMe, Wallet } from "@/lib/types";
 
 type DashboardErrorKey = "user" | "wallet" | "goals" | "requests" | "paths";
 
@@ -16,6 +17,10 @@ export default function DashboardPage() {
   const [goals, setGoals] = useState<GoalsMe | null>(null);
   const [requests, setRequests] = useState<MatchRequestItem[]>([]);
   const [paths, setPaths] = useState<PathItem[]>([]);
+  const [candidates, setCandidates] = useState<MatchCandidate[]>([]);
+  const [candidatesLoading, setCandidatesLoading] = useState(false);
+  const [candidatesError, setCandidatesError] = useState<string | null>(null);
+  const [candidateRetryVersion, setCandidateRetryVersion] = useState(0);
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [errors, setErrors] = useState<Partial<Record<DashboardErrorKey, string>>>({});
   const [loading, setLoading] = useState(true);
@@ -66,24 +71,68 @@ export default function DashboardPage() {
   }, [me?.id]);
 
   const activeGoal = goals?.active_goal || goals?.current || null;
-  const displayName = me?.nickname || me?.username || "Socra user";
+  const displayName = me?.nickname || me?.username || "utente Socra";
+  const pendingGoalReview = useMemo(
+    () => paths.find(
+      (path) => path.mentee_id === me?.id
+        && path.status === "completed"
+        && path.goal_review_completed === false
+    ),
+    [paths, me?.id]
+  );
+
+  useEffect(() => {
+    let active = true;
+    if (!activeGoal?.id || pendingGoalReview) {
+      setCandidates([]);
+      setCandidatesError(null);
+      setCandidatesLoading(false);
+      return;
+    }
+    setCandidatesError(null);
+    setCandidatesLoading(true);
+    clientPost<MatchCandidate[]>("/matching/candidates", { goal_id: activeGoal.id })
+      .then((items) => {
+        if (active) setCandidates(Array.isArray(items) ? items.slice(0, 3) : []);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setCandidates([]);
+        setCandidatesError(err instanceof ClientApiError ? err.message : "Matching non disponibile");
+      })
+      .finally(() => {
+        if (active) setCandidatesLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [activeGoal?.id, candidateRetryVersion, pendingGoalReview]);
 
   const menteePaths = useMemo(
     () => paths.filter(p => p.mentee_id === me?.id),
     [paths, me?.id]
   );
-  const completedPaths = useMemo(
-    () => paths.filter(p => p.status === "completed").length,
-    [paths]
+  const completedMentorPaths = useMemo(
+    () => paths.filter(p => p.status === "completed" && p.mentor_id === me?.id).length,
+    [paths, me?.id]
   );
   const pendingRequests = useMemo(
-    () => requests.filter(r => r.status === "pending" && r.mentor_id === me?.id),
+    () => requests.filter((request) => (
+      request.status === "pending"
+      && (
+        request.initiator_role === "mentor"
+          ? request.mentee_id === me?.id
+          : request.mentor_id === me?.id
+      )
+    )),
     [requests, me?.id]
   );
   const mentorBadges = profile?.public_badges || [];
+  const mentorTopics = profile?.top_topics || [];
 
   return (
     <AppShell>
+      <OnboardingGate>
       <div className="dash-page" aria-busy={loading}>
         {/* Greeting */}
         <div className="dash-greeting">
@@ -96,6 +145,13 @@ export default function DashboardPage() {
             Alcuni dati non sono disponibili al momento. Mostriamo solo le informazioni già verificate.
           </div>
         )}
+        {pendingGoalReview ? (
+          <div className="dash-alert" role="alert">
+            Prima di iniziare un nuovo percorso, conferma o aggiorna il tuo obiettivo.
+            {" "}
+            <Link href={`/goal?pathId=${encodeURIComponent(pendingGoalReview.id)}`}>Rivedi obiettivo</Link>
+          </div>
+        ) : null}
 
         <div className="dash-layout">
           {/* ── Colonna sinistra ── */}
@@ -122,16 +178,33 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="dash-identity-aside">
-                  <p className="dash-aside-label">Cosa ti aspetta?</p>
-                  <ul className="dash-aside-list">
-                    <li>Il tuo livello influisce sulla portata delle sessioni</li>
-                    <li>Puoi ricevere richieste dai mentee adatti al tuo profilo</li>
-                    <li>Ogni percorso completato rafforza il tuo profilo</li>
-                  </ul>
-                  {!me?.is_coach && (
-                    <Link href="/settings" className="dash-aside-cta">
-                      Prepara profilo mentor
-                    </Link>
+                  {!me ? (
+                    <p className="dash-muted-hint" role="status">Verifica ruolo mentor…</p>
+                  ) : me.is_coach ? (
+                    <>
+                      <p className="dash-aside-label">Ruolo mentor attivo</p>
+                      <ul className="dash-aside-list">
+                        <li>Ricevi richieste e puoi proporre percorsi a mentee compatibili</li>
+                        <li>Puoi seguire al massimo tre percorsi attivi come mentor</li>
+                        <li>I feedback restano aggregati e aiutano a mantenere alta la qualità della community</li>
+                      </ul>
+                      <div className="stack">
+                        <Link href="/matching/mentees" className="dash-aside-cta">Cerca mentee</Link>
+                        <Link href="/requests?tab=received" className="dash-aside-cta">Vedi proposte ricevute</Link>
+                      </div>
+                    </>
+                  ) : me.level === "L0" ? (
+                    <>
+                      <p className="dash-aside-label">Mentoring non ancora disponibile</p>
+                      <p className="dash-muted-hint">Il ruolo mentor si sblocca dal livello L1. Continua a sviluppare le competenze nel tuo percorso.</p>
+                      <Link href="/livelli" className="dash-aside-cta">Scopri come funzionano i livelli</Link>
+                    </>
+                  ) : (
+                    <>
+                      <p className="dash-aside-label">Disponibilità mentor disattivata</p>
+                      <p className="dash-muted-hint">Il tuo livello è idoneo: puoi riattivare il ruolo mentor dalle impostazioni.</p>
+                      <Link href="/settings" className="dash-aside-cta">Gestisci ruolo mentor</Link>
+                    </>
                   )}
                 </div>
               </div>
@@ -141,27 +214,39 @@ export default function DashboardPage() {
                 <span className="dash-section-label">Le tue competenze</span>
               </div>
               <p className="dash-muted-hint">
-                Le competenze sono derivate dai tuoi percorsi completati e dai badge ottenuti.
-                Completa percorsi come mentor per aggiornare questo pannello.
+                Gli argomenti che hai scelto di approfondire e condividere nella community.
               </p>
 
-              {mentorBadges.length > 0 && (
-                <div className="dash-badge-row" aria-label="Badge qualitativi piu ricevuti">
+              {mentorTopics.length > 0 ? (
+                <div className="dash-topic-row" aria-label="Topic di competenza">
+                  {mentorTopics.map((topic) => (
+                    <span className="dash-topic-badge" key={topic}>{topic}</span>
+                  ))}
+                </div>
+              ) : (
+                <p className="dash-muted-hint">Nessun argomento ancora disponibile.</p>
+              )}
+
+              {mentorBadges.length > 0 ? (
+                <>
+                  <p className="dash-subsection-label">Badge qualitativi ricevuti</p>
+                <div className="dash-badge-row" aria-label="Badge qualitativi più ricevuti">
                   {mentorBadges.map((badge) => (
                     <span className="dash-quality-badge" key={badge}>
                       <Award size={13} aria-hidden /> {badge}
                     </span>
                   ))}
                 </div>
-              )}
+                </>
+              ) : null}
 
               {/* Performance mentor */}
               <div className="dash-section-divider" style={{ marginTop: "16px" }}>
-                <span className="dash-section-label">La tua performance come mentor</span>
+                <span className="dash-section-label">La tua attività come mentor</span>
               </div>
               <div className="dash-mentor-stats">
                 <MetricStat
-                  value={`${completedPaths}`}
+                  value={`${completedMentorPaths}`}
                   label="Percorsi completati"
                 />
                 <MetricStat
@@ -192,12 +277,18 @@ export default function DashboardPage() {
                     <p style={{ fontWeight: 700, margin: "0 0 6px", color: "var(--ink)" }}>{activeGoal.goal_tag}</p>
                     <p className="dash-muted-hint" style={{ margin: "0 0 16px" }}>{activeGoal.topic || "Topic non definito"}</p>
                     <div style={{ display: "flex", gap: "8px" }}>
-                      <Link href="/goal" className="button secondary" style={{ fontSize: "0.8rem" }}>
+                      <Link href="/goal?edit=1" className="button secondary" style={{ fontSize: "0.8rem" }}>
                         Modifica obiettivo
                       </Link>
-                      <Link href={`/matching?goalId=${activeGoal.id}`} className="button" style={{ fontSize: "0.8rem" }}>
-                        Trova un mentor
-                      </Link>
+                      {pendingGoalReview ? (
+                        <Link href={`/goal?pathId=${encodeURIComponent(pendingGoalReview.id)}`} className="button" style={{ fontSize: "0.8rem" }}>
+                          Rivedi obiettivo
+                        </Link>
+                      ) : (
+                        <Link href={`/matching?goalId=${activeGoal.id}`} className="button" style={{ fontSize: "0.8rem" }}>
+                          Trova un mentor
+                        </Link>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -221,7 +312,7 @@ export default function DashboardPage() {
               <div className="dash-identity-header">
                 <span className="dash-identity-label">Il tuo obiettivo</span>
                 {activeGoal && (
-                  <Link href="/goal" className="dash-link-small">Modifica</Link>
+                  <Link href="/goal?edit=1" className="dash-link-small">Modifica</Link>
                 )}
               </div>
               {activeGoal ? (
@@ -232,9 +323,15 @@ export default function DashboardPage() {
                   <p className="dash-muted-hint" style={{ margin: "0 0 16px" }}>
                     {activeGoal.topic}
                   </p>
-                  <Link href={`/matching?goalId=${activeGoal.id}`} className="button" style={{ width: "100%", justifyContent: "center" }}>
-                    Trova mentor
-                  </Link>
+                  {pendingGoalReview ? (
+                    <Link href={`/goal?pathId=${encodeURIComponent(pendingGoalReview.id)}`} className="button" style={{ width: "100%", justifyContent: "center" }}>
+                      Rivedi obiettivo
+                    </Link>
+                  ) : (
+                    <Link href={`/matching?goalId=${activeGoal.id}`} className="button" style={{ width: "100%", justifyContent: "center" }}>
+                      Trova mentor
+                    </Link>
+                  )}
                 </div>
               ) : (
                 <div>
@@ -248,6 +345,42 @@ export default function DashboardPage() {
               )}
             </div>
 
+            {activeGoal && !pendingGoalReview ? (
+              <div className="card" style={{ marginTop: "16px" }}>
+                <div className="dash-identity-header">
+                  <span className="dash-identity-label">Mentor compatibili</span>
+                  <Link href={`/matching?goalId=${activeGoal.id}`} className="dash-link-small">Vedi tutti</Link>
+                </div>
+                {candidatesLoading ? (
+                  <p className="dash-muted-hint" role="status">Aggiornamento proposte…</p>
+                ) : candidatesError ? (
+                  <div className="dash-candidate-error" role="alert">
+                    <p>Non riusciamo ad aggiornare i mentor compatibili.</p>
+                    <span>{candidatesError}</span>
+                    <button className="button secondary" type="button" onClick={() => setCandidateRetryVersion((value) => value + 1)}>
+                      Riprova
+                    </button>
+                  </div>
+                ) : candidates.length ? (
+                  <div className="dash-candidate-list">
+                    {candidates.map((candidate) => (
+                      <Link className="dash-candidate-row" href={`/profiles/${candidate.mentor_id}`} key={candidate.mentor_id}>
+                        <div>
+                          <strong>{candidate.nickname || "Mentor Socra"}</strong>
+                          <p>{candidate.reason_summary}</p>
+                        </div>
+                        <span>{Math.round(candidate.match_score)}%</span>
+                      </Link>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="dash-muted-hint">
+                    Nessun mentor compatibile è disponibile ora. Potrai riprovare senza cambiare obiettivo.
+                  </p>
+                )}
+              </div>
+            ) : null}
+
             {/* I tuoi percorsi da mentee */}
             <div className="card" style={{ marginTop: "16px" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
@@ -255,7 +388,7 @@ export default function DashboardPage() {
                 <Link href="/paths?tab=mentee" className="dash-link-small">Vedi tutti</Link>
               </div>
               {loading ? (
-                <p className="dash-muted-hint">Caricamento...</p>
+                <p className="dash-muted-hint">Caricamento…</p>
               ) : menteePaths.length === 0 ? (
                 <p className="dash-muted-hint">Nessun percorso attivo.</p>
               ) : (
@@ -271,7 +404,7 @@ export default function DashboardPage() {
             <div className="card dash-quick-actions" style={{ marginTop: "16px" }}>
               <span className="dash-identity-label" style={{ marginBottom: "12px", display: "block" }}>Azioni rapide</span>
               <div className="dash-quick-list">
-                <Link href="/goal" className="dash-quick-item">
+                <Link href={activeGoal ? "/goal?edit=1" : "/goal"} className="dash-quick-item">
 	                  <span className="dash-quick-icon" aria-hidden>O</span>
                   <span>Modifica i tuoi obiettivi</span>
                 </Link>
@@ -279,9 +412,12 @@ export default function DashboardPage() {
 	                  <span className="dash-quick-icon" aria-hidden>L</span>
 	                  <span>Scopri i livelli</span>
                 </Link>
-                <Link href="/matching" className="dash-quick-item">
+                <Link
+                  href={pendingGoalReview ? `/goal?pathId=${encodeURIComponent(pendingGoalReview.id)}` : "/matching"}
+                  className="dash-quick-item"
+                >
 	                  <span className="dash-quick-icon" aria-hidden>M</span>
-                  <span>Trova un mentor</span>
+                  <span>{pendingGoalReview ? "Rivedi l’obiettivo" : "Trova un mentor"}</span>
                 </Link>
               </div>
             </div>
@@ -295,15 +431,26 @@ export default function DashboardPage() {
 	            <p className="dash-banner-icon">Socra</p>
             <div>
               <p style={{ fontWeight: 700, margin: "0 0 2px", color: "white" }}>
-                Ogni passo si avvicina ai tuoi obiettivi!
+                Ogni passo ti avvicina ai tuoi obiettivi
               </p>
               <p style={{ color: "rgba(255,255,255,0.72)", fontSize: "0.875rem", margin: 0 }}>
                 Impara, sperimenta, confrontati e continua a crescere.
               </p>
             </div>
           </div>
-          <Link href="/matching" className="button" style={{ whiteSpace: "nowrap", background: "white", color: "var(--navy-950)" }}>
-            Esplora opportunità <ArrowRight size={16} style={{ display: "inline" }} />
+          <Link
+            href={
+              pendingGoalReview
+                ? `/goal?pathId=${encodeURIComponent(pendingGoalReview.id)}`
+                : activeGoal
+                  ? `/matching?goalId=${activeGoal.id}`
+                  : "/goal"
+            }
+            className="button"
+            style={{ whiteSpace: "nowrap", background: "white", color: "var(--navy-950)" }}
+          >
+            {pendingGoalReview ? "Rivedi l’obiettivo" : activeGoal ? "Trova mentor compatibili" : "Definisci obiettivo"}{" "}
+            <ArrowRight size={16} style={{ display: "inline" }} />
           </Link>
         </div>
       </div>
@@ -467,6 +614,30 @@ export default function DashboardPage() {
 	          margin-top: 12px;
 	        }
 
+          .dash-topic-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+          }
+
+          .dash-topic-badge {
+            background: var(--mint-100);
+            border: 1px solid #b9ecd3;
+            border-radius: 999px;
+            color: var(--mint-600);
+            font-size: 0.76rem;
+            font-weight: 800;
+            padding: 5px 10px;
+          }
+
+          .dash-subsection-label {
+            color: var(--muted);
+            font-size: 0.72rem;
+            font-weight: 850;
+            margin: 14px 0 0;
+          }
+
 	        .dash-quality-badge {
 	          align-items: center;
 	          background: #eef4ff;
@@ -479,6 +650,31 @@ export default function DashboardPage() {
 	          gap: 5px;
 	          padding: 5px 10px;
 	        }
+
+          .dash-candidate-error {
+            background: #fff1ee;
+            border: 1px solid #ffc9c1;
+            border-radius: var(--radius-sm);
+            display: grid;
+            gap: 8px;
+            padding: 12px;
+          }
+
+          .dash-candidate-error p {
+            color: #8f2018;
+            font-size: 0.85rem;
+            font-weight: 800;
+            margin: 0;
+          }
+
+          .dash-candidate-error span {
+            color: #a43b32;
+            font-size: 0.78rem;
+          }
+
+          .dash-candidate-error .button {
+            justify-self: start;
+          }
 
         /* ── Mentor stats ── */
         .dash-mentor-stats {
@@ -505,6 +701,50 @@ export default function DashboardPage() {
 
         .dash-link-small:hover {
           color: var(--ink);
+        }
+
+        .dash-candidate-list {
+          display: grid;
+          gap: 9px;
+        }
+
+        .dash-candidate-row {
+          align-items: center;
+          background: var(--paper);
+          border: 1px solid var(--line);
+          border-radius: var(--radius-sm);
+          color: inherit;
+          display: grid;
+          gap: 12px;
+          grid-template-columns: minmax(0, 1fr) auto;
+          padding: 11px 12px;
+          text-decoration: none;
+        }
+
+        .dash-candidate-row:hover {
+          border-color: var(--navy-950);
+        }
+
+        .dash-candidate-row strong {
+          color: var(--navy-950);
+          font-size: 0.88rem;
+        }
+
+        .dash-candidate-row p {
+          color: var(--muted);
+          display: -webkit-box;
+          font-size: 0.76rem;
+          line-height: 1.35;
+          margin: 3px 0 0;
+          overflow: hidden;
+          -webkit-box-orient: vertical;
+          -webkit-line-clamp: 2;
+        }
+
+        .dash-candidate-row > span {
+          color: var(--mint-600);
+          font-size: 0.9rem;
+          font-weight: 900;
         }
 
         /* ── Path row ── */
@@ -657,11 +897,9 @@ export default function DashboardPage() {
             grid-template-columns: auto 1fr;
           }
 
-          .dash-identity-aside {
-            display: none;
-          }
         }
       `}</style>
+      </OnboardingGate>
     </AppShell>
   );
 }

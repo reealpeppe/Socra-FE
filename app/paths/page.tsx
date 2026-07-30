@@ -34,7 +34,7 @@ export default function PathsPage() {
   return (
     <AppShell>
       <OnboardingGate>
-        <Suspense fallback={<div className="card"><p className="muted">Caricamento percorsi...</p></div>}>
+        <Suspense fallback={<div className="card"><p className="muted">Caricamento percorsi…</p></div>}>
           <PathsContent />
         </Suspense>
       </OnboardingGate>

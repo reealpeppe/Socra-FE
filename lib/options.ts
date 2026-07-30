@@ -8,15 +8,15 @@ export type SelectOption = {
 export const practiceOptions: SelectOption[] = [
   { value: "none", label: "No, mai", score: 0 },
   { value: "minimal", label: "Ho provato una volta ma non ho continuato", score: 1 },
-  { value: "occasional", label: "Si, investo occasionalmente", score: 2 },
-  { value: "regular", label: "Si, investo regolarmente", score: 3 }
+  { value: "occasional", label: "Sì, investo occasionalmente", score: 2 },
+  { value: "regular", label: "Sì, investo regolarmente", score: 3 }
 ];
 
 export const durationOptions: SelectOption[] = [
   { value: "lt_6m", label: "Meno di 6 mesi", score: 1 },
   { value: "6m_2y", label: "Tra 6 mesi e 2 anni", score: 2 },
   { value: "2y_5y", label: "Tra 2 e 5 anni", score: 3 },
-  { value: "gt_5y", label: "Piu di 5 anni", score: 4 }
+  { value: "gt_5y", label: "Più di 5 anni", score: 4 }
 ];
 
 export const instrumentOptions = [
@@ -42,7 +42,7 @@ export const knowledgeConcepts = [
   { value: "risk_return", label: "Rapporto rischio/rendimento" },
   { value: "pac", label: "PAC (Piano di Accumulo)" },
   { value: "asset_allocation", label: "Asset allocation" },
-  { value: "taxation", label: "Fiscalita degli investimenti" }
+  { value: "taxation", label: "Fiscalità degli investimenti" }
 ];
 
 export const knowledgeOptions: SelectOption[] = [
@@ -62,7 +62,7 @@ export const investedCapitalOptions: SelectOption[] = [
   { value: "lt_1k", label: "Meno di 1.000 EUR", score: 1 },
   { value: "1k_10k", label: "Tra 1.000 EUR e 10.000 EUR", score: 2 },
   { value: "10k_50k", label: "Tra 10.000 EUR e 50.000 EUR", score: 3 },
-  { value: "gt_50k", label: "Piu di 50.000 EUR", score: 4 }
+  { value: "gt_50k", label: "Più di 50.000 EUR", score: 4 }
 ];
 
 export const situationalQuestions = [
@@ -73,29 +73,29 @@ export const situationalQuestions = [
     options: [
       { value: "superficial", label: "Ha ragione, 500 aziende sono tante", score: 0 },
       { value: "honest_unsure", label: "Non ne sono sicuro/a", score: 1 },
-      { value: "good", label: "Ha un punto, ma e tutto nello stesso mercato e asset class", score: 3 },
+      { value: "good", label: "Ha un punto, ma è tutto nello stesso mercato e nella stessa asset class", score: 3 },
       { value: "excellent", label: "Dipende dal resto della sua situazione finanziaria e orizzonte", score: 4 }
     ]
   },
   {
     key: "D8",
     title: "PAC in discesa",
-    prompt: "Hai un PAC da un anno su un ETF azionario. Il mercato e sceso del 20%. Un collega ti dice di sospenderlo.",
+    prompt: "Hai un PAC da un anno su un ETF azionario. Il mercato è sceso del 20%. Un collega ti dice di sospenderlo.",
     options: [
       { value: "reactive", label: "Lo sospendo, ha senso aspettare", score: 0 },
       { value: "honest_unsure", label: "Non saprei, ci devo pensare", score: 1 },
-      { value: "good", label: "Continuo: il PAC funziona cosi, compri di piu quando costa meno", score: 3 },
+      { value: "good", label: "Continuo: il PAC funziona così, compri di più quando costa meno", score: 3 },
       { value: "excellent", label: "Continuo, ma rivaluto l'allocazione complessiva", score: 4 }
     ]
   },
   {
     key: "D9",
     title: "Mutuo e rischio",
-    prompt: "Due persone, stesso reddito e eta. Una ha un mutuo, l'altra no. Dovrebbero investire allo stesso modo?",
+    prompt: "Due persone, stesso reddito ed età. Una ha un mutuo, l'altra no. Dovrebbero investire allo stesso modo?",
     options: [
-      { value: "superficial", label: "Si, contano reddito ed eta", score: 0 },
+      { value: "superficial", label: "Sì, contano reddito ed età", score: 0 },
       { value: "honest_unsure", label: "Non ci ho mai pensato", score: 1 },
-      { value: "good", label: "No, il mutuo cambia capacita di rischio e orizzonte", score: 3 },
+      { value: "good", label: "No, il mutuo cambia capacità di rischio e orizzonte", score: 3 },
       { value: "excellent", label: "Dipende da molti fattori: tipo mutuo, debiti, fondo emergenza", score: 4 }
     ]
   }
@@ -125,7 +125,7 @@ export const sectionDQuestions = [
       { value: "25k_35k", label: "Tra 25.000 EUR e 35.000 EUR" },
       { value: "35k_50k", label: "Tra 35.000 EUR e 50.000 EUR" },
       { value: "50k_75k", label: "Tra 50.000 EUR e 75.000 EUR" },
-      { value: "gt_75k", label: "Piu di 75.000 EUR" },
+      { value: "gt_75k", label: "Più di 75.000 EUR" },
       { value: "undisclosed", label: "Preferisco non rispondere" }
     ]
   },
@@ -138,7 +138,7 @@ export const sectionDQuestions = [
       { value: "100_300", label: "Tra 100 EUR e 300 EUR" },
       { value: "300_600", label: "Tra 300 EUR e 600 EUR" },
       { value: "600_1k", label: "Tra 600 EUR e 1.000 EUR" },
-      { value: "gt_1k", label: "Piu di 1.000 EUR" },
+      { value: "gt_1k", label: "Più di 1.000 EUR" },
       { value: "undisclosed", label: "Preferisco non rispondere" }
     ]
   },
@@ -147,9 +147,9 @@ export const sectionDQuestions = [
     label: "Mutuo o debiti significativi",
     options: [
       { value: "none", label: "No, non ho debiti significativi" },
-      { value: "mortgage", label: "Si, ho un mutuo sulla prima casa" },
-      { value: "mortgage_plus", label: "Si, ho un mutuo e altri debiti" },
-      { value: "other_debt", label: "Si, ho debiti ma non un mutuo" },
+      { value: "mortgage", label: "Sì, ho un mutuo sulla prima casa" },
+      { value: "mortgage_plus", label: "Sì, ho un mutuo e altri debiti" },
+      { value: "other_debt", label: "Sì, ho debiti ma non un mutuo" },
       { value: "undisclosed", label: "Preferisco non rispondere" }
     ]
   },
@@ -157,8 +157,8 @@ export const sectionDQuestions = [
     key: "D5",
     label: "Fondo di emergenza",
     options: [
-      { value: "adequate", label: "Si, ce l'ho e copre almeno 3 mesi di spese" },
-      { value: "partial", label: "Si, ma e inferiore a 3 mesi di spese" },
+      { value: "adequate", label: "Sì, ce l'ho e copre almeno 3 mesi di spese" },
+      { value: "partial", label: "Sì, ma è inferiore a 3 mesi di spese" },
       { value: "none", label: "No, non ce l'ho" },
       { value: "unaware", label: "Non so cosa sia o come calcolarlo" },
       { value: "undisclosed", label: "Preferisco non rispondere" }
@@ -174,16 +174,16 @@ export const topicOptions: SelectOption[] = [
   { value: "bonds", label: "Obbligazioni", levels: ["L1", "L2"] },
   { value: "crypto", label: "Crypto", levels: ["L1", "L2"] },
   { value: "planning", label: "Pianificazione finanziaria / asset allocation", levels: ["L2"] },
-  { value: "taxation", label: "Fiscalita degli investimenti", levels: ["L2"] },
+  { value: "taxation", label: "Fiscalità degli investimenti", levels: ["L2"] },
   { value: "derivatives", label: "Forex / derivati", levels: ["L2"] }
 ];
 
 export const goalOptionsByLevelTopic: Record<string, Record<string, SelectOption[]>> = {
   L0: {
     undefined: [
-      { value: "understand_basics", label: "Capire le basi: cos'e investire, come funziona, da dove si parte" },
+      { value: "understand_basics", label: "Capire le basi: cos'è investire, come funziona, da dove si parte" },
       { value: "guided_orientation", label: "Farmi aiutare a capire cosa potrebbe fare al caso mio" },
-      { value: "evaluate_readiness", label: "Capire se investire fa per me o se e meglio aspettare" }
+      { value: "evaluate_readiness", label: "Capire se investire fa per me o se è meglio aspettare" }
     ],
     savings_first_steps: [
       { value: "first_savings_placement", label: "Capire dove mettere i miei primi risparmi (conto deposito, buoni, ETF...)" },
@@ -201,8 +201,8 @@ export const goalOptionsByLevelTopic: Record<string, Record<string, SelectOption
   L1: {
     undefined: [
       { value: "explore_options", label: "Esplorare le opzioni di investimento e capire quale direzione fa per me" },
-      { value: "organize_knowledge", label: "Mettere ordine in quello che so gia e costruire un piano" },
-      { value: "learn_diversification", label: "Capire come diversificare rispetto a quello che faccio gia" }
+      { value: "organize_knowledge", label: "Mettere ordine in quello che so già e costruire un piano" },
+      { value: "learn_diversification", label: "Capire come diversificare rispetto a quello che faccio già" }
     ],
     savings_first_steps: [
       { value: "savings_to_investing", label: "Passare dal risparmio passivo a un investimento strutturato" },
@@ -212,7 +212,7 @@ export const goalOptionsByLevelTopic: Record<string, Record<string, SelectOption
     etf_funds: [
       { value: "build_pac", label: "Costruire un PAC su ETF adatto al mio profilo" },
       { value: "etf_selection", label: "Capire come scegliere un ETF (indice, costi, replica, dimensione)" },
-      { value: "diversify_etf_portfolio", label: "Diversificare un portafoglio ETF che ho gia iniziato" },
+      { value: "diversify_etf_portfolio", label: "Diversificare un portafoglio ETF che ho già iniziato" },
       { value: "compare_etf_funds", label: "Confrontare ETF e fondi comuni per capire cosa conviene a me" }
     ],
     stocks: [
@@ -245,7 +245,7 @@ export const goalOptionsByLevelTopic: Record<string, Record<string, SelectOption
       { value: "fundamental_analysis", label: "Imparare l'analisi fondamentale (bilanci, multipli, valutazione)" },
       { value: "stock_picking_strategy", label: "Costruire una strategia di stock picking strutturata" },
       { value: "exit_strategy", label: "Capire quando vendere e come gestire le posizioni in perdita" },
-      { value: "stocks_in_portfolio", label: "Integrare azioni singole in un portafoglio gia diversificato" }
+      { value: "stocks_in_portfolio", label: "Integrare azioni singole in un portafoglio già diversificato" }
     ],
     bonds: [
       { value: "bond_strategy", label: "Costruire una strategia obbligazionaria (duration, ladder, barbell)" },
@@ -262,7 +262,7 @@ export const goalOptionsByLevelTopic: Record<string, Record<string, SelectOption
     planning: [
       { value: "full_financial_plan", label: "Costruire un piano finanziario completo (obiettivi, allocazione, orizzonte)" },
       { value: "optimize_asset_allocation", label: "Ottimizzare l'asset allocation del mio portafoglio attuale" },
-      { value: "goal_based_planning", label: "Pianificare per un obiettivo specifico (casa, pensione, liberta finanziaria)" },
+      { value: "goal_based_planning", label: "Pianificare per un obiettivo specifico (casa, pensione, libertà finanziaria)" },
       { value: "rebalancing_strategy", label: "Definire una strategia di ribilanciamento periodico" }
     ],
     taxation: [
@@ -286,7 +286,7 @@ export const capitalGoalOptions: SelectOption[] = [
   { value: "500_5k", label: "Tra 500 EUR e 5.000 EUR", levels: ["L0", "L1", "L2"] },
   { value: "5k_20k", label: "Tra 5.000 EUR e 20.000 EUR", levels: ["L1", "L2"] },
   { value: "20k_50k", label: "Tra 20.000 EUR e 50.000 EUR", levels: ["L2"] },
-  { value: "gt_50k", label: "Piu di 50.000 EUR", levels: ["L2"] }
+  { value: "gt_50k", label: "Più di 50.000 EUR", levels: ["L2"] }
 ];
 
 export const riskOptions: SelectOption[] = [

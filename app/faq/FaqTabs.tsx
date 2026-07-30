@@ -1,4 +1,5 @@
 "use client";
+
 import { useState } from "react";
 
 const sections = [
@@ -7,36 +8,36 @@ const sections = [
     faqs: [
       {
         q: "Cos'è SOCRA?",
-        a: "SOCRA è una piattaforma gratuita di mentorship peer-to-peer per gli investimenti. Persone reali ti aiutano a crescere in base al tuo livello e ai tuoi obiettivi. No guru, no corsi da comprare.",
+        a: "SOCRA è una community di mentorship peer-to-peer per apprendere e confrontarsi su temi legati agli investimenti. Non sostituisce una consulenza professionale e non garantisce risultati finanziari.",
       },
       {
-        q: "Come funziona il percorso?",
-        a: "Ogni percorso si articola in sessioni tra mentee e mentor. La prima call avviene in piattaforma, poi il rapporto può evolvere. Al termine, entrambi lasciano un feedback che alimenta la reputazione.",
+        q: "Come funziona un percorso?",
+        a: "Dopo survey e obiettivo, Socra suggerisce mentor compatibili. Il mentee può contattare un mentor e un mentor disponibile può proporre un percorso a un mentee. Si apre soltanto quando chi riceve accetta.",
       },
       {
-        q: "Quante sessioni ci sono per percorso?",
-        a: "Non esiste un numero fisso. Il percorso è flessibile e si adatta all'obiettivo concordato tra mentee e mentor. Di solito 3-6 sessioni sono sufficienti per un obiettivo specifico.",
+        q: "Quante sessioni ci sono?",
+        a: "Non esiste un numero fisso e il percorso non ha una scadenza automatica. Mentee e mentor concordano il lavoro necessario e mantengono il percorso aperto finché non completano la chiusura prevista.",
       },
       {
-        q: "Come finisce un percorso?",
-        a: "Un percorso si chiude quando entrambe le parti lo confermano come completato. Segue un feedback bidirezionale che contribuisce ai punteggi di reputazione di entrambi.",
+        q: "Come si chiude un percorso?",
+        a: "Mentee e mentor chiudono in modo indipendente il proprio lato. La chiusura formale richiede l'azione e il feedback obbligatorio di entrambe le persone.",
       },
     ],
   },
   {
-    label: "Valuta interna",
+    label: "Crediti",
     faqs: [
       {
-        q: "Quanto costa SOCRA?",
-        a: "SOCRA è gratuita. Non ci sono abbonamenti, crediti da acquistare o commissioni. La valuta interna è un sistema di bilanciamento tra dare e ricevere, non è monetizzabile.",
+        q: "I crediti Socra si possono acquistare?",
+        a: "No. Le unità interne di partecipazione non sono monetizzabili, acquistabili, convertibili o trasferibili fuori da Socra.",
       },
       {
-        q: "Come funziona la valuta interna?",
-        a: "Quando ricevi un percorso come mentee, utilizzi crediti. Quando lo dai come mentor, li accumuli. Questo bilancia domanda e offerta senza introdurre denaro reale.",
+        q: "Quando vengono spostati i crediti?",
+        a: "Il costo del percorso viene addebitato al mentee quando il destinatario accetta la proposta. Il mentor riceve l'accredito solo al completamento formale del percorso.",
       },
       {
-        q: "Cosa succede se finisco i crediti?",
-        a: "Puoi diventare mentor su aree dove hai esperienza per recuperare crediti. Il sistema non ti blocca permanentemente, ma incoraggia la reciprocità.",
+        q: "Cosa succede se il saldo non basta?",
+        a: "Prima di aprire un percorso Socra verifica il saldo disponibile. Se non è sufficiente, lo segnala prima della conferma e impedisce operazioni non consentite per il tuo profilo.",
       },
     ],
   },
@@ -45,15 +46,15 @@ const sections = [
     faqs: [
       {
         q: "Come funziona il matching?",
-        a: "Il sistema suggerisce mentor compatibili in base al tuo livello (max ±1), agli obiettivi dichiarati e alla disponibilità. Sei sempre tu a scegliere chi contattare.",
+        a: "Socra cerca profili coerenti con il tuo obiettivo, il tuo livello e la disponibilità del momento. Se le alternative sono poche, può ampliare i suggerimenti e lo indica chiaramente. La scelta finale resta sempre alla persona che invia o riceve la proposta.",
       },
       {
-        q: "Che tipo di obiettivi posso scegliere?",
-        a: "ETF, azioni, obbligazioni, fiscalità, pianificazione finanziaria, basi di investimento, portafoglio. L'obiettivo deve essere specifico e raggiungibile in pochi mesi.",
+        q: "Che cosa vedo del punteggio?",
+        a: "L'interfaccia mostra una compatibilità sintetica e una motivazione leggibile. Formule, pesi e valutazioni interne non vengono esposti.",
       },
       {
         q: "Posso cambiare mentor?",
-        a: "Sì. Se il percorso non va come previsto, puoi chiuderlo e cercarne uno nuovo. Il feedback finale è sempre opzionale se il percorso si interrompe prima del completamento.",
+        a: "Se il percorso non funziona, puoi segnalarlo e chiuderlo. Il feedback resta obbligatorio anche in caso di chiusura anticipata; un nuovo percorso da mentee può aprirsi dopo il completamento formale del precedente.",
       },
     ],
   },
@@ -61,12 +62,16 @@ const sections = [
     label: "Reputazione",
     faqs: [
       {
-        q: "Come vengono calcolati i livelli?",
-        a: "I livelli si basano su percorsi completati, qualità del feedback ricevuto e impatto sulla community. Non sull'anzianità, non sul portfolio, non su auto-dichiarazioni.",
+        q: "Come viene costruita la reputazione?",
+        a: "Nasce dall’esperienza maturata nei percorsi e dai feedback reciproci. Socra mostra soltanto segnali aggregati e badge, mai il voto della singola persona.",
       },
       {
-        q: "Cosa succede se ho un problema con il mio percorso?",
-        a: "Puoi segnalare il problema direttamente dalla piattaforma. Il team interviene entro 24 ore per i casi urgenti. I comportamenti scorretti portano a sospensione dell'account.",
+        q: "Quali informazioni mostra il profilo mentor?",
+        a: "Il profilo può mostrare livello, argomenti, percorsi completati e badge ricevuti. Quando lo storico è ancora limitato, il profilo viene presentato come “Nuovo utente”.",
+      },
+      {
+        q: "Cosa succede dopo una segnalazione?",
+        a: "La segnalazione e gli eventuali segnali anomali vengono inviati a revisione manuale. Non esiste un blocco automatico né viene promesso un tempo fisso di risposta.",
       },
     ],
   },
@@ -74,16 +79,16 @@ const sections = [
     label: "Sicurezza",
     faqs: [
       {
-        q: "Come funziona la reputazione?",
-        a: "La reputazione è costruita sul feedback bidirezionale dei percorsi completati. È aggregata, non mostra singoli voti, ed è visibile pubblicamente solo in forma sintetica.",
-      },
-      {
         q: "Le call vengono registrate?",
-        a: "No. Le sessioni non vengono registrate senza consenso esplicito di entrambe le parti. La prima call avviene in piattaforma per sicurezza, ma non viene conservata.",
+        a: "Socra non registra audio o video. Per la prima call conserva soltanto i metadati operativi necessari, come ingresso, uscita, durata e presenza. Un’eventuale trascrizione richiede una scelta esplicita di entrambe le persone.",
       },
       {
-        q: "Posso essere sempre sicuro del mio mentore?",
-        a: "I profili sono moderati dal team. In aggiunta, il sistema di reputazione e il feedback degli utenti è il miglior strumento di garanzia. Puoi sempre segnalare comportamenti scorretti.",
+        q: "Socra può garantire l'affidabilità di un mentor?",
+        a: "Nessuna piattaforma può eliminare ogni rischio. Socra riduce l’incertezza con informazioni aggregate sul profilo, una prima call collegata al percorso e segnalazioni soggette a revisione.",
+      },
+      {
+        q: "Dove segnalo un problema?",
+        a: "L'azione “Segnala problema” è disponibile nel dettaglio del percorso e può essere usata in qualsiasi momento.",
       },
     ],
   },
@@ -92,46 +97,77 @@ const sections = [
     faqs: [
       {
         q: "Come mi registro?",
-        a: "Vai su /register, crea un account con email e password. Poi completa la survey di onboarding per scoprire il tuo livello. L'intero processo dura circa 5 minuti.",
+        a: "Crei un account con username, email e password, poi completi la survey iniziale e definisci il tuo obiettivo di apprendimento.",
       },
       {
-        q: "Posso sospendere il mio account?",
-        a: "Sì. Dalle impostazioni del profilo puoi mettere il tuo account in pausa. Non riceverai nuove richieste e i percorsi in corso vengono notificati ai partner.",
+        q: "Posso disattivare la disponibilità come mentor?",
+        a: "Sì. Quando la funzione è disponibile per il tuo profilo, puoi attivarla o disattivarla dalle impostazioni. La scelta non interrompe i percorsi già aperti.",
       },
       {
-        q: "Come vengono protetti i miei dati?",
-        a: "I dati finanziari restano privati nel tuo profilo. Non vengono condivisi con mentor o terze parti. Il matching usa solo il livello, gli obiettivi e la disponibilità.",
+        q: "Quali dati diventano pubblici?",
+        a: "Il profilo pubblico usa solo livello, topic tradotti, metriche aggregate, badge e testi facoltativi. Le risposte dettagliate della survey non vengono pubblicate.",
       },
     ],
   },
 ];
 
-const allFaqs = sections.flatMap((s) => s.faqs.map((f) => ({ ...f, section: s.label })));
+const allFaqs = sections.flatMap((section) => section.faqs);
 
 export function FaqTabs() {
-  const [activeTab, setActiveTab] = useState<string>("Tutte");
-  const tabs = ["Tutte", ...sections.map((s) => s.label)];
-
+  const [activeTab, setActiveTab] = useState("Tutte");
+  const tabs = ["Tutte", ...sections.map((section) => section.label)];
+  const activeIndex = tabs.indexOf(activeTab);
   const displayed =
     activeTab === "Tutte"
       ? allFaqs
-      : sections.find((s) => s.label === activeTab)?.faqs ?? [];
+      : sections.find((section) => section.label === activeTab)?.faqs ?? [];
+
+  function selectTab(index: number) {
+    const nextIndex = (index + tabs.length) % tabs.length;
+    setActiveTab(tabs[nextIndex]);
+    requestAnimationFrame(() => document.getElementById(`faq-tab-${nextIndex}`)?.focus());
+  }
 
   return (
     <div>
-      {/* Tab bar */}
-      <div style={{
-        display: "flex",
-        flexWrap: "wrap",
-        gap: "8px",
-        marginBottom: "32px",
-        overflowX: "auto",
-        paddingBottom: "4px",
-      }}>
-        {tabs.map((tab) => (
+      <div
+        aria-label="Categorie delle domande frequenti"
+        role="tablist"
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "8px",
+          marginBottom: "32px",
+          overflowX: "auto",
+          paddingBottom: "4px",
+        }}
+      >
+        {tabs.map((tab, index) => (
           <button
+            aria-controls="faq-panel"
+            aria-selected={activeTab === tab}
+            id={`faq-tab-${index}`}
             key={tab}
             onClick={() => setActiveTab(tab)}
+            onKeyDown={(event) => {
+              if (event.key === "ArrowRight") {
+                event.preventDefault();
+                selectTab(activeIndex + 1);
+              }
+              if (event.key === "ArrowLeft") {
+                event.preventDefault();
+                selectTab(activeIndex - 1);
+              }
+              if (event.key === "Home") {
+                event.preventDefault();
+                selectTab(0);
+              }
+              if (event.key === "End") {
+                event.preventDefault();
+                selectTab(tabs.length - 1);
+              }
+            }}
+            role="tab"
             style={{
               background: activeTab === tab ? "var(--navy-950)" : "var(--paper)",
               border: "1px solid",
@@ -142,20 +178,27 @@ export function FaqTabs() {
               fontSize: "0.82rem",
               fontWeight: 700,
               padding: "8px 18px",
-              transition: "all 0.15s",
+              transition: "background-color 0.15s, border-color 0.15s, color 0.15s",
               whiteSpace: "nowrap",
             }}
+            tabIndex={activeTab === tab ? 0 : -1}
+            type="button"
           >
             {tab}
           </button>
         ))}
       </div>
 
-      {/* FAQ accordion */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-        {displayed.map((faq, i) => (
+      <div
+        aria-labelledby={`faq-tab-${activeIndex}`}
+        id="faq-panel"
+        role="tabpanel"
+        style={{ display: "flex", flexDirection: "column", gap: "10px" }}
+        tabIndex={0}
+      >
+        {displayed.map((faq) => (
           <details
-            key={i}
+            key={faq.q}
             style={{
               background: "#ffffff",
               border: "1px solid var(--line)",
@@ -176,20 +219,24 @@ export function FaqTabs() {
               gap: "12px",
             }}>
               {faq.q}
-              <span style={{
-                color: "var(--muted)",
-                fontSize: "1.2rem",
-                lineHeight: 1,
-                flexShrink: 0,
-              }}>+</span>
+              <span
+                aria-hidden="true"
+                style={{
+                  color: "var(--muted)",
+                  fontSize: "1.2rem",
+                  lineHeight: 1,
+                  flexShrink: 0,
+                }}
+              >
+                +
+              </span>
             </summary>
             <div style={{
-              padding: "0 20px 18px",
+              padding: "16px 20px 18px",
               color: "var(--muted)",
               fontSize: "0.875rem",
               lineHeight: 1.65,
               borderTop: "1px solid var(--line)",
-              paddingTop: "16px",
             }}>
               {faq.a}
             </div>

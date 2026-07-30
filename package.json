@@ -5,24 +5,29 @@
   "scripts": {
     "dev": "next dev -p 3000",
     "build": "next build",
-    "start": "next build && next start -p 3000",
-    "lint": "next lint",
+    "start": "next start -p 3000",
+    "preview": "next build && next start -p 3000",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test:e2e": "playwright test"
+    "test:e2e": "npm run build && node scripts/run-e2e.mjs"
   },
   "dependencies": {
-    "next": "14.2.35",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "lucide-react": "0.468.0"
+    "lucide-react": "^1.27.0",
+    "next": "^16.2.11",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7"
   },
   "devDependencies": {
-    "@playwright/test": "1.45.3",
+    "@playwright/test": "^1.62.0",
     "@types/node": "20.14.10",
-    "@types/react": "18.3.3",
-    "@types/react-dom": "18.3.0",
-    "eslint": "8.57.0",
-    "eslint-config-next": "14.2.35",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.1",
+    "eslint-config-next": "^16.2.11",
     "typescript": "5.5.3"
+  },
+  "overrides": {
+    "postcss": "8.5.23",
+    "sharp": "0.35.3"
   }
 }

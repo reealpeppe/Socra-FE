@@ -5,7 +5,7 @@ import { PublicNavbar, PublicFooter } from "@/components/PublicLayout";
 
 export const metadata: Metadata = {
   title: "Come funziona Socra",
-  description: "Un percorso semplice, umano e meritocratico. Impara da chi lo ha già fatto.",
+  description: "Dalla survey al feedback: il flusso operativo dei percorsi peer-to-peer di Socra.",
 };
 
 const steps = [
@@ -13,54 +13,54 @@ const steps = [
     num: 1,
     icon: GraduationCap,
     title: "Scopri il tuo livello",
-    body: "Rispondi a poche domande per scoprire il tuo livello d'investimento attuale",
+    body: "Completa la survey iniziale e lascia che Socra adatti l’esperienza al tuo punto di partenza",
   },
   {
     num: 2,
     icon: Target,
     title: "Definisci il tuo obiettivo",
-    body: "Cosa vuoi imparare, in che tempo e con quale approccio. La piattaforma ti guida",
+    body: "Scegli il topic e il risultato di apprendimento su cui vuoi lavorare",
   },
   {
     num: 3,
     icon: Users,
-    title: "Trova il mentor giusto",
-    body: "Il nostro matching suggerisce le persone più in linea con il tuo livello (max ±1)",
+    title: "Valuta i mentor",
+    body: "Socra suggerisce profili coerenti con il tuo obiettivo, il tuo livello e la disponibilità del momento",
   },
   {
     num: 4,
     icon: BookOpen,
-    title: "Fai il tuo percorso",
-    body: "Impara, applica, metti in pratica con il supporto del tuo mentor",
+    title: "Apri il percorso",
+    body: "Mentee e mentor possono proporre un percorso. Quando l'altra persona accetta, si apre e potete organizzare la prima call",
   },
   {
     num: 5,
     icon: TrendingUp,
-    title: "Cresci e fai crescere",
-    body: "Accumula reputation, scala i livelli, diventa mentor a tua volta",
+    title: "Chiudi e lascia feedback",
+    body: "Mentee e mentor chiudono il proprio lato e completano il feedback reciproco obbligatorio",
   },
 ];
 
 const differences = [
   {
-    title: "No pay, no coins, no vendite",
-    body: "Non vendiamo corsi, consulenze o prodotti finanziari. Zero conflitti di interesse",
+    title: "Apprendimento, non consulenza",
+    body: "Il percorso serve a imparare e confrontarsi. Non è una raccomandazione finanziaria né una promessa di rendimento",
   },
   {
-    title: "No AI nel matching",
-    body: "Le persone scelgono le persone, non un algoritmo. Il matching ti suggerisce, decidi tu",
+    title: "Matching che suggerisce",
+    body: "La piattaforma ordina i profili compatibili e spiega il suggerimento. Sei sempre tu a scegliere chi contattare",
   },
   {
-    title: "Gratuito",
-    body: "Puoi iniziare il tuo percorso senza spendere nulla. La valuta interna è non monetizzabile",
+    title: "Crediti interni",
+    body: "I crediti bilanciano i percorsi ricevuti e offerti. Non si acquistano, non si vendono e non si convertono in denaro",
   },
   {
-    title: "Meritocrazia",
-    body: "I livelli si guadagnano con i percorsi e il feedback. Non con l'anzianità o il portfolio",
+    title: "Feedback reciproco",
+    body: "Ogni persona valuta il percorso dal proprio ruolo. Il profilo pubblico mostra solo risultati aggregati",
   },
   {
-    title: "Privacy by design",
-    body: "I dati finanziari non appaiono mai in pubblico. Solo info utili al matching",
+    title: "Visibilità controllata",
+    body: "Livello, topic, metriche e badge possono essere pubblici; le risposte dettagliate della survey restano private",
   },
 ];
 
@@ -68,7 +68,7 @@ export default function ComeFunzionaPage() {
   return (
     <>
       <PublicNavbar />
-      <main style={{ paddingTop: "64px" }}>
+      <main id="main-content" tabIndex={-1} style={{ paddingTop: "64px" }}>
 
         {/* ── Header ── */}
         <section style={{
@@ -93,7 +93,7 @@ export default function ComeFunzionaPage() {
               lineHeight: 1.7,
               margin: 0,
             }}>
-              Un percorso semplice, umano e meritocratico. Impara da chi lo ha già fatto.
+              Un flusso chiaro: profilo, obiettivo, proposta di matching, percorso e feedback.
             </p>
           </div>
         </section>
@@ -245,7 +245,7 @@ export default function ComeFunzionaPage() {
               lineHeight: 1.6,
               margin: "0 0 32px",
             }}>
-              Unisciti a oltre 10.000 persone che stanno già imparando con SOCRA.
+              Crea il profilo e completa la survey per definire il primo obiettivo di apprendimento.
             </p>
             <Link href="/register" style={{
               display: "inline-flex",

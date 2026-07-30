@@ -14,15 +14,28 @@ const dateFormatter = new Intl.DateTimeFormat("it-IT", {
 });
 
 const TX_TYPE_STYLES: Record<string, { background: string; color: string; label: string }> = {
-  earn:  { background: "#d1fae5", color: "#059669", label: "Guadagno" },
+  earn:  { background: "#d1fae5", color: "#059669", label: "Accredito" },
+  reward: { background: "#d1fae5", color: "#059669", label: "Percorso completato" },
   bonus: { background: "#fef3c7", color: "#b07d1a", label: "Bonus" },
-  spend: { background: "#fee2e2", color: "#dc2626", label: "Spesa" },
+  spend: { background: "#fee2e2", color: "#dc2626", label: "Utilizzo" },
   debt:  { background: "#fee2e2", color: "#dc2626", label: "Debito" }
 };
+
+const TX_REASON_LABELS: Record<string, string> = {
+  initial_grant: "Dotazione iniziale",
+  path_payment: "Apertura percorso",
+  path_reward: "Percorso completato",
+  invitation_bonus: "Bonus invito"
+};
+
+function userSafeDescription(value: string): string {
+  return value.replace(/\bcoin\b/gi, "crediti").replace(/\bx\b/g, "per");
+}
 
 export default function WalletPage() {
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const currencyLabel = formatCredits(wallet?.currency_label);
   const creditTotal = transactions.filter((row) => row.amount > 0).reduce((total, row) => total + row.amount, 0);
@@ -34,7 +47,8 @@ export default function WalletPage() {
         setWallet(walletData);
         setTransactions(rows);
       })
-      .catch((err: { message?: string }) => setError(err.message || "Wallet non disponibile"));
+      .catch((err: { message?: string }) => setError(err.message || "Wallet non disponibile"))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -42,10 +56,10 @@ export default function WalletPage() {
       <div className="wallet-page">
 	        <div>
 	          <h1 className="wallet-heading">Crediti Socra</h1>
-	          <p className="wallet-subtitle">Valuta interna non monetizzabile, usata solo per aprire e completare percorsi.</p>
+	          <p className="wallet-subtitle">Unità interna di partecipazione, non monetizzabile, usata solo nei percorsi Socra.</p>
 	        </div>
 
-        {error && <div className="wallet-error">{error}</div>}
+        {error && <div className="wallet-error" role="alert">{error}</div>}
 
         <div className="wallet-stats-grid">
           <div className="card wallet-stat-card">
@@ -63,7 +77,7 @@ export default function WalletPage() {
             >
               {wallet?.debt ?? "-"}
             </div>
-            <p className="wallet-stat-sub">max -3 (L0/L1)</p>
+            <p className="wallet-stat-sub">L’eventuale margine disponibile dipende dal profilo e viene verificato prima di aprire un percorso.</p>
           </div>
         </div>
 
@@ -76,7 +90,9 @@ export default function WalletPage() {
             </div>
           </div>
 
-          {transactions.length === 0 ? (
+          {loading ? (
+            <p className="muted" role="status">Caricamento movimenti…</p>
+          ) : transactions.length === 0 ? (
             <EmptyState
               title="Nessun movimento"
               body="I movimenti appariranno quando apri o completi percorsi."
@@ -96,8 +112,8 @@ export default function WalletPage() {
                         {typeStyle.label}
                       </span>
                       <div className="wallet-tx-info">
-                        <span className="wallet-tx-desc">{row.description}</span>
-                        {row.reason && <span className="wallet-tx-reason">{row.reason}</span>}
+                        <span className="wallet-tx-desc">{userSafeDescription(row.description)}</span>
+                        {row.reason && <span className="wallet-tx-reason">{TX_REASON_LABELS[row.reason] || "Movimento crediti"}</span>}
                         <span className="wallet-tx-date">
                           {dateFormatter.format(new Date(row.created_at))}
                           {" · "}saldo {row.balance_after}

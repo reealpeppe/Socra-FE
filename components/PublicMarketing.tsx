@@ -8,9 +8,9 @@ export function PublicNav() {
         <Brand />
       </Link>
       <nav aria-label="Sezioni pubbliche">
-        <a href="/#come-funziona">Come funziona</a>
-        <a href="/#community">Community</a>
-        <a href="/#sicurezza">Sicurezza</a>
+        <Link href="/#come-funziona">Come funziona</Link>
+        <Link href="/#community">Community</Link>
+        <Link href="/#sicurezza">Sicurezza</Link>
       </nav>
       <div className="premium-nav-actions">
         <Link className="premium-link-button" href="/login">Accedi</Link>
@@ -35,7 +35,7 @@ export function PublicAuthShell({
       <PublicNav />
       <section className="premium-auth-layout">
         <aside className="premium-auth-aside" aria-label="Sintesi Socra">
-          <p className="premium-kicker">Socra private beta</p>
+          <p className="premium-kicker">Community peer-to-peer</p>
           <h1>{sideTitle}</h1>
           <p>{sideText}</p>
           <div className="premium-auth-proof">

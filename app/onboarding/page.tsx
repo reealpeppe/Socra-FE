@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, ClipboardList, LockKeyhole, Shield, ShieldCheck } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { CheckCircle2, ChevronLeft, LockKeyhole, ShieldCheck } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { ButtonLink, Card, ProgressSteps } from "@/components/Ui";
 import { ClientApiError, clientGet, clientPost } from "@/lib/api";
@@ -16,7 +16,7 @@ import {
   practiceOptions,
   sectionDQuestions,
   situationalQuestions,
-  type SelectOption
+  type SelectOption,
 } from "@/lib/options";
 
 const draftKey = "socra_onboarding_draft";
@@ -28,6 +28,9 @@ type Answers = Record<string, unknown> & {
   D4?: Record<string, number>;
   D5?: string;
   D6?: string;
+  D7?: string;
+  D8?: string;
+  D9?: string;
   section_d?: Record<string, string>;
 };
 
@@ -41,7 +44,6 @@ type SurveyDraft = {
   step: number;
   scores: { A: number; B: number; C: number };
   answers: Answers;
-  includeD: boolean;
   dNeverInvested: boolean;
 };
 
@@ -53,90 +55,121 @@ type SurveyDraftResponse = {
   d_never_invested: boolean;
 };
 
-type Page =
-  | { kind: "choice"; key: keyof Answers; title: string; prompt: string; section: string; options: SelectOption[] }
-  | { kind: "instrument"; topic: string; title: string }
-  | { kind: "knowledge"; concept: string; title: string }
-  | { kind: "sectionDIntro" }
-  | { kind: "sectionD"; key: string; title: string; options: SelectOption[] }
-  | { kind: "review" };
+type StepKind = "experience" | "instruments" | "knowledge" | "situations" | "context" | "review";
+
+const STEP_META: Record<StepKind, { title: string; section: string }> = {
+  experience: { title: "La tua esperienza", section: "A" },
+  instruments: { title: "Strumenti utilizzati", section: "A" },
+  knowledge: { title: "Conoscenze di base", section: "B" },
+  situations: { title: "Scelte in situazioni concrete", section: "C" },
+  context: { title: "Contesto personale", section: "D" },
+  review: { title: "Rivedi e conferma", section: "Fine" },
+};
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
-  const [includeD, setIncludeD] = useState(false);
   const [completed, setCompleted] = useState<OnboardingState | null>(null);
   const [result, setResult] = useState<{ total_score: number; derived_level: string; is_coach: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [draftWarning, setDraftWarning] = useState<string | null>(null);
   const [loadedDraft, setLoadedDraft] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const saveQueue = useRef<Promise<unknown>>(Promise.resolve());
 
   const scores = useMemo(() => estimateScores(answers), [answers]);
-  const pages = useMemo(() => buildPages(answers, includeD), [answers, includeD]);
-  const current = pages[Math.min(step, pages.length - 1)];
+  const steps = useMemo(() => buildSteps(answers), [answers]);
+  const safeStep = Math.min(step, steps.length - 1);
+  const current = steps[safeStep];
+  const progressPct = Math.round(((safeStep + 1) / steps.length) * 100);
+  const progressStep = Math.min(4, Math.floor((safeStep / Math.max(steps.length - 1, 1)) * 5));
 
   useEffect(() => {
-    let cancelled = false;
-    async function loadState() {
+    let active = true;
+
+    async function load() {
       try {
         const state = await clientGet<OnboardingState>("/surveys/onboarding/me");
-        if (cancelled) return;
+        if (!active) return;
         if (state.latest_answer_id) {
           setCompleted(state);
           window.sessionStorage.removeItem(draftKey);
           setLoadedDraft(true);
           return;
         }
-      } catch {
-        // Draft loading below still allows the gate-driven first onboarding flow to recover.
+      } catch (err) {
+        if (err instanceof ClientApiError && err.status === 401) {
+          if (active) {
+            setError("Sessione scaduta. Accedi di nuovo per compilare la survey.");
+            setLoadedDraft(true);
+          }
+          return;
+        }
       }
-      await loadDraft(cancelled);
+
+      try {
+        const dbDraft = await clientGet<SurveyDraftResponse | null>("/surveys/onboarding/me/draft");
+        if (!active) return;
+        if (dbDraft) {
+          const restoredAnswers = dbDraft.answers || {};
+          setAnswers(restoredAnswers);
+          setStep(dbDraft.current_step);
+          setLoadedDraft(true);
+          return;
+        }
+      } catch {
+        if (active) setDraftWarning("Bozza online non disponibile: continuiamo a salvare su questo dispositivo.");
+      }
+
+      const rawDraft = window.sessionStorage.getItem(draftKey);
+      if (rawDraft) {
+        try {
+          const draft = JSON.parse(rawDraft) as SurveyDraft;
+          setStep(draft.step);
+          setAnswers(draft.answers || {});
+        } catch {
+          window.sessionStorage.removeItem(draftKey);
+        }
+      }
+      if (active) setLoadedDraft(true);
     }
-    loadState();
+
+    load();
     return () => {
-      cancelled = true;
+      active = false;
     };
   }, []);
 
-  async function loadDraft(cancelled: boolean) {
-    try {
-      const dbDraft = await clientGet<SurveyDraftResponse | null>("/surveys/onboarding/me/draft");
-      if (cancelled) return;
-      if (dbDraft) {
-        setStep(dbDraft.current_step);
-        setAnswers(dbDraft.answers || {});
-        setIncludeD(dbDraft.include_section_d);
-        setLoadedDraft(true);
-        return;
-      }
-    } catch {
-      // Local fallback below keeps the form usable if draft loading is temporarily unavailable.
-    }
-    const rawDraft = window.sessionStorage.getItem(draftKey);
-    if (rawDraft) {
-      try {
-        const draft = JSON.parse(rawDraft) as SurveyDraft;
-        setStep(draft.step);
-        setAnswers(draft.answers || {});
-        setIncludeD(draft.includeD);
-      } catch {
-        window.sessionStorage.removeItem(draftKey);
-      }
-    }
-    setLoadedDraft(true);
-  }
-
   useEffect(() => {
-    if (step >= pages.length) {
-      setStep(Math.max(pages.length - 1, 0));
-    }
-  }, [pages.length, step]);
+    if (step >= steps.length) setStep(Math.max(steps.length - 1, 0));
+  }, [step, steps.length]);
 
   useEffect(() => {
     if (!loadedDraft || result || completed) return;
-    persistDraft({ step, scores, answers, includeD, dNeverInvested: answers.D1 === "none" });
-  }, [answers, completed, includeD, loadedDraft, result, scores, step]);
+    const draft: SurveyDraft = {
+      step: safeStep,
+      scores,
+      answers,
+      dNeverInvested: answers.D1 === "none",
+    };
+    window.sessionStorage.setItem(draftKey, JSON.stringify(draft));
+    const timer = window.setTimeout(() => {
+      saveQueue.current = saveQueue.current
+        .catch(() => undefined)
+        .then(() => clientPost("/surveys/onboarding/me/draft", {
+          current_step: draft.step,
+          scores: draft.scores,
+          answers: draft.answers,
+          include_section_d: true,
+          d_never_invested: draft.dNeverInvested,
+        }))
+        .then(() => setDraftWarning(null))
+        .catch(() => setDraftWarning("Salvataggio online temporaneamente non disponibile; la bozza resta su questo dispositivo."));
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [answers, completed, loadedDraft, result, safeStep, scores]);
 
-  function choose(key: keyof Answers, value: string) {
+  function setExperience(key: "D1" | "D2" | "D5" | "D6", value: string) {
     setAnswers((currentAnswers) => {
       const next = { ...currentAnswers, [key]: value };
       if (key === "D1") {
@@ -150,406 +183,470 @@ export default function OnboardingPage() {
       }
       return next;
     });
-    advance();
   }
 
-  function chooseInstrument(topic: string, value: string) {
+  function setInstrument(topic: string, value: string) {
     setAnswers((currentAnswers) => ({
       ...currentAnswers,
-      D3: { ...(currentAnswers.D3 || {}), [topic]: Number(value) }
+      D3: { ...(currentAnswers.D3 || {}), [topic]: Number(value) },
     }));
-    advance();
   }
 
-  function chooseKnowledge(concept: string, value: string) {
+  function setKnowledge(concept: string, value: string) {
     setAnswers((currentAnswers) => ({
       ...currentAnswers,
-      D4: { ...(currentAnswers.D4 || {}), [concept]: Number(value) }
+      D4: { ...(currentAnswers.D4 || {}), [concept]: Number(value) },
     }));
-    advance();
   }
 
-  function chooseSectionD(key: string, value: string) {
+  function setSituation(key: string, value: string) {
+    setAnswers((currentAnswers) => ({ ...currentAnswers, [key]: value }));
+  }
+
+  function setContextAnswer(key: string, value: string) {
     setAnswers((currentAnswers) => ({
       ...currentAnswers,
-      section_d: { ...(currentAnswers.section_d || {}), [key]: value }
+      section_d: { ...(currentAnswers.section_d || {}), [key]: value },
     }));
-    advance();
   }
 
-  function advance() {
-    setStep((currentStep) => Math.min(currentStep + 1, pages.length - 1));
+  function next() {
+    if (!isStepComplete(current, answers)) {
+      setError("Completa le risposte richieste in questa sezione.");
+      return;
+    }
+    setError(null);
+    setStep((value) => Math.min(value + 1, steps.length - 1));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function back() {
+    setError(null);
+    setStep((value) => Math.max(value - 1, 0));
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function submit() {
+    if (!isStepComplete("review", answers)) {
+      setError("La survey non è completa: rivedi le sezioni indicate.");
+      return;
+    }
     setError(null);
+    setSubmitting(true);
     try {
-      const response = await clientPost<{ total_score: number; derived_level: string; is_coach: boolean }>("/surveys/onboarding/me/answers", {
-        section: "onboarding",
-        answers: buildSubmittedAnswers(answers, includeD)
-      });
+      const response = await clientPost<{ total_score: number; derived_level: string; is_coach: boolean }>(
+        "/surveys/onboarding/me/answers",
+        {
+          section: "onboarding",
+          answers: buildSubmittedAnswers(answers),
+        }
+      );
       window.sessionStorage.removeItem(draftKey);
       setResult(response);
     } catch (err) {
       setError(err instanceof ClientApiError ? err.message : "Survey non salvata");
+    } finally {
+      setSubmitting(false);
     }
   }
-
-  const mockupStep = Math.min(4, Math.floor((step / Math.max(pages.length - 1, 1)) * 5));
-  const progressPct = Math.round((step / Math.max(pages.length - 1, 1)) * 100);
 
   return (
     <AppShell>
       <div className="survey-page">
-        {/* Progress steps bar — nascosta se survey completata */}
-        {!completed && !result && (
+        {!completed && !result ? (
           <ProgressSteps
-            steps={["Su di te", "Obiettivo", "Contesto", "Preferenze", "Conferma"]}
-            current={mockupStep}
+            steps={["Esperienza", "Conoscenze", "Scenari", "Contesto", "Conferma"]}
+            current={progressStep}
           />
-        )}
+        ) : null}
 
-        {error ? <p className="error">{error}</p> : null}
+        {error ? <p className="error" role="alert">{error}</p> : null}
+        {draftWarning ? <p className="muted" role="status">{draftWarning}</p> : null}
 
-        {completed ? (
-          <div className="survey-layout">
-            <div className="survey-main">
-              <Card className="workflow-panel workflow-result">
-                <div className="stack">
-                  <span className="workflow-symbol"><CheckCircle2 size={26} aria-hidden /></span>
-                  <h2>Survey completata</h2>
-                  <h3>Livello {completed.level}</h3>
-                  <p className="muted">Livello corrente: {completed.level}</p>
-                  <p className="muted">
-	                    La survey iniziale è già stata salvata. Per questa versione non può essere ricompilata liberamente.
-                  </p>
-                  <div className="cluster">
-                    <ButtonLink href="/goal">Definisci obiettivo</ButtonLink>
-                    <ButtonLink href="/dashboard" variant="secondary">Vai alla dashboard</ButtonLink>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          </div>
+        {!loadedDraft ? (
+          <Card><p className="muted" role="status">Caricamento della survey…</p></Card>
+        ) : completed ? (
+          <ResultCard level={completed.level} isCoach={completed.is_coach} alreadyCompleted />
         ) : result ? (
-          <div className="survey-layout">
-            <div className="survey-main">
-              <Card className="workflow-panel workflow-result">
-                <div className="stack">
-                  <span className="workflow-symbol"><CheckCircle2 size={26} aria-hidden /></span>
-                  <p className="eyebrow">Risultato</p>
-                  <h2>Livello {result.derived_level}</h2>
-                  <LevelReveal level={result.derived_level} isCoach={result.is_coach} />
-                  <div className="cluster">
-                    <ButtonLink href="/goal">Definisci obiettivo</ButtonLink>
-                    <ButtonLink href="/dashboard" variant="secondary">Vai alla dashboard</ButtonLink>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          </div>
+          <ResultCard level={result.derived_level} isCoach={result.is_coach} />
         ) : (
           <div className="survey-layout">
-            {/* Form principale */}
             <div className="survey-main">
-              <Card className="workflow-panel workflow-question survey-card">
+              <Card className="workflow-panel workflow-question">
                 <div className="stack">
-                  <div className="survey-intro">
-                    <h1 className="survey-heading">Troviamo il mentor giusto per te</h1>
+                  <div>
+                    <h1 className="survey-heading">Conosciamoci meglio</h1>
                     <p className="muted survey-subheading">
-                      Rispondi a poche domande per aiutarci a capire i tuoi obiettivi e il contesto.
-                      In questo modo potremo offrirti i migliori mentor per il tuo percorso.
+                      Le risposte servono ad assegnare il livello iniziale e a rendere coerenti i percorsi.
                     </p>
                   </div>
+
                   <div className="workflow-panel-head">
                     <div>
-                      <p className="eyebrow">Step {Math.min(step + 1, pages.length)} di {pages.length}</p>
-                      <h2>{pageTitle(current)}</h2>
+                      <p className="eyebrow">Sezione {safeStep + 1} di {steps.length}</p>
+                      <h2>{STEP_META[current].title}</h2>
                     </div>
-                    <span className="pill">{pageSection(current)}</span>
+                    <span className="pill">{STEP_META[current].section}</span>
                   </div>
-                  <div className="progress" aria-hidden>
-                    <span style={{ width: `${((Math.min(step + 1, pages.length)) / pages.length) * 100}%` }} />
+                  <div
+                    className="progress"
+                    role="progressbar"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={progressPct}
+                    aria-label="Avanzamento survey"
+                  >
+                    <span style={{ width: `${progressPct}%` }} />
                   </div>
-                  {renderPage(current, { choose, chooseInstrument, chooseKnowledge, chooseSectionD, setIncludeD, advance, submit })}
+
+                  {current === "experience" ? (
+                    <ExperienceStep answers={answers} onChange={setExperience} />
+                  ) : current === "instruments" ? (
+                    <MatrixStep
+                      title="Per ciascuno strumento indica la tua esperienza."
+                      items={instrumentOptions}
+                      options={instrumentDepthOptions}
+                      values={answers.D3 || {}}
+                      onChange={setInstrument}
+                    />
+                  ) : current === "knowledge" ? (
+                    <MatrixStep
+                      title="Per ciascun concetto indica quanto ti senti sicuro."
+                      items={knowledgeConcepts}
+                      options={knowledgeOptions}
+                      values={answers.D4 || {}}
+                      onChange={setKnowledge}
+                    />
+                  ) : current === "situations" ? (
+                    <SituationsStep answers={answers} onChange={setSituation} />
+                  ) : current === "context" ? (
+                    <ContextStep
+                      answers={answers.section_d || {}}
+                      onChange={setContextAnswer}
+                    />
+                  ) : (
+                    <ReviewStep
+                      answers={answers}
+                      steps={steps}
+                      onEdit={(kind) => setStep(steps.indexOf(kind))}
+                    />
+                  )}
+
+                  <div className="survey-navigation">
+                    <button className="button secondary" type="button" onClick={back} disabled={safeStep === 0 || submitting}>
+                      <ChevronLeft size={16} aria-hidden /> Indietro
+                    </button>
+                    {current === "review" ? (
+                      <button className="button primary" type="button" onClick={submit} disabled={submitting}>
+                        {submitting ? "Salvataggio…" : "Scopri il tuo livello"}
+                      </button>
+                    ) : (
+                      <button
+                        className="button primary"
+                        type="button"
+                        onClick={next}
+                        disabled={!isStepComplete(current, answers)}
+                      >
+                        Continua
+                      </button>
+                    )}
+                  </div>
                 </div>
               </Card>
 
-              {/* Nota sicurezza e privacy */}
               <div className="survey-privacy-note">
-                <Shield size={14} aria-hidden />
-                <span>Le tue risposte sono private e protette. Solo informazioni necessarie per il matching.</span>
+                <ShieldCheck size={15} aria-hidden />
+                <span>Capitale e contesto personale restano privati e non vengono mostrati ai mentor.</span>
               </div>
             </div>
 
-            {/* Sidebar destra */}
             <aside className="survey-sidebar">
               <Card className="workflow-panel">
                 <p className="survey-sidebar-label">Perché questa survey?</p>
-                <p className="muted" style={{ fontSize: "0.875rem", lineHeight: 1.6 }}>
-                  Offriamo le migliori opportunità di apprendimento a chi sa esattamente dove vuole
-                  arrivare. La survey ci aiuta a trovare il mentor più adatto a te.
+                <p className="muted">
+                  Il matching parte da livello, obiettivo e competenze. Non usiamo classifiche pubbliche né profili “guru”.
                 </p>
               </Card>
-
               <Card className="workflow-panel">
-                <p className="survey-sidebar-label">Il tuo progresso</p>
-                <div className="survey-progress-bar">
-                  <div
-                    className="survey-progress-fill"
-                    style={{ width: `${progressPct}%` }}
-                  />
+                <p className="survey-sidebar-label">Avanzamento</p>
+                <div className="survey-progress-bar" aria-hidden>
+                  <div className="survey-progress-fill" style={{ width: `${progressPct}%` }} />
                 </div>
-                <p style={{ color: "var(--mint-600)", fontWeight: 800, marginTop: "8px", fontSize: "1.1rem" }}>
-                  {progressPct}% completato
-                </p>
+                <p style={{ color: "var(--mint-600)", fontWeight: 800, margin: "8px 0 0" }}>{progressPct}%</p>
               </Card>
-
-              <Card className="workflow-panel workflow-privacy">
-                <div className="cluster">
-                  <span className="icon-disc"><ShieldCheck size={20} aria-hidden /></span>
-                  <div>
-                    <strong>Le tue risposte sono private</strong>
-                    <p className="muted">Servono per assegnare il livello e proporti percorsi coerenti.</p>
-                  </div>
-                </div>
-              </Card>
-
-              <Card className="workflow-panel survey-help-card">
-                <p className="survey-sidebar-label">Hai bisogno di aiuto?</p>
-                <p className="muted" style={{ fontSize: "0.875rem" }}>
-                  Se hai dubbi su una domanda, puoi saltarla e tornarci dopo.
-                </p>
-                <button type="button" className="button secondary" style={{ marginTop: "12px", fontSize: "0.8rem" }}>
-                  Contattaci
-                </button>
-              </Card>
-
               <Card className="workflow-panel workflow-note">
                 <LockKeyhole size={18} aria-hidden />
-                <p>Una domanda alla volta, nessuna risposta preselezionata.</p>
+                <p>Nessuna risposta è preselezionata. Puoi tornare indietro prima dell&apos;invio.</p>
               </Card>
             </aside>
           </div>
         )}
-
-        <WorkflowStyles />
+        <SurveyStyles />
       </div>
     </AppShell>
   );
 }
 
-function buildPages(answers: Answers, includeD: boolean): Page[] {
-  const pages: Page[] = [
-    {
-      kind: "choice",
-      key: "D1",
-      section: "A",
-      title: "Esperienza pratica",
-      prompt: "Hai mai investito denaro in strumenti finanziari?",
-      options: practiceOptions
-    }
-  ];
-  if (answers.D1 && answers.D1 !== "none") {
-    pages.push({
-      kind: "choice",
-      key: "D2",
-      section: "A",
-      title: "Tempo di esperienza",
-      prompt: "Da quanto tempo investi?",
-      options: durationOptions
-    });
-    for (const instrument of instrumentOptions) {
-      pages.push({ kind: "instrument", topic: instrument.value, title: instrument.label });
-    }
-  }
-  if (answers.D1) {
-    for (const concept of knowledgeConcepts) {
-      pages.push({ kind: "knowledge", concept: concept.value, title: concept.label });
-    }
-  }
-  if (answers.D1 && answers.D1 !== "none") {
-    pages.push({
-      kind: "choice",
-      key: "D5",
-      section: "B",
-      title: "Metodo decisionale",
-      prompt: "Come prendi le tue decisioni di investimento?",
-      options: autonomyOptions
-    });
-    pages.push({
-      kind: "choice",
-      key: "D6",
-      section: "B",
-      title: "Capitale investito",
-      prompt: "Ordine di grandezza del capitale investito complessivamente?",
-      options: investedCapitalOptions
-    });
-  }
-  if (allKnowledgeAnswered(answers)) {
-    pages.push({ kind: "sectionDIntro" });
-    if (includeD) {
-      for (const question of sectionDQuestions) {
-        pages.push({ kind: "sectionD", key: question.key, title: question.label, options: question.options });
-      }
-    }
-  }
-  if (allKnowledgeAnswered(answers) && estimateScores(answers).A + estimateScores(answers).B > 10) {
-    for (const question of situationalQuestions) {
-      pages.push({
-        kind: "choice",
-        key: question.key as keyof Answers,
-        section: "C",
-        title: question.title,
-        prompt: question.prompt,
-        options: question.options
-      });
-    }
-  }
-  pages.push({ kind: "review" });
-  return pages;
-}
-
-function renderPage(
-  page: Page,
-  actions: {
-    choose: (key: keyof Answers, value: string) => void;
-    chooseInstrument: (topic: string, value: string) => void;
-    chooseKnowledge: (concept: string, value: string) => void;
-    chooseSectionD: (key: string, value: string) => void;
-    setIncludeD: (value: boolean) => void;
-    advance: () => void;
-    submit: () => void;
-  }
-) {
-  if (page.kind === "choice") {
-    return <ChoicePage prompt={page.prompt} options={page.options} onChoose={(value) => actions.choose(page.key, value)} />;
-  }
-  if (page.kind === "instrument") {
-    return <ChoicePage prompt="Indica il tuo livello di esperienza su questo strumento." options={instrumentDepthOptions} onChoose={(value) => actions.chooseInstrument(page.topic, value)} />;
-  }
-  if (page.kind === "knowledge") {
-    return <ChoicePage prompt="Quanto ti senti sicuro/a su questo concetto?" options={knowledgeOptions} onChoose={(value) => actions.chooseKnowledge(page.concept, value)} />;
-  }
-  if (page.kind === "sectionDIntro") {
-    return (
-      <>
-        <p className="muted">Le prossime domande non cambiano il livello e sono opzionali.</p>
+function ExperienceStep({
+  answers,
+  onChange,
+}: {
+  answers: Answers;
+  onChange: (key: "D1" | "D2" | "D5" | "D6", value: string) => void;
+}) {
+  const hasInvested = !!answers.D1 && answers.D1 !== "none";
+  return (
+    <div className="stack">
+      <fieldset className="survey-fieldset">
+        <legend>Hai mai investito denaro in strumenti finanziari?</legend>
         <div className="workflow-choice-grid">
-          <button className="button secondary" type="button" onClick={() => { actions.setIncludeD(false); actions.advance(); }}>Salta questa sezione</button>
-          <button className="button primary" type="button" onClick={() => { actions.setIncludeD(true); actions.advance(); }}>Compila sezione D</button>
-        </div>
-      </>
-    );
-  }
-  if (page.kind === "sectionD") {
-    return <ChoicePage prompt="Seleziona una risposta. Puoi scegliere Preferisco non rispondere." options={page.options} onChoose={(value) => actions.chooseSectionD(page.key, value)} />;
-  }
-  return (
-    <>
-      <p className="muted">Conferma le risposte: salveremo il tuo livello iniziale e potrai definire il primo obiettivo.</p>
-      <button className="button primary" type="button" onClick={actions.submit}>Scopri il tuo livello</button>
-    </>
-  );
-}
-
-function ChoicePage({ prompt, options, onChoose }: { prompt: string; options: SelectOption[]; onChoose: (value: string) => void }) {
-  return (
-    <>
-      <p>{prompt}</p>
-      <p className="muted">Seleziona una risposta.</p>
-      <div className="workflow-choice-grid">
-        {options.map((option) => (
-          <button key={option.value} className="button secondary" type="button" onClick={() => onChoose(option.value)}>
-            {option.label}
-          </button>
-        ))}
-      </div>
-    </>
-  );
-}
-
-function LevelReveal({ level, isCoach }: { level: string; isCoach: boolean }) {
-  const levelCopy: Record<string, { title: string; description: string }> = {
-    L0: {
-      title: "Base di partenza",
-      description: "Puoi definire il primo obiettivo e trovare un mentor adatto al tuo livello."
-    },
-    L1: {
-      title: "Prime basi operative",
-      description: "Hai sbloccato percorsi guidati con mentor compatibili con il tuo obiettivo."
-    },
-    L2: {
-      title: "Mentor in attivazione",
-      description: "Puoi ricevere richieste compatibili e continuare a costruire reputazione con i percorsi."
-    },
-    L3: {
-      title: "Mentor solido",
-      description: "Il profilo mentor e visibile per richieste coerenti con livello e competenze."
-    },
-    L4: {
-      title: "Mentor avanzato",
-      description: "Puoi seguire percorsi piu complessi e consolidare il tuo profilo nella community."
-    },
-    L5: {
-      title: "Mentor esperto",
-      description: "Sei tra i profili di riferimento per percorsi ad alta complessita."
-    }
-  };
-  const copy = levelCopy[level] || {
-    title: "Livello Socra",
-    description: "Il tuo profilo e pronto per iniziare il prossimo passo su Socra."
-  };
-  const unlocks = isCoach
-    ? ["Profilo mentor visibile", "Richieste compatibili abilitate", "Reputazione costruita sui percorsi"]
-    : ["Obiettivo personale", "Matching con mentor", "Percorso guidato con feedback"];
-
-  return (
-    <div className="level-reveal">
-      <div className="level-reveal-badge" aria-label={`Livello ${level}`}>
-        <span>{level}</span>
-      </div>
-      <div className="level-reveal-copy">
-        <p className="eyebrow">Sbloccato</p>
-        <h3>{copy.title}</h3>
-        <p className="muted">{copy.description}</p>
-        <div className="level-reveal-unlocks">
-          {unlocks.map((unlock) => (
-            <span key={unlock}>{unlock}</span>
+          {practiceOptions.map((option) => (
+            <button
+              key={option.value}
+              className={answers.D1 === option.value ? "button dark" : "button secondary"}
+              type="button"
+              aria-pressed={answers.D1 === option.value}
+              onClick={() => onChange("D1", option.value)}
+            >
+              {option.label}
+            </button>
           ))}
         </div>
+      </fieldset>
+      {hasInvested ? (
+        <div className="survey-form-grid">
+          <QuestionSelect id="experience-duration" label="Da quanto tempo investi?" options={durationOptions} value={answers.D2} onChange={(value) => onChange("D2", value)} />
+          <QuestionSelect id="experience-autonomy" label="Come prendi le decisioni di investimento?" options={autonomyOptions} value={answers.D5} onChange={(value) => onChange("D5", value)} />
+          <QuestionSelect id="experience-capital" label="Ordine di grandezza del capitale investito?" options={investedCapitalOptions} value={answers.D6} onChange={(value) => onChange("D6", value)} />
+        </div>
+      ) : answers.D1 === "none" ? (
+        <p className="muted">Le domande sull&apos;esperienza pratica vengono saltate. Continuerai con le conoscenze di base.</p>
+      ) : null}
+    </div>
+  );
+}
+
+function MatrixStep({
+  title,
+  items,
+  options,
+  values,
+  onChange,
+}: {
+  title: string;
+  items: ReadonlyArray<{ value: string; label: string }>;
+  options: SelectOption[];
+  values: Record<string, number>;
+  onChange: (key: string, value: string) => void;
+}) {
+  return (
+    <div className="stack">
+      <p className="muted">{title}</p>
+      <div className="survey-matrix">
+        {items.map((item) => (
+          <QuestionSelect
+            key={item.value}
+            id={`matrix-${item.value}`}
+            label={item.label}
+            options={options}
+            value={values[item.value] === undefined ? undefined : String(values[item.value])}
+            onChange={(value) => onChange(item.value, value)}
+          />
+        ))}
       </div>
     </div>
   );
 }
 
-function ProgressRow({ label, active, done }: { label: string; active: boolean; done: boolean }) {
+function SituationsStep({ answers, onChange }: { answers: Answers; onChange: (key: string, value: string) => void }) {
   return (
-    <div className="row">
-      <span className="cluster">
-        {done ? <CheckCircle2 size={16} color="#22a06b" /> : <ClipboardList size={16} color={active ? "#ef8d24" : "#8994aa"} />}
-        <strong>{label}</strong>
-      </span>
-      {active ? <span className="pill amber">Ora</span> : done ? <span className="pill green">Fatto</span> : <span className="pill">In arrivo</span>}
+    <div className="stack survey-situations">
+      <p className="muted">Non cerchiamo la risposta perfetta: scegli quella che descrive meglio come ragioneresti.</p>
+      {situationalQuestions.map((question) => (
+        <QuestionSelect
+          key={question.key}
+          id={`situation-${question.key}`}
+          label={question.prompt}
+          options={question.options}
+          value={answers[question.key] as string | undefined}
+          onChange={(value) => onChange(question.key, value)}
+        />
+      ))}
     </div>
   );
 }
 
-function pageTitle(page: Page): string {
-  if (page.kind === "choice") return page.title;
-  if (page.kind === "instrument") return page.title;
-  if (page.kind === "knowledge") return page.title;
-  if (page.kind === "sectionDIntro") return "Sezione D opzionale";
-  if (page.kind === "sectionD") return page.title;
-  return "Conferma survey";
+function ContextStep({
+  answers,
+  onChange,
+}: {
+  answers: Record<string, string>;
+  onChange: (key: string, value: string) => void;
+}) {
+  return (
+    <div className="stack">
+      <p className="muted">
+        Questa sezione fa parte della survey ma non cambia livello o matching.
+        Per ogni domanda puoi scegliere “Preferisco non rispondere”. Le risposte
+        condivise restano private; scegliendo un&apos;altra risposta autorizzi il
+        solo uso aggregato per capire e migliorare la community.
+      </p>
+      <div className="survey-form-grid">
+        {sectionDQuestions.map((question) => (
+          <QuestionSelect
+            key={question.key}
+            id={`context-${question.key}`}
+            label={question.label}
+            options={question.options}
+            value={answers[question.key]}
+            onChange={(value) => onChange(question.key, value)}
+            hint="Scegli una risposta oppure “Preferisco non rispondere”."
+          />
+        ))}
+      </div>
+    </div>
+  );
 }
 
-function pageSection(page: Page): string {
-  if (page.kind === "choice") return page.section;
-  if (page.kind === "instrument") return "A";
-  if (page.kind === "knowledge") return "B";
-  if (page.kind === "sectionDIntro" || page.kind === "sectionD") return "D";
-  return "Fine";
+function ReviewStep({
+  answers,
+  steps,
+  onEdit,
+}: {
+  answers: Answers;
+  steps: StepKind[];
+  onEdit: (kind: StepKind) => void;
+}) {
+  const rows = [
+    { kind: "experience" as const, label: "Esperienza", value: answers.D1 === "none" ? "Nessun investimento precedente" : "Esperienza pratica compilata" },
+    ...(steps.includes("instruments") ? [{ kind: "instruments" as const, label: "Strumenti", value: `${Object.keys(answers.D3 || {}).length} su ${instrumentOptions.length} valutati` }] : []),
+    { kind: "knowledge" as const, label: "Conoscenze", value: `${Object.keys(answers.D4 || {}).length} su ${knowledgeConcepts.length} valutate` },
+    ...(steps.includes("situations") ? [{ kind: "situations" as const, label: "Scenari", value: "3 situazioni completate" }] : []),
+    {
+      kind: "context" as const,
+      label: "Contesto personale",
+      value: `${Object.keys(answers.section_d || {}).length} su ${sectionDQuestions.length} risposte completate`,
+    },
+  ];
+  return (
+    <div className="stack">
+      <p className="muted">
+        Controlla le sezioni prima di confermare. Le risposte dettagliate resteranno private.
+      </p>
+      <div className="review-list">
+        {rows.map((row) => (
+          <div className="review-row" key={row.kind}>
+            <div>
+              <strong>{row.label}</strong>
+              <p className="muted">{row.value}</p>
+            </div>
+            <button className="button secondary" type="button" onClick={() => onEdit(row.kind)}>Modifica</button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function QuestionSelect({
+  id,
+  label,
+  options,
+  value,
+  onChange,
+  hint,
+}: {
+  id: string;
+  label: string;
+  options: SelectOption[];
+  value?: string;
+  onChange: (value: string) => void;
+  hint?: string;
+}) {
+  return (
+    <div className="survey-question">
+      <label htmlFor={id}>{label}</label>
+      {hint ? <span className="survey-question-hint">{hint}</span> : null}
+      <select id={id} name={id} className="input" value={value || ""} onChange={(event) => onChange(event.target.value)} required>
+        <option value="">Seleziona una risposta</option>
+        {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+      </select>
+    </div>
+  );
+}
+
+function ResultCard({
+  level,
+  isCoach,
+  alreadyCompleted = false,
+}: {
+  level: string;
+  isCoach: boolean;
+  alreadyCompleted?: boolean;
+}) {
+  const copy: Record<string, { title: string; description: string }> = {
+    L0: { title: "Primi passi", description: "Partirai da obiettivi introduttivi con un mentor compatibile." },
+    L1: { title: "Basi operative", description: "Puoi affrontare obiettivi guidati e, se vuoi, renderti disponibile come mentor." },
+    L2: { title: "Esperienza avanzata", description: "Puoi affrontare obiettivi più articolati e, se vuoi, renderti disponibile come mentor." },
+  };
+  const levelCopy = copy[level] || { title: "Livello Socra", description: "Il profilo è pronto per il prossimo passo." };
+  return (
+    <div className="survey-layout single">
+      <div className="survey-main">
+        <Card className="workflow-result">
+          <div className="stack">
+            <span className="workflow-symbol"><CheckCircle2 size={26} aria-hidden /></span>
+            <p className="eyebrow">{alreadyCompleted ? "Survey già completata" : "Livello iniziale"}</p>
+            <div className="level-reveal">
+              <div className="level-reveal-badge" aria-label={`Livello ${level}`}>{level}</div>
+              <div>
+                <h2>{levelCopy.title}</h2>
+                <p className="muted">{levelCopy.description}</p>
+                {isCoach ? <span className="pill green">Disponibilità mentor attiva, modificabile nelle impostazioni</span> : null}
+              </div>
+            </div>
+            <p className="muted">
+              {alreadyCompleted
+                ? "Puoi confermare o aggiornare il tuo obiettivo. Capitale e profilo di rischio restano privati."
+                : "Ora definisci un obiettivo concreto. Capitale e profilo di rischio resteranno privati."}
+            </p>
+            <div className="cluster">
+              <ButtonLink href="/goal">{alreadyCompleted ? "Gestisci obiettivo" : "Definisci il primo obiettivo"}</ButtonLink>
+              {alreadyCompleted ? <ButtonLink href="/dashboard" variant="secondary">Dashboard</ButtonLink> : null}
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function buildSteps(answers: Answers): StepKind[] {
+  const steps: StepKind[] = ["experience"];
+  if (answers.D1 && answers.D1 !== "none") steps.push("instruments");
+  steps.push("knowledge");
+  if (allKnowledgeAnswered(answers) && estimateScores(answers).A + estimateScores(answers).B > 10) {
+    steps.push("situations");
+  }
+  steps.push("context", "review");
+  return steps;
+}
+
+function isStepComplete(step: StepKind, answers: Answers): boolean {
+  const invested = !!answers.D1 && answers.D1 !== "none";
+  const experienceComplete = !!answers.D1 && (!invested || !!answers.D2 && !!answers.D5 && !!answers.D6);
+  const instrumentsComplete = !invested || instrumentOptions.every((item) => answers.D3?.[item.value] !== undefined);
+  const knowledgeComplete = allKnowledgeAnswered(answers);
+  const situationsRequired = knowledgeComplete && estimateScores(answers).A + estimateScores(answers).B > 10;
+  const situationsComplete = !situationsRequired || situationalQuestions.every((question) => !!answers[question.key]);
+  const contextComplete = sectionDQuestions.every((question) => !!answers.section_d?.[question.key]);
+
+  if (step === "experience") return experienceComplete;
+  if (step === "instruments") return instrumentsComplete;
+  if (step === "knowledge") return knowledgeComplete;
+  if (step === "situations") return situationsComplete;
+  if (step === "context") return contextComplete;
+  return experienceComplete && instrumentsComplete && knowledgeComplete && situationsComplete && contextComplete;
 }
 
 function optionScore(options: SelectOption[], value?: string): number {
@@ -557,7 +654,7 @@ function optionScore(options: SelectOption[], value?: string): number {
 }
 
 function allKnowledgeAnswered(answers: Answers): boolean {
-  return knowledgeConcepts.every((concept) => answers.D4 && answers.D4[concept.value] !== undefined);
+  return knowledgeConcepts.every((concept) => answers.D4?.[concept.value] !== undefined);
 }
 
 function estimateScores(answers: Answers): { A: number; B: number; C: number } {
@@ -579,7 +676,7 @@ function estimateScores(answers: Answers): { A: number; B: number; C: number } {
   return { A, B, C };
 }
 
-function buildSubmittedAnswers(answers: Answers, includeD: boolean): Answers {
+function buildSubmittedAnswers(answers: Answers): Answers {
   const next: Answers = { ...answers };
   if (next.D1 === "none") {
     delete next.D2;
@@ -593,255 +690,230 @@ function buildSubmittedAnswers(answers: Answers, includeD: boolean): Answers {
     delete next.D8;
     delete next.D9;
   }
-  if (!includeD) {
-    delete next.section_d;
-  }
   return next;
 }
 
-function persistDraft(draft: SurveyDraft): void {
-  window.sessionStorage.setItem(draftKey, JSON.stringify(draft));
-  clientPost("/surveys/onboarding/me/draft", {
-    current_step: draft.step,
-    scores: draft.scores,
-    answers: draft.answers,
-    include_section_d: draft.includeD,
-    d_never_invested: draft.dNeverInvested
-  }).catch(() => undefined);
-}
-
-function WorkflowStyles() {
+function SurveyStyles() {
   return (
     <style jsx global>{`
-      /* ── Survey page layout ── */
       .survey-page {
         display: grid;
         gap: 20px;
         max-width: 1100px;
+        min-width: 0;
+        width: 100%;
       }
-
       .survey-layout {
         align-items: start;
         display: grid;
         gap: 20px;
-        grid-template-columns: 1fr 300px;
+        grid-template-columns: minmax(0, 1fr) 290px;
       }
-
-      .survey-main {
-        display: flex;
-        flex-direction: column;
+      .survey-layout.single {
+        grid-template-columns: minmax(0, 760px);
+      }
+      .survey-main,
+      .survey-sidebar,
+      .survey-question,
+      .survey-form-grid,
+      .survey-matrix {
+        display: grid;
         gap: 16px;
+        min-width: 0;
       }
-
-      .survey-card {
-        display: grid;
-        gap: 20px;
+      .survey-sidebar {
+        gap: 14px;
       }
-
-      .survey-intro {
-        display: grid;
-        gap: 8px;
-      }
-
       .survey-heading {
-        font-size: clamp(1.35rem, 3vw, 1.7rem);
-        margin: 0;
+        font-size: clamp(1.45rem, 3vw, 2rem);
+        margin: 0 0 6px;
       }
-
       .survey-subheading {
         line-height: 1.55;
         margin: 0;
       }
-
-      .survey-sidebar {
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-      }
-
-      .survey-sidebar-label {
-        color: var(--muted);
-        font-size: 0.72rem;
-        font-weight: 900;
-        letter-spacing: 0.08em;
-        margin: 0 0 10px;
-        text-transform: uppercase;
-      }
-
-      .survey-privacy-note {
-        align-items: center;
-        color: var(--muted);
-        display: flex;
-        font-size: 0.8rem;
-        gap: 8px;
-      }
-
-      .survey-progress-bar {
-        background: var(--line);
-        border-radius: 999px;
-        height: 8px;
-        overflow: hidden;
-      }
-
-      .survey-progress-fill {
-        background: linear-gradient(90deg, var(--mint-600), var(--gold-500));
-        border-radius: 999px;
-        height: 100%;
-        transition: width 0.3s ease;
-      }
-
-      .survey-help-card {
-        display: grid;
-        gap: 4px;
-      }
-
-      /* ── Workflow shared ── */
-      .workflow-panel {
-        background: rgba(255, 255, 255, 0.96);
-      }
-
       .workflow-question {
-        min-height: 480px;
+        min-height: 520px;
         padding: clamp(18px, 3vw, 30px);
       }
-
-      .workflow-panel-head {
-        align-items: start;
+      .workflow-panel-head,
+      .survey-navigation,
+      .review-row {
+        align-items: center;
         display: flex;
         gap: 14px;
         justify-content: space-between;
       }
-
-      .workflow-choice-grid {
-        display: grid;
-        gap: 10px;
+      .survey-navigation {
+        border-top: 1px solid var(--line);
+        margin-top: 8px;
+        padding-top: 18px;
+      }
+      .workflow-choice-grid,
+      .survey-form-grid,
+      .survey-matrix {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
-
       .workflow-choice-grid .button {
         justify-content: flex-start;
         line-height: 1.25;
-        min-height: 56px;
-        overflow-wrap: anywhere;
+        min-height: 54px;
         text-align: left;
         white-space: normal;
         width: 100%;
       }
-
-      .survey-page .progress {
+      .survey-fieldset {
+        border: 0;
+        display: grid;
+        gap: 12px;
+        margin: 0;
+        padding: 0;
+      }
+      .survey-fieldset legend,
+      .survey-question label {
+        color: var(--navy-950);
+        font-size: 0.88rem;
+        font-weight: 800;
+        margin-bottom: 2px;
+      }
+      .survey-question-hint {
+        color: var(--muted);
+        font-size: 0.76rem;
+        line-height: 1.4;
+      }
+      .survey-situations {
+        gap: 22px;
+      }
+      .review-list {
+        border: 1px solid var(--line);
+        border-radius: var(--radius-sm);
+        overflow: hidden;
+      }
+      .review-row {
+        padding: 14px 16px;
+      }
+      .review-row + .review-row {
+        border-top: 1px solid var(--line);
+      }
+      .review-row p {
+        font-size: 0.82rem;
+        margin: 3px 0 0;
+      }
+      .survey-page .progress,
+      .survey-progress-bar {
         background: #e6edf1;
         border-radius: 999px;
         height: 8px;
+        overflow: hidden;
       }
-
-      .survey-page .progress span {
-        background: linear-gradient(90deg, var(--gold-500, #d6ad5d), var(--mint-600, #0f766e));
+      .survey-page .progress span,
+      .survey-progress-fill {
+        background: linear-gradient(90deg, var(--mint-600), var(--gold-500));
         border-radius: 999px;
         display: block;
         height: 100%;
         transition: width 0.3s ease;
       }
-
-      .workflow-privacy {
-        background: linear-gradient(145deg, #fff9ea, #ffffff);
+      .survey-sidebar-label {
+        color: var(--muted);
+        font-size: 0.72rem;
+        font-weight: 900;
+        letter-spacing: 0.08em;
+        margin: 0 0 8px;
+        text-transform: uppercase;
       }
-
-      .workflow-note {
+      .survey-sidebar .muted {
+        font-size: 0.86rem;
+        line-height: 1.55;
+        margin: 0;
+      }
+      .workflow-note,
+      .survey-privacy-note {
         align-items: center;
-        color: #475467;
+        color: var(--muted);
         display: flex;
-        gap: 10px;
+        font-size: 0.8rem;
+        gap: 9px;
       }
-
       .workflow-symbol {
         align-items: center;
-        background: #dcfce7;
-        border: 1px solid #bbf7d0;
+        background: var(--mint-100);
         border-radius: 999px;
-        color: #15803d;
+        color: var(--mint-600);
         display: inline-flex;
         height: 52px;
         justify-content: center;
         width: 52px;
       }
-
       .workflow-result {
-        max-width: 760px;
+        min-width: 0;
         padding: clamp(22px, 4vw, 34px);
       }
-
+      .workflow-result .pill {
+        line-height: 1.35;
+        max-width: 100%;
+        white-space: normal;
+      }
       .level-reveal {
         align-items: center;
         background: linear-gradient(145deg, #fff8e8, #ffffff);
         border: 1px solid #ffe0a0;
-        border-radius: var(--radius, 12px);
+        border-radius: var(--radius);
         display: grid;
         gap: 18px;
         grid-template-columns: auto 1fr;
         padding: 18px;
       }
-
       .level-reveal-badge {
         align-items: center;
-        background: var(--navy-950, #07172d);
-        border: 4px solid var(--gold-500, #f5b62f);
+        background: var(--navy-950);
+        border: 4px solid var(--gold-500);
         border-radius: 999px;
         color: white;
         display: inline-flex;
         font-size: 1.35rem;
         font-weight: 950;
-        height: 86px;
+        height: 84px;
         justify-content: center;
-        width: 86px;
+        width: 84px;
       }
-
-      .level-reveal-copy {
-        display: grid;
-        gap: 8px;
+      .level-reveal > div {
+        min-width: 0;
       }
-
-      .level-reveal-copy h3 {
-        color: var(--navy-950, #07172d);
-        font-size: 1.15rem;
-      }
-
-      .level-reveal-unlocks {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-      }
-
-      .level-reveal-unlocks span {
-        background: #fff;
-        border: 1px solid rgba(17, 24, 39, 0.10);
-        border-radius: 999px;
-        color: var(--navy-950, #07172d);
-        font-size: 0.78rem;
-        font-weight: 800;
-        padding: 7px 10px;
-      }
-
       @media (max-width: 900px) {
         .survey-layout {
           grid-template-columns: 1fr;
         }
-
         .survey-sidebar {
           display: none;
         }
       }
-
       @media (max-width: 640px) {
-        .workflow-choice-grid {
-          grid-template-columns: 1fr;
-        }
-
-        .workflow-panel-head {
-          display: grid;
-        }
-
+        .workflow-choice-grid,
+        .survey-form-grid,
+        .survey-matrix,
         .level-reveal {
           grid-template-columns: 1fr;
+        }
+        .workflow-panel-head,
+        .review-row {
+          align-items: stretch;
+          display: grid;
+        }
+        .survey-navigation {
+          align-items: stretch;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 420px) {
+        .survey-navigation {
+          grid-template-columns: 1fr;
+        }
+        .survey-navigation .button {
+          min-width: 0;
+          white-space: normal;
+          width: 100%;
         }
       }
     `}</style>

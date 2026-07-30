@@ -32,7 +32,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="auth-page">
+    <main className="auth-page" id="main-content">
       <div className="auth-card">
         <div className="auth-brand">
           <Brand variant="dark" />
@@ -40,19 +40,21 @@ export default function LoginPage() {
         <h1 className="auth-title">Bentornato su Socra</h1>
         <p className="auth-sub">Accedi al tuo account</p>
 
-        {error && <div className="auth-error">{error}</div>}
+        {error && <div className="auth-error" role="alert">{error}</div>}
 
         <form className="auth-form" onSubmit={onSubmit}>
           <div>
             <label className="auth-label" htmlFor="identifier">Username o email</label>
             <input
               id="identifier"
+              name="identifier"
               className="input"
               type="text"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               autoComplete="username"
               inputMode="email"
+              spellCheck={false}
               required
             />
           </div>
@@ -61,6 +63,7 @@ export default function LoginPage() {
             <div className="auth-password-row">
               <input
                 id="password"
+                name="password"
                 className="input"
                 type={showPassword ? "text" : "password"}
                 value={password}
@@ -74,7 +77,7 @@ export default function LoginPage() {
                 onClick={() => setShowPassword((current) => !current)}
                 aria-label={showPassword ? "Nascondi password" : "Mostra password"}
               >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
               </button>
             </div>
           </div>
@@ -85,7 +88,7 @@ export default function LoginPage() {
             disabled={loading}
             aria-busy={loading}
           >
-            {loading ? "Accesso..." : "Accedi"}
+            {loading ? "Accesso…" : "Accedi"}
           </button>
         </form>
 
@@ -173,15 +176,29 @@ export default function LoginPage() {
         .auth-footer a:hover {
           text-decoration: underline;
         }
+        @media (max-width: 560px) {
+          .auth-card {
+            padding: 28px 20px;
+          }
+        }
       `}</style>
-    </div>
+    </main>
   );
 }
 
 function safeNextPath(value: string | null): string {
-  const allowedPrefixes = ["/admin", "/dashboard", "/feedback", "/goal", "/matching", "/onboarding", "/paths", "/profiles", "/requests", "/settings", "/wallet"];
+  const allowedPrefixes = ["/admin", "/dashboard", "/feedback", "/goal", "/matching", "/onboarding", "/paths", "/profiles", "/requests", "/settings", "/tour", "/wallet"];
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
     return "/dashboard";
   }
-  return allowedPrefixes.some((prefix) => value === prefix || value.startsWith(`${prefix}/`)) ? value : "/dashboard";
+  try {
+    const target = new URL(value, "https://socra.local");
+    if (target.origin !== "https://socra.local") return "/dashboard";
+    const isAllowed = allowedPrefixes.some(
+      (prefix) => target.pathname === prefix || target.pathname.startsWith(`${prefix}/`)
+    );
+    return isAllowed ? `${target.pathname}${target.search}${target.hash}` : "/dashboard";
+  } catch {
+    return "/dashboard";
+  }
 }

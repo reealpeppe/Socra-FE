@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, ChevronLeft, Copy, ExternalLink, RefreshCcw, UserRound, Video } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -29,11 +30,12 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-export default function PathDetailPage({ params }: { params: { pathId: string } }) {
+export default function PathDetailPage() {
+  const { pathId } = useParams<{ pathId: string }>();
   return (
     <AppShell>
       <OnboardingGate>
-        <PathDetailContent pathId={params.pathId} />
+        <PathDetailContent pathId={pathId} />
       </OnboardingGate>
     </AppShell>
   );
@@ -45,10 +47,14 @@ function PathDetailContent({ pathId }: { pathId: string }) {
   const [user, setUser] = useState<UserMe | null>(null);
   const [notes, setNotes] = useState("");
   const [report, setReport] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
       const [userResponse, pathResponse] = await Promise.all([
         clientGet<UserMe>("/auth/me"),
@@ -68,6 +74,8 @@ function PathDetailContent({ pathId }: { pathId: string }) {
       }
     } catch (err) {
       setError(err instanceof ClientApiError ? err.message : "Percorso non disponibile");
+    } finally {
+      setLoading(false);
     }
   }, [pathId]);
 
@@ -76,51 +84,76 @@ function PathDetailContent({ pathId }: { pathId: string }) {
   }, [load]);
 
   async function closeSide() {
+    if (!window.confirm("Confermi di aver concluso il percorso e di voler chiudere il tuo lato?")) return;
     setError(null);
     setMessage(null);
+    setPendingAction("close");
     try {
       await clientPost(`/paths/${pathId}/close-side`, { notes });
       setMessage("Chiusura lato utente registrata.");
       await load();
     } catch (err) {
       setError(err instanceof ClientApiError ? err.message : "Chiusura non registrata");
+    } finally {
+      setPendingAction(null);
     }
   }
 
   async function reportIssue() {
+    if (!report.trim()) {
+      setError("Descrivi brevemente il problema prima di inviare.");
+      return;
+    }
     setError(null);
     setMessage(null);
+    setPendingAction("report");
     try {
-      await clientPost("/reports", { path_id: pathId, reason: "path_issue", details: report });
+      await clientPost("/reports", { path_id: pathId, reason: "path_issue", details: report.trim() });
       setMessage("Segnalazione inviata al team Socra.");
       setReport("");
     } catch (err) {
       setError(err instanceof ClientApiError ? err.message : "Segnalazione non inviata");
+    } finally {
+      setPendingAction(null);
     }
   }
 
   async function prepareMeet() {
     setError(null);
     setMessage(null);
+    setPendingAction("prepare-meet");
+    const meetWindow = window.open("about:blank", "_blank");
+    if (meetWindow) meetWindow.opener = null;
     try {
       const room = await clientPost<CallRoom>("/calls/first-session/room", { path_id: pathId });
       setCallRoom(room);
-      window.open(room.join_url, "_blank", "noopener,noreferrer");
-      setMessage("Link Google Meet pronto. Le informazioni della sessione saranno aggiornate dopo l'incontro.");
+      if (meetWindow) {
+        meetWindow.location.replace(room.join_url);
+        setMessage("Google Meet aperto in una nuova scheda.");
+      } else {
+        setMessage("Link Google Meet pronto. Aprilo con il pulsante qui sotto.");
+      }
     } catch (err) {
+      meetWindow?.close();
       setError(err instanceof ClientApiError ? err.message : "Meet non disponibile");
+    } finally {
+      setPendingAction(null);
     }
   }
 
   async function replaceMeet() {
+    if (!window.confirm("Il link attuale non sarà più utilizzabile. Vuoi crearne uno nuovo?")) return;
     setError(null);
     setMessage(null);
+    setPendingAction("replace-meet");
     try {
       const room = await clientPost<CallRoom>("/calls/first-session/room/replace", { path_id: pathId });
       setCallRoom(room);
       setMessage("Nuovo link Google Meet creato e inviato alla controparte.");
     } catch (err) {
       setError(err instanceof ClientApiError ? err.message : "Nuovo link non creato");
+    } finally {
+      setPendingAction(null);
     }
   }
 
@@ -137,19 +170,38 @@ function PathDetailContent({ pathId }: { pathId: string }) {
   async function syncMetadata() {
     setError(null);
     setMessage(null);
+    setPendingAction("sync");
     try {
-      await clientPost<CallMetadataSync>("/calls/first-session/sync-metadata", { path_id: pathId });
-      setMessage("Informazioni della sessione aggiornate.");
+      const result = await clientPost<CallMetadataSync>("/calls/first-session/sync-metadata", { path_id: pathId });
       await load();
+      if (result.verification_status === "verified") {
+        setMessage("Prima sessione verificata.");
+      } else if (result.verification_status === "pending_provider_metadata") {
+        setMessage("Google sta ancora elaborando i dati della sessione. Riprova tra qualche minuto.");
+      } else if (result.verification_status === "insufficient_participants") {
+        setError("Non risultano almeno due partecipanti alla prima sessione. Verifica di aver usato il link del percorso e riprova.");
+      } else {
+        setError("La prima sessione non risulta ancora verificata. Riprova dopo aver concluso l’incontro.");
+      }
     } catch (err) {
-      setError(err instanceof ClientApiError ? err.message : "Aggiornamento della sessione non riuscito");
+      setError(err instanceof ClientApiError ? err.message : "Verifica della sessione non riuscita");
+    } finally {
+      setPendingAction(null);
     }
   }
 
   const role = path && user ? (path.mentor_id === user.id ? "mentor" : path.mentee_id === user.id ? "mentee" : null) : null;
   const feedbackHref = role ? `/feedback/${pathId}/${role}` : null;
-  const feedbackLabel = role === "mentor" ? "Feedback mentor" : "Feedback mentee";
+  const feedbackLabel = role === "mentor" ? "Lascia feedback sul mentee" : "Lascia feedback sul mentor";
   const isCompleted = path?.status === "completed";
+  const ownClosed = role === "mentor" ? !!path?.mentor_closed_at : role === "mentee" ? !!path?.mentee_closed_at : false;
+  const ownFeedbackSubmitted = role === "mentor"
+    ? !!path?.mentor_feedback_submitted
+    : role === "mentee"
+      ? !!path?.mentee_feedback_submitted
+      : false;
+  const firstCallCompleted = !!path?.first_call_completed;
+  const actionPending = pendingAction !== null;
 
   return (
     <div style={{ display: "grid", gap: "24px" }}>
@@ -177,8 +229,9 @@ function PathDetailContent({ pathId }: { pathId: string }) {
         {path && <StatusBadge status={path.status} />}
       </div>
 
-      {error ? <p className="error">{error}</p> : null}
-      {message ? <p className="success">{message}</p> : null}
+      {error ? <p className="error" role="alert">{error}</p> : null}
+      {message ? <p className="success" role="status">{message}</p> : null}
+      {loading && !path ? <div className="card" role="status">Caricamento percorso…</div> : null}
 
       {path ? (
         <>
@@ -197,9 +250,9 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                 )}
               </div>
 
-              <div style={{ display: "grid", gap: "10px", gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
-                <PersonCard role="Mentor" name={path.mentor?.nickname || path.mentor?.user_id || path.mentor_id} />
-                <PersonCard role="Mentee" name={path.mentee?.nickname || path.mentee?.user_id || path.mentee_id} />
+              <div className="path-people-grid">
+                <PersonCard role="Mentor" name={path.mentor?.nickname || "Mentor Socra"} />
+                <PersonCard role="Mentee" name={path.mentee?.nickname || "Mentee Socra"} />
               </div>
 
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
@@ -209,7 +262,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
             </div>
           </div>
 
-          <div style={{ display: "grid", gap: "16px", gridTemplateColumns: "repeat(2, minmax(0, 1fr))" }}>
+          <div className="path-action-grid">
             <div className="card">
               <div style={{ display: "grid", gap: "14px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
@@ -225,6 +278,17 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                 <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0 }}>
                   Google Meet gestito da Socra. Il link resta disponibile finché il percorso non viene completato.
                 </p>
+                <span style={{
+                  alignSelf: "start",
+                  background: firstCallCompleted ? "var(--mint-100)" : "var(--orange-100)",
+                  borderRadius: "999px",
+                  color: firstCallCompleted ? "var(--mint-600)" : "#8a6111",
+                  fontSize: "0.75rem",
+                  fontWeight: 800,
+                  padding: "5px 10px"
+                }}>
+                  {firstCallCompleted ? "Prima sessione verificata" : "Prima sessione da completare"}
+                </span>
 
                 {isCompleted ? (
                   <span style={{
@@ -257,22 +321,18 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                     <button className="button secondary" type="button" onClick={copyMeetLink}>
                       <Copy size={15} /> Copia link
                     </button>
-                    <button className="button secondary" type="button" onClick={replaceMeet}>
-                      <RefreshCcw size={15} /> Crea nuovo link
+                    <button className="button secondary" type="button" onClick={replaceMeet} disabled={actionPending}>
+                      <RefreshCcw size={15} /> {pendingAction === "replace-meet" ? "Creazione…" : "Crea nuovo link"}
                     </button>
-                    <button className="button secondary" type="button" onClick={syncMetadata}>
-                      <RefreshCcw size={15} /> Aggiorna sessione
-                    </button>
-                    <span style={{
-                      alignSelf: "start", background: "var(--line)", borderRadius: "999px",
-                      color: "var(--muted)", fontSize: "0.75rem", fontWeight: 800, padding: "4px 10px"
-                    }}>
-                      {callRoom.status}
-                    </span>
+                    {!firstCallCompleted ? (
+                      <button className="button secondary" type="button" onClick={syncMetadata} disabled={actionPending}>
+                        <RefreshCcw size={15} /> {pendingAction === "sync" ? "Verifica…" : "Verifica prima sessione"}
+                      </button>
+                    ) : null}
                   </div>
                 ) : (
-                  <button className="button dark" type="button" onClick={prepareMeet}>
-                    Prepara Google Meet
+                  <button className="button dark" type="button" onClick={prepareMeet} disabled={actionPending}>
+                    {pendingAction === "prepare-meet" ? "Preparazione…" : "Prepara Google Meet"}
                   </button>
                 )}
               </div>
@@ -280,24 +340,80 @@ function PathDetailContent({ pathId }: { pathId: string }) {
 
             <div className="card">
               <div style={{ display: "grid", gap: "14px" }}>
-                <h2 style={{ fontSize: "1rem", fontWeight: 800, margin: 0 }}>Chiudi il tuo lato</h2>
-                <textarea
-                  className="input"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Note opzionali"
-                />
-                <button className="button dark" type="button" onClick={closeSide}>
-                  <CheckCircle2 size={15} /> Chiudi percorso
-                </button>
-                {feedbackHref ? (
+                <h2 style={{ fontSize: "1rem", fontWeight: 800, margin: 0 }}>
+                  {isCompleted ? "Percorso completato" : ownClosed ? "Il tuo lato è chiuso" : "Concludi il percorso"}
+                </h2>
+                {!role ? (
+                  <p className="error" role="alert">Non fai parte di questo percorso.</p>
+                ) : ownClosed ? (
+                  <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0 }}>
+                    {ownFeedbackSubmitted
+                      ? isCompleted
+                        ? "Entrambe le persone hanno chiuso il percorso e inviato il feedback."
+                        : "Feedback inviato. Il percorso si completa quando anche l’altra persona conclude i passaggi richiesti."
+                      : "Ora completa il feedback. Le risposte dell’altra persona restano nascoste finché non invia anche la propria."}
+                  </p>
+                ) : !firstCallCompleted ? (
+                  <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0 }}>
+                    Puoi chiudere il tuo lato dopo che la prima sessione con entrambi i partecipanti è stata verificata.
+                  </p>
+                ) : (
+                  <>
+                    <label htmlFor="closure-notes" style={{ color: "var(--navy-950)", fontSize: "0.85rem", fontWeight: 800 }}>
+                      Nota privata opzionale
+                    </label>
+                    <textarea
+                      id="closure-notes"
+                      className="input"
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Aggiungi una nota per il team Socra"
+                      disabled={actionPending}
+                    />
+                    <button className="button dark" type="button" onClick={closeSide} disabled={actionPending || isCompleted}>
+                      <CheckCircle2 size={15} /> {pendingAction === "close" ? "Chiusura…" : "Chiudi il mio lato"}
+                    </button>
+                  </>
+                )}
+                {feedbackHref && ownClosed && !ownFeedbackSubmitted ? (
                   <Link className="button secondary" href={feedbackHref}>
                     {feedbackLabel}
+                  </Link>
+                ) : null}
+                {isCompleted && role === "mentee" && !path.goal_review_completed ? (
+                  <Link className="button dark" href={`/goal?pathId=${encodeURIComponent(pathId)}`}>
+                    Rivedi il tuo obiettivo
                   </Link>
                 ) : null}
               </div>
             </div>
           </div>
+
+          {isCompleted && (path.mentee_feedback_note || path.mentor_feedback_note) ? (
+            <div className="card">
+              <div style={{ display: "grid", gap: "14px" }}>
+                <div>
+                  <p className="eyebrow">Privato tra voi</p>
+                  <h2 style={{ fontSize: "1rem", fontWeight: 800, margin: 0 }}>Note del percorso</h2>
+                </div>
+                <p style={{ color: "var(--muted)", fontSize: "0.84rem", margin: 0 }}>
+                  Questi testi sono visibili soltanto a mentor, mentee e admin. Non compaiono nei profili o nei matching futuri.
+                </p>
+                {path.mentee_feedback_note ? (
+                  <div style={{ background: "var(--paper)", borderRadius: "var(--radius-sm)", padding: "12px 14px" }}>
+                    <strong style={{ display: "block", fontSize: "0.78rem", marginBottom: "5px" }}>Nota del mentee</strong>
+                    <p style={{ color: "var(--muted)", fontSize: "0.86rem", lineHeight: 1.55, margin: 0 }}>{path.mentee_feedback_note}</p>
+                  </div>
+                ) : null}
+                {path.mentor_feedback_note ? (
+                  <div style={{ background: "var(--paper)", borderRadius: "var(--radius-sm)", padding: "12px 14px" }}>
+                    <strong style={{ display: "block", fontSize: "0.78rem", marginBottom: "5px" }}>Nota del mentor</strong>
+                    <p style={{ color: "var(--muted)", fontSize: "0.86rem", lineHeight: 1.55, margin: 0 }}>{path.mentor_feedback_note}</p>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
 
           <div className="card" style={{ borderColor: "#fda29b" }}>
             <div style={{ display: "grid", gap: "14px" }}>
@@ -308,19 +424,41 @@ function PathDetailContent({ pathId }: { pathId: string }) {
               <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0 }}>
                 La segnalazione sarà esaminata dal team Socra e non produce blocchi automatici.
               </p>
+              <label htmlFor="path-report" style={{ color: "var(--navy-950)", fontSize: "0.85rem", fontWeight: 800 }}>
+                Descrizione
+              </label>
               <textarea
+                id="path-report"
                 className="input"
                 value={report}
                 onChange={(e) => setReport(e.target.value)}
                 placeholder="Descrivi il problema"
+                disabled={actionPending}
               />
-              <button className="button danger" type="button" onClick={reportIssue}>
-                Invia segnalazione
+              <button className="button danger" type="button" onClick={reportIssue} disabled={actionPending || !report.trim()}>
+                {pendingAction === "report" ? "Invio…" : "Invia segnalazione"}
               </button>
             </div>
           </div>
         </>
       ) : null}
+      <style jsx>{`
+        .path-people-grid,
+        .path-action-grid {
+          display: grid;
+          gap: 16px;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .path-people-grid {
+          gap: 10px;
+        }
+        @media (max-width: 760px) {
+          .path-people-grid,
+          .path-action-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -49,6 +49,8 @@ export type Goal = {
   id: string;
   topic: string;
   goal_tag: string;
+  topic_code?: string | null;
+  goal_tag_code?: string | null;
   capital_goal?: string | null;
   risk?: string | null;
   amount_range?: string | null;
@@ -66,9 +68,24 @@ export type MatchCandidate = {
   mentor_id: string;
   nickname: string | null;
   level: string;
+  path_cost: number;
   match_score: number;
   public_badges?: string[];
   is_recommended: boolean;
+  availability_fallback?: boolean;
+  reason_summary: string;
+};
+
+export type MenteeCandidate = {
+  mentee_id: string;
+  nickname: string | null;
+  level: string;
+  goal_id: string;
+  goal_topic: string;
+  goal_tag: string;
+  match_score: number;
+  is_recommended: boolean;
+  availability_fallback?: boolean;
   reason_summary: string;
 };
 
@@ -76,10 +93,12 @@ export type PublicProfile = {
   user_id: string;
   nickname: string | null;
   level: string;
+  path_cost: number;
   is_coach: boolean;
   completed_paths: number;
   public_badges: string[];
   top_topics: string[];
+  competences?: Array<{ topic: string; depth: string }>;
   aggregate_metrics: Record<string, unknown>;
 };
 
@@ -89,7 +108,10 @@ export type MatchRequestItem = {
   mentor_id: string;
   mentee_id: string;
   goal_id: string;
+  initiator_role: "mentee" | "mentor";
   expires_at: string;
+  created_at?: string;
+  updated_at?: string;
   reason?: string | null;
   mentor?: UserSummary | null;
   mentee?: UserSummary | null;
@@ -115,6 +137,12 @@ export type PathItem = {
   mentee_closed_at?: string | null;
   mentor_closed_at?: string | null;
   completed_at?: string | null;
+  first_call_completed?: boolean;
+  goal_review_completed?: boolean;
+  mentee_feedback_submitted?: boolean;
+  mentor_feedback_submitted?: boolean;
+  mentee_feedback_note?: string | null;
+  mentor_feedback_note?: string | null;
   mentor?: UserSummary | null;
   mentee?: UserSummary | null;
   goal?: Goal | null;
@@ -139,6 +167,8 @@ export type CallRoom = {
 
 export type CallMetadataSync = {
   metadata_id: string | null;
+  verification_status: "verified" | "pending_provider_metadata" | "insufficient_participants" | "not_verified";
+  transcripts_enabled: boolean;
   anomaly_flags: string[];
   conference_record_name: string | null;
   active_participants_count: number;

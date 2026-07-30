@@ -12,20 +12,23 @@ const navLinks = [
 
 export function PublicNavbar() {
   return (
-    <nav className="public-nav">
-      <Link href="/" style={{ textDecoration: "none" }}>
-        <Brand variant="light" />
-      </Link>
-      <div className="public-nav-links">
-        {navLinks.map(l => (
-          <Link key={l.href} href={l.href} className="public-nav-link">{l.label}</Link>
-        ))}
-      </div>
-      <div className="public-nav-actions">
-        <Link href="/login" className="public-nav-login">Accedi</Link>
-        <Link href="/register" className="public-nav-cta">Inizia ora →</Link>
-      </div>
-    </nav>
+    <>
+      <a className="skip-link" href="#main-content">Vai al contenuto principale</a>
+      <nav className="public-nav" aria-label="Navigazione pubblica">
+        <Link href="/" style={{ textDecoration: "none" }} aria-label="Socra, pagina iniziale">
+          <Brand variant="light" />
+        </Link>
+        <div className="public-nav-links">
+          {navLinks.map(l => (
+            <Link key={l.href} href={l.href} className="public-nav-link">{l.label}</Link>
+          ))}
+        </div>
+        <div className="public-nav-actions">
+          <Link href="/login" className="public-nav-login">Accedi</Link>
+          <Link href="/register" className="public-nav-cta">Inizia ora →</Link>
+        </div>
+      </nav>
+    </>
   );
 }
 
@@ -39,12 +42,12 @@ export function PublicFooter() {
     }}>
       <div style={{ alignItems: "center", display: "flex", flexWrap: "wrap", gap: "24px", justifyContent: "space-between", maxWidth: "1200px", margin: "0 auto" }}>
         <Brand variant="light" />
-        <div style={{ alignItems: "center", display: "flex", flexWrap: "wrap", gap: "24px" }}>
+        <nav aria-label="Navigazione nel piè di pagina" style={{ alignItems: "center", display: "flex", flexWrap: "wrap", gap: "24px" }}>
           {navLinks.map(l => (
             <Link key={l.href} href={l.href} style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.875rem", textDecoration: "none" }}>{l.label}</Link>
           ))}
-        </div>
-        <p style={{ fontSize: "0.8rem", margin: 0 }}>© 2025 Socra. Piattaforma peer-to-peer.</p>
+        </nav>
+        <p style={{ fontSize: "0.8rem", margin: 0 }}>© 2026 Socra. Apprendimento peer-to-peer sugli investimenti.</p>
       </div>
     </footer>
   );

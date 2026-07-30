@@ -4,50 +4,73 @@ import { GraduationCap, Target, Users, BookOpen, TrendingUp } from "lucide-react
 import { PublicNavbar, PublicFooter } from "@/components/PublicLayout";
 
 export const metadata: Metadata = {
-  title: "Socra — Impara da chi lo ha già fatto",
-  description: "Piattaforma peer-to-peer di mentorship per investitori. Gratuita, trasparente, meritocratica.",
+  title: "Socra — Impara con un percorso peer-to-peer",
+  description: "Percorsi di apprendimento sugli investimenti tra mentee e mentor, con matching, crediti interni e feedback reciproco.",
 };
 
 const steps = [
   {
     icon: GraduationCap,
     title: "Scopri il livello",
-    body: "Rispondi a poche domande e scopri dove sei nel tuo percorso di investimento",
+    body: "Completa la survey guidata e trova un punto di partenza coerente con la tua esperienza",
   },
   {
     icon: Target,
     title: "Definisci il tuo obiettivo",
-    body: "Cosa vuoi imparare? Quanto vuoi crescere? Definisci il tuo profilo da mentee",
+    body: "Scegli l'area e il risultato di apprendimento su cui vuoi lavorare come mentee",
   },
   {
     icon: Users,
-    title: "Trova il mentor giusto",
-    body: "Il nostro algoritmo ti suggerisce i mentor più affini al tuo livello e obiettivi",
+    title: "Valuta i mentor suggeriti",
+    body: "Socra propone profili compatibili e una motivazione sintetica. La scelta resta tua",
   },
   {
     icon: BookOpen,
-    title: "Fai il tuo percorso",
-    body: "Incontri reali, apprendimento autentico. La piattaforma facilita senza intromettersi",
+    title: "Apri il percorso",
+    body: "Dopo l'accettazione del mentor, organizzate la prima call e portate avanti l'obiettivo",
   },
   {
     icon: TrendingUp,
-    title: "Cresci e fai crescere",
-    body: "Accumula reputazione, scala i livelli, diventa mentor tu stesso",
+    title: "Chiudi con il feedback",
+    body: "Entrambe le persone chiudono il proprio lato e lasciano il feedback previsto",
   },
 ];
 
-const bigStats = [
-  { value: "10.000+", label: "persone nella community" },
-  { value: "2.500+", label: "mentor qualificati" },
-  { value: "18.547", label: "percorsi completati" },
-  { value: "4.8/5", label: "soddisfazione media" },
+const operatingPillars = [
+  {
+    title: "Matching spiegabile",
+    body: "Vedi una compatibilità finale e una motivazione leggibile, non i punteggi interni dell'algoritmo.",
+  },
+  {
+    title: "Unità interne non monetizzabili",
+    body: "Le unità di partecipazione bilanciano il dare e il ricevere: non si acquistano e non si convertono in denaro.",
+  },
+  {
+    title: "Reputazione aggregata",
+    body: "I feedback alimentano badge e metriche sintetiche, senza pubblicare singoli voti.",
+  },
+];
+
+const pathRules = [
+  {
+    title: "Accettazione esplicita",
+    body: "Mentee e mentor possono proporre un percorso. Si apre solo quando l'altra persona accetta.",
+  },
+  {
+    title: "Prima call collegata",
+    body: "Socra crea il link della prima call e conserva nel percorso i metadati operativi previsti.",
+  },
+  {
+    title: "Chiusura da entrambi i lati",
+    body: "Il completamento richiede la chiusura e il feedback obbligatorio di mentee e mentor.",
+  },
 ];
 
 export default function HomePage() {
   return (
     <>
       <PublicNavbar />
-      <main style={{ paddingTop: "64px" }}>
+      <main id="main-content" tabIndex={-1} style={{ paddingTop: "64px" }}>
 
         {/* ── Hero ── */}
         <section style={{
@@ -75,7 +98,7 @@ export default function HomePage() {
                 textTransform: "uppercase",
                 margin: "0 0 20px",
               }}>
-                Community membership peer-to-peer
+                Apprendimento peer-to-peer
               </p>
               <h1 style={{
                 color: "#ffffff",
@@ -85,7 +108,7 @@ export default function HomePage() {
                 margin: "0 0 24px",
                 letterSpacing: "-0.02em",
               }}>
-                Impara da chi<br />lo ha già fatto.
+                Impara con chi<br />ha esperienza.
               </h1>
               <p style={{
                 color: "rgba(255,255,255,0.7)",
@@ -94,7 +117,7 @@ export default function HomePage() {
                 maxWidth: "52ch",
                 margin: "0 0 36px",
               }}>
-                SOCRA è una piattaforma gratuita in cui persone reali ti aiutano a raggiungere i tuoi obiettivi finanziari. Peer-to-peer. Trasparente. Meritocratica.
+                SOCRA mette in contatto persone che vogliono imparare e persone disponibili a condividere esperienza sugli investimenti. Un obiettivo alla volta, dentro un percorso tracciabile.
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "center" }}>
                 <Link href="/register" style={{
@@ -121,12 +144,12 @@ export default function HomePage() {
                   alignItems: "center",
                   gap: "6px",
                 }}>
-                  ▶ Guarda il video
+                  Come funziona
                 </a>
               </div>
             </div>
 
-            {/* Right: stats panel */}
+            {/* Right: product model */}
             <div style={{
               background: "rgba(255,255,255,0.04)",
               border: "1px solid rgba(255,255,255,0.12)",
@@ -136,42 +159,31 @@ export default function HomePage() {
               flexDirection: "column",
               gap: "20px",
             }}>
-              <div style={{
-                background: "rgba(245,182,47,0.08)",
-                border: "1px solid rgba(245,182,47,0.2)",
-                borderRadius: "12px",
-                padding: "20px 24px",
+              <p style={{
+                color: "var(--gold-500)",
+                fontSize: "0.72rem",
+                fontWeight: 800,
+                letterSpacing: "0.14em",
+                margin: 0,
+                textTransform: "uppercase",
               }}>
-                <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "0.8rem", fontWeight: 600, margin: "0 0 4px" }}>
-                  Obiettivi raggiunti
-                </p>
-                <p style={{ color: "#ffffff", fontSize: "3rem", fontWeight: 900, lineHeight: 1, margin: "0 0 4px" }}>78%</p>
-                <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.78rem", margin: 0 }}>dai mentee attivi sulla piattaforma</p>
-              </div>
-              <div style={{
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: "12px",
-                padding: "20px 24px",
-              }}>
-                <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "0.8rem", fontWeight: 600, margin: "0 0 4px" }}>
-                  La formazione
-                </p>
-                <p style={{ color: "#ffffff", fontSize: "3rem", fontWeight: 900, lineHeight: 1, margin: "0 0 4px" }}>92%</p>
-                <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.78rem", margin: 0 }}>soddisfazione</p>
-              </div>
-              <div style={{
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.08)",
-                borderRadius: "12px",
-                padding: "20px 24px",
-              }}>
-                <p style={{ color: "rgba(255,255,255,0.55)", fontSize: "0.8rem", fontWeight: 600, margin: "0 0 4px" }}>
-                  Percorsi completati
-                </p>
-                <p style={{ color: "var(--gold-500)", fontSize: "2.4rem", fontWeight: 900, lineHeight: 1, margin: "0 0 4px" }}>18.547</p>
-                <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "0.78rem", margin: 0 }}>nella community</p>
-              </div>
+                Il modello Socra
+              </p>
+              {operatingPillars.map((pillar, index) => (
+                <div key={pillar.title} style={{
+                  background: index === 0 ? "rgba(245,182,47,0.08)" : "rgba(255,255,255,0.04)",
+                  border: index === 0 ? "1px solid rgba(245,182,47,0.2)" : "1px solid rgba(255,255,255,0.08)",
+                  borderRadius: "12px",
+                  padding: "20px 24px",
+                }}>
+                  <h2 style={{ color: "#ffffff", fontSize: "1rem", fontWeight: 800, margin: "0 0 6px" }}>
+                    {pillar.title}
+                  </h2>
+                  <p style={{ color: "rgba(255,255,255,0.58)", fontSize: "0.82rem", lineHeight: 1.55, margin: 0 }}>
+                    {pillar.body}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -277,39 +289,52 @@ export default function HomePage() {
           `}</style>
         </section>
 
-        {/* ── Stats strip ── */}
+        {/* ── Operating principles ── */}
         <section style={{
           background: "var(--paper)",
           padding: "clamp(40px,6vw,72px) clamp(16px,4vw,40px)",
         }}>
+          <div style={{ maxWidth: "760px", margin: "0 auto 32px", textAlign: "center" }}>
+            <p style={{
+              color: "var(--gold-500)",
+              fontSize: "0.72rem",
+              fontWeight: 800,
+              letterSpacing: "0.18em",
+              margin: "0 0 10px",
+              textTransform: "uppercase",
+            }}>
+              Regole essenziali
+            </p>
+            <h2 style={{ color: "var(--ink)", fontSize: "clamp(1.6rem,3vw,2.2rem)", margin: 0 }}>
+              Cosa rende operativo un percorso
+            </h2>
+          </div>
           <div style={{
             display: "grid",
-            gridTemplateColumns: "repeat(4, minmax(0,1fr))",
+            gridTemplateColumns: "repeat(3, minmax(0,1fr))",
             gap: "24px",
             maxWidth: "1200px",
             margin: "0 auto",
-            textAlign: "center",
           }}
             className="home-stats-grid"
           >
-            {bigStats.map(s => (
-              <div key={s.label} style={{
+            {pathRules.map((rule) => (
+              <article key={rule.title} style={{
                 background: "#ffffff",
                 border: "1px solid var(--line)",
                 borderRadius: "12px",
                 padding: "28px 20px",
               }}>
-                <p style={{
+                <h3 style={{
                   color: "var(--navy-950)",
-                  fontSize: "clamp(1.8rem, 3vw, 2.4rem)",
-                  fontWeight: 900,
+                  fontSize: "1rem",
+                  fontWeight: 800,
                   margin: "0 0 6px",
-                  letterSpacing: "-0.02em",
                 }}>
-                  {s.value}
-                </p>
-                <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0, lineHeight: 1.4 }}>{s.label}</p>
-              </div>
+                  {rule.title}
+                </h3>
+                <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0, lineHeight: 1.55 }}>{rule.body}</p>
+              </article>
             ))}
           </div>
 
@@ -345,7 +370,7 @@ export default function HomePage() {
               lineHeight: 1.6,
               margin: "0 0 36px",
             }}>
-              Unisciti a oltre 10.000 persone che stanno già imparando con SOCRA.
+              Crea il profilo, completa la survey e definisci il primo obiettivo di apprendimento.
             </p>
             <Link href="/register" style={{
               display: "inline-flex",

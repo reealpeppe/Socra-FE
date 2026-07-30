@@ -1,54 +1,68 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Award, Calendar, CheckCircle2, Shield, ThumbsUp } from "lucide-react";
+import { useParams } from "next/navigation";
+import { ArrowLeft, Award, CheckCircle2, Shield, ThumbsUp } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { UserAvatar, LevelBadge, MetricStat } from "@/components/Ui";
 import { ClientApiError, clientGet, clientPost } from "@/lib/api";
-import type { GoalsMe, PublicProfile, UserMe } from "@/lib/types";
+import type { GoalsMe, MatchCandidate, MatchRequestItem, PublicProfile, UserMe } from "@/lib/types";
 
-export default function ProfilePage({ params }: { params: { userId: string } }) {
+export default function ProfilePage() {
   return (
     <AppShell>
       <Suspense fallback={<div className="profile-page"><ProfileSkeleton /><ProfileStyles /></div>}>
-        <ProfileContent params={params} />
+        <ProfileContent />
       </Suspense>
     </AppShell>
   );
 }
 
-function ProfileContent({ params }: { params: { userId: string } }) {
-  const searchParams = useSearchParams();
-  const matchScore = searchParams.get("score");
-  const matchReason = searchParams.get("reason");
-
+function ProfileContent() {
+  const { userId } = useParams<{ userId: string }>();
   const [me, setMe] = useState<UserMe | null>(null);
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
   const [requestLoading, setRequestLoading] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [activeGoal, setActiveGoal] = useState<{ id: string; goal_tag: string } | null>(null);
+  const [candidate, setCandidate] = useState<MatchCandidate | null>(null);
+  const [candidateLoading, setCandidateLoading] = useState(false);
+  const [candidateError, setCandidateError] = useState<string | null>(null);
+  const [candidateRetryVersion, setCandidateRetryVersion] = useState(0);
 
   useEffect(() => {
     let active = true;
     Promise.allSettled([
       clientGet<UserMe>("/auth/me"),
-      clientGet<PublicProfile>(`/profiles/${params.userId}`),
-      clientGet<GoalsMe>("/goals/me")
-    ]).then(([meResult, profileResult, goalsResult]) => {
+      clientGet<PublicProfile>(`/profiles/${userId}`),
+      clientGet<GoalsMe>("/goals/me"),
+      clientGet<MatchRequestItem[]>("/matching/requests/me?role=mentee")
+    ]).then(([meResult, profileResult, goalsResult, requestsResult]) => {
       if (!active) return;
 
       if (meResult.status === "fulfilled") setMe(meResult.value);
+      else setAuthError(true);
       if (profileResult.status === "fulfilled") setProfile(profileResult.value);
       else setError("Profilo non disponibile");
 
       if (goalsResult.status === "fulfilled") {
         const goal = goalsResult.value?.active_goal || goalsResult.value?.current;
-        if (goal) setActiveGoal({ id: goal.id, goal_tag: goal.goal_tag });
+        if (goal && goal.is_active !== false) {
+          setActiveGoal({ id: goal.id, goal_tag: goal.goal_tag });
+          if (requestsResult.status === "fulfilled") {
+            const sent = (Array.isArray(requestsResult.value) ? requestsResult.value : []).some(
+              (request) => request.status === "pending"
+                && request.goal_id === goal.id
+                && request.mentor_id === userId
+            );
+            setRequestSent(sent);
+          }
+        }
       }
       setLoading(false);
     });
@@ -56,29 +70,52 @@ function ProfileContent({ params }: { params: { userId: string } }) {
     return () => {
       active = false;
     };
-  }, [params.userId]);
+  }, [userId]);
 
-  const isOwnProfile = me?.id === params.userId;
+  const isOwnProfile = me?.id === userId;
   const displayName = profile?.nickname || (isOwnProfile ? me?.nickname || me?.username : null) || "Utente Socra";
   const badges = profile?.public_badges || [];
   const topTopics = profile?.top_topics || [];
+  const competences = profile?.competences || [];
   const completedPaths = profile?.completed_paths ?? 0;
-  const safeReason = useMemo(() => {
-    if (!matchReason) return "In linea con il tuo obiettivo e il tuo livello.";
-    try {
-      return decodeURIComponent(matchReason);
-    } catch {
-      return matchReason;
+  const goalsReached = percentMetric(profile?.aggregate_metrics?.goals_reached_pct);
+  const wouldRepeat = percentMetric(profile?.aggregate_metrics?.would_repeat_pct);
+  const publicMetricsReady = goalsReached !== null && wouldRepeat !== null;
+
+  useEffect(() => {
+    let active = true;
+    if (!activeGoal?.id || !me || isOwnProfile || !profile?.is_coach) {
+      setCandidate(null);
+      setCandidateError(null);
+      setCandidateLoading(false);
+      return;
     }
-  }, [matchReason]);
+    setCandidateError(null);
+    setCandidateLoading(true);
+    clientPost<MatchCandidate[]>("/matching/candidates", { goal_id: activeGoal.id })
+      .then((items) => {
+        if (active) setCandidate(items.find((item) => item.mentor_id === userId) || null);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setCandidate(null);
+        setCandidateError(err instanceof ClientApiError ? err.message : "Verifica compatibilità non disponibile");
+      })
+      .finally(() => {
+        if (active) setCandidateLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [activeGoal?.id, candidateRetryVersion, isOwnProfile, me, profile?.is_coach, userId]);
 
   async function sendMatchRequest() {
-    if (!activeGoal || isOwnProfile) return;
+    if (!activeGoal || isOwnProfile || !me || !profile?.is_coach || !candidate) return;
     setRequestLoading(true);
     setRequestError(null);
     try {
       await clientPost("/matching/requests", {
-        mentor_id: params.userId,
+        mentor_id: userId,
         goal_id: activeGoal.id
       });
       setRequestSent(true);
@@ -121,9 +158,6 @@ function ProfileContent({ params }: { params: { userId: string } }) {
                       {badges.map((badge) => <span key={badge}>{badge}</span>)}
                     </div>
                   ) : null}
-                  <p className="profile-member-since">
-                    <Calendar size={14} aria-hidden /> Membro della community Socra
-                  </p>
                 </div>
               </div>
 
@@ -134,10 +168,16 @@ function ProfileContent({ params }: { params: { userId: string } }) {
             </section>
 
             <div className="profile-body">
-              <main className="profile-left">
+              <div className="profile-left">
                 <section className="card">
                   <p className="profile-section-label">Competenze principali</p>
-                  {topTopics.length ? (
+                  {competences.length ? (
+                    <div className="profile-topic-list">
+                      {competences.map((competence) => (
+                        <span key={`${competence.topic}-${competence.depth}`}>{competence.topic} · {competence.depth}</span>
+                      ))}
+                    </div>
+                  ) : topTopics.length ? (
                     <div className="profile-topic-list">
                       {topTopics.map((topic) => <span key={topic}>{topic}</span>)}
                     </div>
@@ -147,17 +187,6 @@ function ProfileContent({ params }: { params: { userId: string } }) {
                     </p>
                   )}
                 </section>
-
-                {!isOwnProfile && matchScore ? (
-                  <section className="card profile-match-card">
-                    <p className="profile-section-label">Perché è il tuo match</p>
-                    <div className="profile-match-score">
-                      <span className="profile-match-pct">{Math.round(Number(matchScore))}%</span>
-                      <span className="profile-muted-text">compatibilità</span>
-                    </div>
-                    <p className="profile-muted-text">{safeReason}</p>
-                  </section>
-                ) : null}
 
                 {badges.length ? (
                   <section className="card">
@@ -172,6 +201,17 @@ function ProfileContent({ params }: { params: { userId: string } }) {
                   </section>
                 ) : null}
 
+                {!isOwnProfile && candidate ? (
+                  <section className="card profile-match-card">
+                    <p className="profile-section-label">Compatibilità con il tuo obiettivo</p>
+                    <div className="profile-match-score">
+                      <span className="profile-match-pct">{Math.round(candidate.match_score)}%</span>
+                      <span className="profile-muted-text">{candidate.is_recommended ? "match consigliato" : "profilo da valutare"}</span>
+                    </div>
+                    <p className="profile-muted-text">{candidate.reason_summary}</p>
+                  </section>
+                ) : null}
+
                 <section className="card">
                   <p className="profile-section-label">Performance pubblica</p>
                   <div className="profile-metrics-grid">
@@ -179,9 +219,26 @@ function ProfileContent({ params }: { params: { userId: string } }) {
                       <span>Percorsi completati</span>
                       <strong>{completedPaths}</strong>
                     </div>
+                    {publicMetricsReady ? (
+                      <>
+                    <div className="profile-metric-row">
+                      <span>Obiettivi raggiunti o forte miglioramento</span>
+                      <strong>{goalsReached}</strong>
+                    </div>
+                    <div className="profile-metric-row">
+                      <span>Disponibili a ripetere il percorso</span>
+                      <strong>{wouldRepeat}</strong>
+                    </div>
+                      </>
+                    ) : (
+                      <div className="profile-metric-row">
+                        <span>Reputazione</span>
+                        <strong>Nuovo utente</strong>
+                      </div>
+                    )}
                   </div>
                 </section>
-              </main>
+              </div>
 
               <aside className="profile-right">
                 <section className="card profile-privacy-card">
@@ -197,10 +254,50 @@ function ProfileContent({ params }: { params: { userId: string } }) {
                 </section>
 
                 {isOwnProfile ? (
-                  <OwnProfileCard isCoach={profile.is_coach} />
+                  <OwnProfileCard isCoach={profile.is_coach} level={profile.level} />
+                ) : !profile.is_coach ? (
+                  <section className="card profile-request-card">
+                    <p className="profile-card-title">Profilo non disponibile come mentor</p>
+                    <p className="profile-muted-text">Questa persona non riceve richieste di percorso in questo momento.</p>
+                    <Link href="/matching" className="button secondary">Torna ai mentor</Link>
+                  </section>
+                ) : authError || !me ? (
+                  <section className="card profile-request-card">
+                    <p className="profile-card-title">Accedi per inviare una richiesta</p>
+                    <p className="profile-muted-text">La sessione non è disponibile.</p>
+                    <Link href="/login" className="button">Vai all&apos;accesso</Link>
+                  </section>
+                ) : requestSent ? (
+                  <RequestCard
+                    activeGoal={activeGoal}
+                    pathCost={profile.path_cost}
+                    requestSent
+                    requestLoading={false}
+                    requestError={null}
+                    onRequest={sendMatchRequest}
+                  />
+                ) : candidateLoading ? (
+                  <section className="card profile-request-card" role="status">
+                    <p className="profile-card-title">Verifica compatibilità…</p>
+                  </section>
+                ) : candidateError ? (
+                  <section className="card profile-request-card" role="alert">
+                    <p className="profile-card-title">Verifica compatibilità non disponibile</p>
+                    <p className="profile-muted-text">{candidateError}</p>
+                    <button className="button secondary" type="button" onClick={() => setCandidateRetryVersion((value) => value + 1)}>
+                      Riprova
+                    </button>
+                  </section>
+                ) : activeGoal && !candidate ? (
+                  <section className="card profile-request-card">
+                    <p className="profile-card-title">Non disponibile per questo obiettivo</p>
+                    <p className="profile-muted-text">Il profilo non rientra nelle proposte valide per livello e obiettivo attivi.</p>
+                    <Link href={`/matching?goalId=${activeGoal.id}`} className="button secondary">Vedi mentor compatibili</Link>
+                  </section>
                 ) : (
                   <RequestCard
                     activeGoal={activeGoal}
+                    pathCost={profile.path_cost}
                     requestSent={requestSent}
                     requestLoading={requestLoading}
                     requestError={requestError}
@@ -209,24 +306,6 @@ function ProfileContent({ params }: { params: { userId: string } }) {
                 )}
               </aside>
             </div>
-
-            {!isOwnProfile ? (
-              <section className="profile-cta-bottom">
-                <div>
-                  <p className="profile-cta-title">Vuoi proporre un percorso a {displayName}?</p>
-                  <p className="profile-cta-sub">
-                    Invia una richiesta: il percorso si apre solo se il mentor accetta.
-                  </p>
-                </div>
-                {activeGoal ? (
-                  <button className="button" type="button" onClick={sendMatchRequest} disabled={requestLoading || requestSent}>
-                    {requestSent ? "Richiesta inviata" : requestLoading ? "Invio..." : "Invia richiesta al mentor"}
-                  </button>
-                ) : (
-                  <Link href="/goal" className="button">Definisci obiettivo</Link>
-                )}
-              </section>
-            ) : null}
           </>
         ) : null}
       </div>
@@ -238,12 +317,14 @@ function ProfileContent({ params }: { params: { userId: string } }) {
 
 function RequestCard({
   activeGoal,
+  pathCost,
   requestSent,
   requestLoading,
   requestError,
   onRequest
 }: {
   activeGoal: { id: string; goal_tag: string } | null;
+  pathCost: number;
   requestSent: boolean;
   requestLoading: boolean;
   requestError: string | null;
@@ -275,15 +356,19 @@ function RequestCard({
       <p className="profile-muted-text">
         Obiettivo: <strong>{activeGoal.goal_tag}</strong>
       </p>
+      <p className="profile-muted-text">
+        Costo se accetta: {pathCost} {pathCost === 1 ? "credito" : "crediti"}.
+      </p>
       {requestError ? <p className="profile-request-error">{requestError}</p> : null}
       <button className="button" type="button" onClick={onRequest} disabled={requestLoading}>
-        {requestLoading ? "Invio in corso..." : "Invia richiesta al mentor"}
+        {requestLoading ? "Invio in corso…" : "Invia richiesta al mentor"}
       </button>
     </section>
   );
 }
 
-function OwnProfileCard({ isCoach }: { isCoach: boolean }) {
+function OwnProfileCard({ isCoach, level }: { isCoach: boolean; level: string }) {
+  const isEligibleForMentor = level !== "L0";
   return (
     <section className="card profile-own-card">
       <div className="profile-privacy-inner">
@@ -293,14 +378,16 @@ function OwnProfileCard({ isCoach }: { isCoach: boolean }) {
           <p className="profile-muted-text">
             {isCoach
               ? "Il tuo profilo mentor è attivo: puoi monitorare richieste e percorsi."
-              : "Completa livello e obiettivo per preparare il profilo mentor."}
+              : isEligibleForMentor
+                ? "Hai disattivato la disponibilità come mentor. Puoi riattivarla dalle impostazioni."
+                : "Il livello L0 non abilita ancora il ruolo mentor. Continua il percorso per sviluppare le competenze necessarie."}
           </p>
         </div>
       </div>
       <div className="profile-own-actions">
-        <Link href="/settings" className="button secondary">Impostazioni</Link>
-        <Link href={isCoach ? "/paths?tab=mentor" : "/goal"} className="button">
-          {isCoach ? "Percorsi mentor" : "Definisci obiettivo"}
+        {isCoach ? <Link href="/settings" className="button secondary">Impostazioni</Link> : null}
+        <Link href={isCoach ? "/paths?tab=mentor" : isEligibleForMentor ? "/settings" : "/livelli"} className="button">
+          {isCoach ? "Percorsi mentor" : isEligibleForMentor ? "Gestisci ruolo mentor" : "Come crescere di livello"}
         </Link>
       </div>
     </section>
@@ -314,6 +401,10 @@ function ProfileSkeleton() {
       <div className="profile-skeleton-body" />
     </div>
   );
+}
+
+function percentMetric(value: unknown): string | null {
+  return typeof value === "number" && Number.isFinite(value) ? `${value}%` : null;
 }
 
 function ProfileStyles() {
@@ -553,30 +644,6 @@ function ProfileStyles() {
       .profile-own-actions {
         display: grid;
         gap: 10px;
-      }
-
-      .profile-cta-bottom {
-        align-items: center;
-        background: linear-gradient(135deg, var(--navy-950, #07172d), #163d6e);
-        border-radius: var(--radius-lg, 16px);
-        color: white;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 20px;
-        justify-content: space-between;
-        padding: 24px;
-      }
-
-      .profile-cta-title {
-        font-size: 1.1rem;
-        font-weight: 800;
-        margin: 0 0 8px;
-      }
-
-      .profile-cta-sub {
-        color: rgba(255, 255, 255, 0.72);
-        font-size: 0.9rem;
-        margin: 0;
       }
 
       .profile-skeleton {

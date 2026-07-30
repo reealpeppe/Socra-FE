@@ -4,55 +4,55 @@ import { Shield, Lock, Video, AlertTriangle, Users, Star, CheckCircle } from "lu
 import { PublicNavbar, PublicFooter } from "@/components/PublicLayout";
 
 export const metadata: Metadata = {
-  title: "Sicurezza Socra — La tua protezione, la nostra priorità",
-  description: "SOCRA è progettata per offrire un ambiente sicuro, trasparente e affidabile. Ogni interazione è basata sul rispetto e sulla chiarezza.",
+  title: "Sicurezza Socra — Regole e strumenti della community",
+  description: "Le regole operative di Socra per call, segnalazioni, dati pubblici e revisione manuale.",
 };
 
 const features = [
   {
     icon: Lock,
-    title: "Dati protetti",
-    body: "I dati finanziari non escono mai dal tuo profilo privato. Zero link a banche o investimenti",
+    title: "Profilo pubblico essenziale",
+    body: "Il profilo pubblico mostra livello, topic tradotti, metriche aggregate, badge e testi facoltativi. Le risposte dettagliate della survey non sono pubbliche",
   },
   {
     icon: Video,
-    title: "Call senza registrazione",
-    body: "Le sessioni non vengono mai registrate senza consenso esplicito di entrambe le parti",
+    title: "Nessuna registrazione audio o video",
+    body: "Socra non registra audio o video. Un’eventuale trascrizione della prima sessione richiede una scelta esplicita di entrambe le persone",
   },
   {
     icon: Shield,
-    title: "Prima call in piattaforma",
-    body: "La prima sessione avviene sempre tramite la piattaforma per garantire sicurezza a entrambi",
+    title: "Prima call collegata al percorso",
+    body: "La prima call usa un Google Meet creato da Socra. Il percorso conserva solo i metadati operativi previsti: ingresso, uscita, durata e presenza",
   },
   {
     icon: CheckCircle,
-    title: "Verifica a moderazione",
-    body: "Il team modera i profili e può sospendere account in caso di comportamenti scorretti",
+    title: "Revisione manuale",
+    body: "I segnali anomali aprono una revisione amministrativa. Non generano sospensioni o blocchi automatici",
   },
   {
     icon: AlertTriangle,
-    title: "Zero tolleranza",
-    body: "Comportamenti aggressivi, spam o contenuti inappropriati vengono rimossi immediatamente",
+    title: "Segnala problema",
+    body: "La segnalazione resta disponibile nel dettaglio del percorso. Il contesto viene valutato prima di qualsiasi intervento",
   },
   {
     icon: Star,
-    title: "Reputazione meritocratica",
-    body: "Il feedback bidirezionale costruisce una reputazione trasparente e non falsificabile",
+    title: "Reputazione aggregata",
+    body: "Il feedback reciproco alimenta badge e metriche sintetiche. I singoli voti e gli score interni non vengono mostrati pubblicamente",
   },
 ];
 
 const rules = [
-  "Rispetto, sempre. I nostri valori sono fondamentali.",
-  "No discriminazioni, linguaggio offensivo o comportamenti inappropriati.",
-  "Trasparenza con i tuoi partner: sii onesto sui tuoi obiettivi e le tue aspettative.",
-  "Aggiornamenti costanti: se qualcosa cambia, informaci sempre.",
+  "Rispetta l'altra persona e mantieni il confronto sul percorso concordato.",
+  "Non usare Socra per pressioni commerciali, spam o comportamenti discriminatori.",
+  "Descrivi obiettivi e aspettative in modo chiaro, senza presentare opinioni come garanzie.",
+  "Se emerge un problema, usa la segnalazione nel percorso e fornisci elementi verificabili.",
 ];
 
 export default function SicurezzaPage() {
   return (
     <>
       <PublicNavbar />
-      <main style={{ paddingTop: "64px" }}>
+      <main id="main-content" tabIndex={-1} style={{ paddingTop: "64px" }}>
 
         {/* ── Hero ── */}
         <section style={{
@@ -78,7 +78,7 @@ export default function SicurezzaPage() {
                 letterSpacing: "-0.02em",
                 lineHeight: 1.05,
               }}>
-                La tua sicurezza,<br />la nostra priorità.
+                Sicurezza concreta,<br />regole leggibili.
               </h1>
               <p style={{
                 color: "var(--muted)",
@@ -87,7 +87,7 @@ export default function SicurezzaPage() {
                 margin: "0 0 28px",
                 maxWidth: "55ch",
               }}>
-                SOCRA è progettata per offrire un ambiente sicuro, trasparente e affidabile. Ogni interazione è basata sul rispetto e sulla chiarezza.
+                Socra combina regole di percorso, metadati minimi della prima call, feedback reciproco e revisione manuale delle segnalazioni.
               </p>
               <div style={{
                 display: "flex",
@@ -98,11 +98,11 @@ export default function SicurezzaPage() {
                 fontWeight: 600,
               }}>
                 <Shield size={18} color="var(--gold-500)" />
-                Sicurezza by design. Privacy by default.
+                Nessun blocco automatico basato sui soli segnali.
               </div>
             </div>
 
-            <div style={{ display: "flex", justifyContent: "center" }}>
+            <div className="sic-hero-mark" style={{ display: "flex", justifyContent: "center" }}>
               <div style={{
                 width: "140px",
                 height: "140px",
@@ -121,7 +121,7 @@ export default function SicurezzaPage() {
           <style>{`
             @media (max-width: 720px) {
               .sic-hero-grid { grid-template-columns: 1fr !important; }
-              .sic-hero-grid > div:last-child { display: none !important; }
+              .sic-hero-mark { display: none !important; }
             }
           `}</style>
         </section>
@@ -179,15 +179,6 @@ export default function SicurezzaPage() {
                     <p style={{ color: "var(--muted)", fontSize: "0.875rem", lineHeight: 1.6, margin: 0 }}>
                       {f.body}
                     </p>
-                    <a href="#" style={{
-                      color: "var(--navy-950)",
-                      fontSize: "0.82rem",
-                      fontWeight: 700,
-                      textDecoration: "none",
-                      marginTop: "auto",
-                    }}>
-                      Scopri di più →
-                    </a>
                   </div>
                 );
               })}
@@ -263,10 +254,10 @@ export default function SicurezzaPage() {
                 Community safety prima di tutto
               </h3>
               <p style={{ color: "var(--muted)", fontSize: "0.9rem", lineHeight: 1.6, margin: 0 }}>
-                SOCRA è progettata attorno alle persone. Ogni funzionalità è pensata per mantenere un ambiente sicuro, rispettoso e trasparente. La fiducia è la nostra valuta più importante.
+                SOCRA non può eliminare ogni rischio da un incontro tra persone. Per questo rende visibili le regole, mantiene la prima call collegata al percorso e raccoglie segnalazioni contestualizzate.
               </p>
               <p style={{ color: "var(--muted)", fontSize: "0.85rem", lineHeight: 1.5, margin: 0 }}>
-                Trasparenza, rispetto e qualità dell&apos;esperienza sono le nostre linee guida. Un&apos;attività incoerente con questi valori viene segnalata e rimossa rapidamente.
+                Le anomalie vengono portate in revisione manuale. Eventuali azioni sull&apos;account dipendono dalla valutazione del caso, non da un automatismo.
               </p>
             </div>
           </div>
@@ -300,7 +291,7 @@ export default function SicurezzaPage() {
               lineHeight: 1.6,
               margin: "0 0 32px",
             }}>
-              Il nostro team è sempre disponibile. Puoi segnalare qualsiasi problema direttamente dalla piattaforma.
+              Durante un percorso trovi l&apos;azione “Segnala problema” nel relativo dettaglio. Per conoscere regole e limiti della community, consulta le risposte frequenti.
             </p>
             <Link href="/faq" style={{
               display: "inline-flex",
@@ -314,7 +305,7 @@ export default function SicurezzaPage() {
               borderRadius: "999px",
               textDecoration: "none",
             }}>
-              Contattaci
+              Consulta le FAQ
             </Link>
           </div>
         </section>
