@@ -51,7 +51,7 @@ test("dashboard renders responsive operational state", async ({ page }) => {
   await expect(page.getByRole("heading", { name: /Ciao Mentee/ })).toBeVisible();
   await expect(page.getByRole("main").getByText("Crediti").first()).toBeVisible();
   await expect(page.getByRole("main").getByText("10").first()).toBeVisible();
-  await expect(page.getByRole("main").getByRole("link", { name: "Trova mentor", exact: true })).toBeVisible();
+  await expect(page.getByRole("main").getByRole("link", { name: "Trova un mentor", exact: true })).toBeVisible();
   await expect(page.getByLabel("Topic di competenza").getByText("ETF e fondi")).toBeVisible();
   await expect(page.getByLabel("Badge qualitativi più ricevuti").getByText("Chiaro")).toBeVisible();
 });
@@ -76,8 +76,35 @@ test("dashboard routes a completed mentee path to goal review before matching", 
   await page.goto("/dashboard");
 
   await expect(page.getByRole("alert").getByRole("link", { name: "Rivedi obiettivo" })).toHaveAttribute("href", "/goal?pathId=path-review");
-  await expect(page.getByRole("main").getByRole("link", { name: "Rivedi obiettivo" })).toHaveCount(3);
+  await expect(page.getByRole("main").getByRole("link", { name: "Rivedi obiettivo" })).toHaveCount(2);
   await expect(page.getByRole("main").getByText("Mentor compatibili", { exact: true })).toHaveCount(0);
+  expect(candidatesCalled).toBe(false);
+});
+
+test("dashboard treats an active mentee path as progress, not a matching error", async ({ page }) => {
+  let candidatesCalled = false;
+  await page.route("**/api/backend/paths/me", async (route) => route.fulfill({ json: [{
+    id: "path-active",
+    status: "open",
+    mentee_id: "u1",
+    mentor_id: "mentor1",
+    goal_id: "g1",
+    goal_review_completed: false,
+    mentor: { user_id: "mentor1", nickname: "Anna", level: "L2", is_coach: true },
+    goal: { id: "g1", topic: "etf_funds", goal_tag: "understand_etf", is_active: true }
+  }] }));
+  await page.route("**/api/backend/matching/candidates", async (route) => {
+    candidatesCalled = true;
+    await route.fulfill({ json: [] });
+  });
+
+  await page.goto("/dashboard");
+
+  await expect(page.getByText("Percorso in corso", { exact: true })).toBeVisible();
+  await expect(page.getByText("Hai già un percorso attivo come mentee.")).toBeVisible();
+  await expect(page.getByRole("main").getByRole("link", { name: "Apri il percorso", exact: true })).toHaveAttribute("href", "/paths/path-active");
+  await expect(page.locator(".topbar-shortcut")).toHaveAttribute("href", "/paths/path-active");
+  await expect(page.getByText("Non riusciamo ad aggiornare i mentor compatibili.")).toHaveCount(0);
   expect(candidatesCalled).toBe(false);
 });
 
@@ -95,8 +122,9 @@ test("L0 dashboard explains mentor eligibility without promising requests", asyn
 
   await page.goto("/dashboard");
 
-  await expect(page.getByText("Il ruolo mentor si sblocca dal livello L1.")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Scopri come funzionano i livelli" })).toBeVisible();
+  await expect(page.getByText("Al momento il tuo profilo non può ricevere richieste come mentor.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Informazioni sui livelli" })).toBeVisible();
+  await expect(page.getByText(/si sblocca|come crescere|soglia/i)).toHaveCount(0);
   await expect(page.getByText("Puoi ricevere richieste")).toHaveCount(0);
 });
 
@@ -108,7 +136,7 @@ test("global header shows user and notifications", async ({ page }) => {
   await page.getByRole("button", { name: "Notifiche" }).click();
   await expect(page.getByText("Percorso aperto.")).toBeVisible();
   await page.getByRole("button", { name: "Mentee" }).click();
-  await expect(page.getByRole("button", { name: "Logout" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Esci" })).toBeVisible();
 });
 
 test("global navigation exposes the requests area", async ({ page }) => {
@@ -152,6 +180,8 @@ test("onboarding submits score and links to goal", async ({ page }) => {
   for (const select of await knowledgeSelects.all()) {
     await select.selectOption("2");
   }
+  await expect(page.locator(".progress-steps")).toHaveCount(1);
+  await expect(page.locator(".progress-step")).toHaveCount(6);
   await page.getByRole("button", { name: "Continua", exact: true }).click();
 
   await expect(page.getByRole("heading", { name: "Scelte in situazioni concrete" })).toBeVisible();
@@ -171,13 +201,18 @@ test("onboarding submits score and links to goal", async ({ page }) => {
   await page.getByRole("button", { name: "Continua", exact: true }).click();
 
   await expect(page.getByRole("heading", { name: "Rivedi e conferma" })).toBeVisible();
-  await expect(page.getByText("7 su 7 valutati")).toBeVisible();
-  await expect(page.getByText("6 su 6 valutate")).toBeVisible();
-  await expect(page.getByText("3 situazioni completate")).toBeVisible();
-  await expect(page.getByText("5 su 5 risposte completate")).toBeVisible();
+  const experienceReview = page.locator(".review-row").filter({ hasText: "Esperienza" });
+  const instrumentsReview = page.locator(".review-row").filter({ hasText: "Strumenti" });
+  const knowledgeReview = page.locator(".review-row").filter({ hasText: "Conoscenze" });
+  const situationsReview = page.locator(".review-row").filter({ hasText: "Scenari" });
+  await expect(experienceReview.getByText("Più di 5 anni")).toBeVisible();
+  await expect(instrumentsReview.getByText("Uso con autonomia").first()).toBeVisible();
+  await expect(knowledgeReview.getByText("Lo conosco bene").first()).toBeVisible();
+  await expect(situationsReview.getByText("Dipende dal resto della sua situazione finanziaria e orizzonte")).toBeVisible();
 
   const contextReview = page.locator(".review-row").filter({ hasText: "Contesto personale" });
-  await contextReview.getByRole("button", { name: "Modifica" }).click();
+  await expect(contextReview.getByText("Preferisco non rispondere").first()).toBeVisible();
+  await contextReview.getByRole("button", { name: "Modifica contesto personale" }).click();
   await expect(page.getByRole("heading", { name: "Contesto personale" })).toBeVisible();
   await expect(page.getByLabel("Situazione professionale")).toHaveValue("undisclosed");
   await page.getByRole("button", { name: "Continua", exact: true }).click();
@@ -196,7 +231,7 @@ test("onboarding submits score and links to goal", async ({ page }) => {
     D5: "undisclosed"
   });
   await expect(page.getByLabel("Livello L2")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Definisci il primo obiettivo" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Scegli cosa imparare" })).toBeVisible();
 });
 
 test("onboarding draft survives navigation", async ({ page }) => {
@@ -249,12 +284,92 @@ test("onboarding draft survives navigation", async ({ page }) => {
   await expect(page.getByLabel("Ordine di grandezza del capitale investito?")).toHaveValue("10k_50k");
 });
 
+test("onboarding never restores a draft from another account", async ({ page }) => {
+  await page.route("**/api/backend/surveys/onboarding/me", async (route) => route.fulfill({
+    json: {
+      user_id: "account-b",
+      level: "L0",
+      is_coach: false,
+      latest_answer_id: null
+    }
+  }));
+  await page.route("**/api/backend/surveys/onboarding/me/draft", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({ json: null });
+      return;
+    }
+    await route.fulfill({ json: route.request().postDataJSON() });
+  });
+
+  await page.goto("/dashboard");
+  await page.evaluate(() => {
+    window.sessionStorage.setItem("socra_onboarding_draft", JSON.stringify({
+      step: 3,
+      answers: {
+        D1: "none",
+        D4: {},
+        section_d: {
+          D1: "employed_permanent",
+          D2: "gt_75k",
+          D3: "gt_1k",
+          D4: "mortgage_and_other_debt",
+          D5: "no"
+        }
+      }
+    }));
+  });
+
+  await page.goto("/onboarding");
+
+  await expect(page.getByRole("heading", { name: "La tua esperienza" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Contesto personale" })).toHaveCount(0);
+});
+
 test("completed onboarding cannot be restarted", async ({ page }) => {
   await page.goto("/onboarding");
   await expect(page.getByText("Survey già completata")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Basi operative" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Gestisci obiettivo" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "La tua esperienza" })).toHaveCount(0);
+});
+
+test("goal route preloads the current goal without requiring a special query", async ({ page }) => {
+  await page.route("**/api/backend/goals/me", async (route) => route.fulfill({ json: {
+    current: {
+      id: "g-current",
+      topic: "ETF e fondi",
+      topic_code: "etf_funds",
+      goal_tag: "Capire cosa sono gli ETF e come funzionano",
+      goal_tag_code: "understand_etf",
+      capital_goal: "500_5k",
+      risk: "balanced",
+      is_active: true
+    },
+    goals: [],
+    history: []
+  } }));
+
+  await page.goto("/goal");
+
+  await expect(page.getByRole("heading", { name: "Aggiorna cosa vuoi imparare" })).toBeVisible();
+  await expect(page.getByLabel("Tema")).toHaveValue("etf_funds");
+  await expect(page.getByLabel("Risultato di apprendimento")).toHaveValue("understand_etf");
+  await expect(page.getByLabel("Contesto di partenza (privato)")).toHaveValue("500_5k");
+  await expect(page.getByLabel("Stile del confronto (privato)")).toHaveValue("balanced");
+  const contextLabels = await page.getByLabel("Contesto di partenza (privato)").locator("option").allTextContents();
+  expect(contextLabels.join(" ")).not.toMatch(/EUR|€/);
+});
+
+test("tour keeps the current step in the URL", async ({ page }) => {
+  await page.goto("/tour?goalId=g1");
+  await expect(page.getByRole("heading", { name: "Scegli tra mentor compatibili" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Continua" }).click();
+  await expect(page).toHaveURL(/goalId=g1.*step=2|step=2.*goalId=g1/);
+  await expect(page.getByRole("heading", { name: "Il mentor ha 48 ore per rispondere" })).toBeVisible();
+
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Il mentor ha 48 ore per rispondere" })).toBeVisible();
 });
 
 test("important actions are blocked until onboarding is complete", async ({ page }) => {
@@ -399,10 +514,46 @@ test("request expiry during accept never reports an opened path", async ({ page 
   });
 
   await page.goto("/requests?tab=received");
+  page.once("dialog", async (dialog) => {
+    expect(dialog.message()).toContain("Vuoi accettare e aprire questo percorso?");
+    await dialog.accept();
+  });
   await page.getByRole("button", { name: "Accetta" }).click();
 
-  await expect(page.getByRole("status")).toContainText("Nessun percorso è stato aperto");
-  await expect(page.getByRole("status")).not.toContainText("percorso è aperto");
+  const outcome = page.getByText(/Nessun percorso è stato aperto/);
+  await expect(outcome).toBeVisible();
+  await expect(outcome).not.toContainText("percorso è aperto");
+});
+
+test("accepting a mentor proposal confirms both path cost and available credits", async ({ page }) => {
+  let responseCalled = false;
+  await page.route("**/api/backend/matching/requests/me?role=all", async (route) => route.fulfill({ json: [{
+    id: "mentor-proposal",
+    status: "pending",
+    initiator_role: "mentor",
+    mentor_id: "mentor1",
+    mentee_id: "u1",
+    goal_id: "g1",
+    cost_at_request: 2,
+    expires_at: "2026-08-02T12:00:00Z",
+    mentee: { user_id: "u1", nickname: "Mentee", level: "L1", is_coach: true },
+    mentor: { user_id: "mentor1", nickname: "Anna", level: "L2", is_coach: true },
+    goal: { id: "g1", topic: "etf_funds", goal_tag: "understand_etf", is_active: true }
+  }] }));
+  await page.route("**/api/backend/matching/requests/mentor-proposal/respond", async (route) => {
+    responseCalled = true;
+    await route.fulfill({ json: { id: "mentor-proposal", status: "open" } });
+  });
+
+  await page.goto("/requests?tab=received");
+  await expect(page.getByText(/Costo all.accettazione: 2 crediti/)).toBeVisible();
+  page.once("dialog", async (dialog) => {
+    expect(dialog.message()).toContain("Il percorso costerà 2 crediti");
+    expect(dialog.message()).toContain("Crediti disponibili: 10");
+    await dialog.dismiss();
+  });
+  await page.getByRole("button", { name: "Accetta" }).click();
+  expect(responseCalled).toBe(false);
 });
 
 test("mentor opt-out blocks pending response actions", async ({ page }) => {
@@ -465,8 +616,8 @@ test("non-admin users see an access-denied state without admin queue metrics", a
   await page.goto("/admin");
 
   await expect(page.getByRole("heading", { name: "Area riservata" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Pannello Admin" })).toHaveCount(0);
-  await expect(page.getByText("Review attive")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Amministrazione" })).toHaveCount(0);
+  await expect(page.getByText("Verifiche attive")).toHaveCount(0);
 });
 
 test("profile restores a pending request without requiring candidate reload", async ({ page }) => {
@@ -566,11 +717,11 @@ test("paths are grouped by current user role", async ({ page }) => {
   ] }));
 
   await page.goto("/paths?tab=mentee");
-  await expect(page.getByRole("button", { name: /Come mentee/ })).toBeVisible();
+  await expect(page.getByRole("tab", { name: /Come mentee/ })).toBeVisible();
   await expect(page.getByText("mentee_goal")).toBeVisible();
   await expect(page.getByText("mentor_goal")).toHaveCount(0);
 
-  await page.getByRole("button", { name: /Come mentor/ }).click();
+  await page.getByRole("tab", { name: /Come mentor/ }).click();
   await expect(page.getByText("mentor_goal")).toBeVisible();
 });
 
@@ -698,4 +849,35 @@ test("path closure and feedback actions follow first-call and actor state", asyn
   await page.reload();
   await expect(page.getByRole("heading", { name: "Percorso completato" })).toBeVisible();
   await expect(page.getByText("Entrambe le persone hanno chiuso il percorso e inviato il feedback.")).toBeVisible();
+});
+
+test("feedback note visibility is explicit and path success banners are restored", async ({ page }) => {
+  const feedbackPath = {
+    id: "path-feedback",
+    status: "feedback_pending",
+    mentee_id: "u1",
+    mentor_id: "u3",
+    goal_id: "g2",
+    goal: { id: "g2", topic: "ETF e fondi", topic_code: "etf_funds", goal_tag: "Capire gli ETF", is_active: true },
+    mentee: { user_id: "u1", nickname: "Mentee", level: "L1", is_coach: true },
+    mentor: { user_id: "u3", nickname: "Anna", level: "L2", is_coach: true },
+    first_call_completed: true,
+    mentee_closed_at: "2026-07-25T12:00:00Z",
+    mentor_closed_at: null,
+    mentee_feedback_submitted: false,
+    mentor_feedback_submitted: false,
+    goal_review_completed: false
+  };
+  await page.route("**/api/backend/paths/path-feedback", async (route) => route.fulfill({ json: feedbackPath }));
+  await page.route("**/api/backend/calls/first-session/room?path_id=path-feedback", async (route) => {
+    await route.fulfill({ status: 404, json: { detail: "Call non preparata" } });
+  });
+
+  await page.goto("/feedback/path-feedback/mentee");
+  await expect(page.getByText("L’eventuale nota testuale sarà visibile solo a voi due e agli admin, dopo che entrambi avrete inviato il feedback.")).toBeVisible();
+  await expect(page.getByText("Non comparirà sul profilo pubblico.")).toBeVisible();
+
+  await page.goto("/paths/path-feedback?feedback=sent");
+  await expect(page.getByText("Feedback inviato correttamente.", { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(/\/paths\/path-feedback$/);
 });

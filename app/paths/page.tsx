@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { GraduationCap, UsersRound } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
+import { TabPanel, Tabs } from "@/components/Ui";
 import { clientGet } from "@/lib/api";
 import type { PathItem, UserMe } from "@/lib/types";
 
@@ -48,27 +49,51 @@ function PathsContent() {
   const [paths, setPaths] = useState<PathItem[]>([]);
   const [user, setUser] = useState<UserMe | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<"mentee" | "mentor">("mentee");
+  const [loading, setLoading] = useState(true);
+  const requestedTab: "mentee" | "mentor" = searchParams.get("tab") === "mentor" ? "mentor" : "mentee";
+  const [tab, setTab] = useState<"mentee" | "mentor">(requestedTab);
 
-  useEffect(() => {
-    Promise.all([clientGet<UserMe>("/auth/me"), clientGet<PathItem[]>("/paths/me")])
-      .then(([userResponse, pathsResponse]) => {
-        setUser(userResponse);
-        setPaths(pathsResponse);
-      })
-      .catch((err) => setError(err.message || "Percorsi non disponibili"));
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const [userResult, pathsResult] = await Promise.allSettled([
+      clientGet<UserMe>("/auth/me"),
+      clientGet<PathItem[]>("/paths/me")
+    ]);
+
+    if (userResult.status === "fulfilled") setUser(userResult.value);
+    else setUser(null);
+    if (pathsResult.status === "fulfilled") {
+      setPaths(Array.isArray(pathsResult.value) ? pathsResult.value : []);
+    } else {
+      setPaths([]);
+    }
+    if (userResult.status === "rejected" || pathsResult.status === "rejected") {
+      setError("Non riusciamo a caricare i percorsi. Riprova.");
+    }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
-    setTab(searchParams.get("tab") === "mentor" ? "mentor" : "mentee");
-  }, [searchParams]);
+    queueMicrotask(() => void load());
+  }, [load]);
+
+  useEffect(() => {
+    queueMicrotask(() => setTab(requestedTab));
+  }, [requestedTab]);
+
+  function selectTab(value: string) {
+    const nextTab = value === "mentor" ? "mentor" : "mentee";
+    setTab(nextTab);
+    router.replace(`/paths?tab=${nextTab}`, { scroll: false });
+  }
 
   const mentorPaths = paths.filter((path) => path.mentor_id === user?.id);
   const menteePaths = paths.filter((path) => path.mentee_id === user?.id);
   const displayed = tab === "mentee" ? menteePaths : mentorPaths;
 
   return (
-    <div style={{ display: "grid", gap: "24px" }}>
+    <div style={{ display: "grid", gap: "24px", margin: "0 auto", maxWidth: "1100px", width: "100%" }}>
       {/* Page header */}
       <div>
         <h1 style={{ color: "var(--navy-950)", fontSize: "clamp(1.6rem, 3vw, 2.4rem)", margin: "0 0 4px" }}>
@@ -91,7 +116,7 @@ function PathsContent() {
           </span>
           <div>
             <p style={{ color: "var(--muted)", fontSize: "0.75rem", fontWeight: 800, letterSpacing: "0.08em", margin: "0 0 2px", textTransform: "uppercase" }}>Come mentee</p>
-            <strong style={{ color: "var(--navy-950)", fontSize: "1.5rem", lineHeight: 1 }}>{menteePaths.length}</strong>
+            <strong style={{ color: "var(--navy-950)", fontSize: "1.5rem", lineHeight: 1 }}>{loading || error ? "—" : menteePaths.length}</strong>
           </div>
         </div>
         <div className="card" style={{ display: "flex", alignItems: "center", gap: "12px", padding: "14px 20px", minWidth: "140px" }}>
@@ -104,45 +129,38 @@ function PathsContent() {
           </span>
           <div>
             <p style={{ color: "var(--muted)", fontSize: "0.75rem", fontWeight: 800, letterSpacing: "0.08em", margin: "0 0 2px", textTransform: "uppercase" }}>Come mentor</p>
-            <strong style={{ color: "var(--navy-950)", fontSize: "1.5rem", lineHeight: 1 }}>{mentorPaths.length}</strong>
+            <strong style={{ color: "var(--navy-950)", fontSize: "1.5rem", lineHeight: 1 }}>{loading || error ? "—" : mentorPaths.length}</strong>
           </div>
         </div>
       </div>
 
-      {error ? <p className="error">{error}</p> : null}
+      {error ? (
+        <div className="error" role="alert" style={{ alignItems: "center", display: "flex", flexWrap: "wrap", gap: "12px", justifyContent: "space-between" }}>
+          <span>{error}</span>
+          <button className="button secondary" type="button" onClick={() => void load()}>Riprova</button>
+        </div>
+      ) : null}
 
       {/* Tabs */}
-      <div style={{ borderBottom: "2px solid var(--line)", display: "flex", gap: "0" }}>
-        {(["mentee", "mentor"] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-	            onClick={() => {
-	              setTab(t);
-	              router.replace(`/paths?tab=${t}`, { scroll: false });
-	            }}
-            style={{
-              background: "none",
-              border: "none",
-              borderBottom: tab === t ? "2px solid var(--navy-950)" : "2px solid transparent",
-              color: tab === t ? "var(--navy-950)" : "var(--muted)",
-              cursor: "pointer",
-              fontWeight: tab === t ? 800 : 600,
-              fontSize: "0.9rem",
-              marginBottom: "-2px",
-              padding: "10px 20px",
-              transition: "color 0.15s",
-            }}
-          >
-            {t === "mentee"
-              ? `Come mentee (${menteePaths.length})`
-              : `Come mentor (${mentorPaths.length})`}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        id="paths"
+        panelId="paths-panel"
+        ariaLabel="Percorsi per ruolo"
+        value={tab}
+        onValueChange={selectTab}
+        items={[
+          { value: "mentee", label: `Come mentee (${loading || error ? "—" : menteePaths.length})` },
+          { value: "mentor", label: `Come mentor (${loading || error ? "—" : mentorPaths.length})` },
+        ]}
+      />
 
       {/* Path list */}
-      {paths.length === 0 || displayed.length === 0 ? (
+      <TabPanel id="paths-panel" labelledBy={`paths-tab-${tab}`}>
+      {loading ? (
+        <div className="card" role="status" style={{ padding: "36px 24px", textAlign: "center" }}>
+          <p className="muted">Caricamento percorsi…</p>
+        </div>
+      ) : error ? null : paths.length === 0 || displayed.length === 0 ? (
         <div className="card" style={{
           alignItems: "center", borderStyle: "dashed", boxShadow: "none",
           display: "flex", flexDirection: "column", gap: "8px", padding: "48px 24px", textAlign: "center"
@@ -153,13 +171,16 @@ function PathsContent() {
               ? "Quando una richiesta viene accettata, appare qui."
               : `Nessun percorso come ${tab}.`}
           </p>
+          <Link className="button secondary" href={tab === "mentee" ? "/matching" : "/matching/mentees"}>
+            {tab === "mentee" ? "Trova un mentor" : "Cerca mentee"}
+          </Link>
         </div>
       ) : (
         <div style={{ display: "grid", gap: "10px" }}>
           {displayed.map((path) => {
             const counterpart = tab === "mentee"
-              ? (path.mentor?.nickname || path.mentor?.user_id || path.mentor_id)
-              : (path.mentee?.nickname || path.mentee?.user_id || path.mentee_id);
+              ? (path.mentor?.nickname || "Mentor Socra")
+              : (path.mentee?.nickname || "Mentee Socra");
             const goalTag = path.goal?.goal_tag || "Percorso";
             const initial = typeof counterpart === "string" ? counterpart.slice(0, 1).toUpperCase() : "?";
 
@@ -219,6 +240,7 @@ function PathsContent() {
           })}
         </div>
       )}
+      </TabPanel>
     </div>
   );
 }

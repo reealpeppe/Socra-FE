@@ -126,6 +126,7 @@ function MatchingContent() {
     : candidates;
   const hasRecommendedCandidates = candidates.some((candidate) => candidate.is_recommended);
   const hasAvailabilityFallback = candidates.some((candidate) => candidate.availability_fallback);
+  const goalFallbackActive = !!goalIdFromQuery && !!activeGoal && activeGoal.id !== goalIdFromQuery;
 
   async function requestMentor(candidate: MatchCandidate) {
     if (!activeGoal?.id || !requestStateReady || candidate.mentor_id === me?.id || pendingMentors.has(candidate.mentor_id)) return;
@@ -180,8 +181,18 @@ function MatchingContent() {
         </div>
       </div>
 
-      {error ? <div className="matching-error" role="alert">{error}</div> : null}
+      {error ? (
+        <div className="matching-error" role="alert">
+          <span>{error}</span>
+          <button className="button secondary" type="button" onClick={() => setRetryVersion((value) => value + 1)}>Riprova</button>
+        </div>
+      ) : null}
       {message ? <div className="matching-success" role="status">{message}</div> : null}
+      {goalFallbackActive ? (
+        <div className="matching-success" role="status">
+          L&apos;obiettivo indicato non è più attivo. Stai visualizzando i risultati per il tuo obiettivo corrente.
+        </div>
+      ) : null}
 
       <div className="matching-layout">
         <div className="matching-main">
@@ -268,7 +279,7 @@ function MatchingContent() {
             <p className="eyebrow">Una lettura semplice</p>
             <h3>Come leggere il match</h3>
             <p className="muted">
-              La percentuale riassume la coerenza del profilo con il tuo percorso. Le formule interne non vengono esposte.
+              La percentuale riassume quanto il profilo è coerente con il tuo obiettivo. Leggi anche la motivazione e scegli sempre con il tuo giudizio.
             </p>
             <Link href="/come-funziona" className="matching-sidebar-link">
               Approfondisci <ArrowRight size={14} aria-hidden />
@@ -306,7 +317,7 @@ function pickGoal(goals: GoalsMe | null, requestedId: string | null): Goal | nul
 
 function MatchingSkeleton() {
   return (
-    <div className="matching-skeleton" aria-label="Caricamento mentor">
+    <div className="matching-skeleton" role="status" aria-label="Caricamento mentor">
       <div className="matching-skeleton-card" />
       <div className="matching-skeleton-card" />
       <div className="matching-skeleton-card" />
@@ -326,7 +337,7 @@ function EmptyGoal() {
 }
 
 function titleFromScore(score: number): string {
-  return score >= 55 ? "Match consigliato" : "Profilo compatibile per livello";
+  return score >= 55 ? "Match consigliato" : "Profilo da valutare";
 }
 
 function MentorCandidateCard({
@@ -383,7 +394,12 @@ function MentorCandidateCard({
         {Number.isFinite(cost) ? (
           <span className="mcc-cost">Costo se accetta: {cost} {cost === 1 ? "credito" : "crediti"}</span>
         ) : null}
-        <button className="mcc-request-btn" type="button" disabled={!requestStateReady || requested || pending} onClick={onRequest}>
+        <button
+          className={`mcc-request-btn ${requested ? "sent" : pending ? "pending" : !requestStateReady ? "unavailable" : ""}`.trim()}
+          type="button"
+          disabled={!requestStateReady || requested || pending}
+          onClick={onRequest}
+        >
           {requested
             ? "Richiesta inviata"
             : pending
@@ -409,7 +425,9 @@ function MatchingStyles() {
       .matching-page {
         display: grid;
         gap: 22px;
+        margin: 0 auto;
         max-width: 1180px;
+        width: 100%;
       }
 
       .matching-header {
@@ -437,9 +455,14 @@ function MatchingStyles() {
 
       .matching-error,
       .matching-success {
+        align-items: center;
         border-radius: var(--radius-sm, 10px);
+        display: flex;
+        flex-wrap: wrap;
         font-size: 0.875rem;
         font-weight: 750;
+        gap: 12px;
+        justify-content: space-between;
         padding: 12px 16px;
       }
 
@@ -634,10 +657,20 @@ function MatchingStyles() {
         white-space: nowrap;
       }
 
-      .mcc-request-btn:disabled {
+      .mcc-request-btn.sent {
         background: var(--mint-100, #dcfce7);
         color: var(--mint-600, #15803d);
         cursor: default;
+      }
+
+      .mcc-request-btn.pending:disabled {
+        background: #fff1cd;
+        color: #8a6111;
+      }
+
+      .mcc-request-btn.unavailable:disabled {
+        background: #eef1f4;
+        color: var(--muted);
       }
 
       .mcc-profile-link,

@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, ChevronLeft, ChevronRight, Handshake, Target, Video } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
@@ -19,7 +19,7 @@ const STEPS = [
     icon: Handshake,
     eyebrow: "2 · Richiesta",
     title: "Il mentor ha 48 ore per rispondere",
-    body: "Inviare una proposta non apre ancora il percorso. Quando l'altra persona accetta, nasce il percorso e al mentee viene applicato il costo previsto dal livello del mentor.",
+    body: "Inviare una proposta non apre ancora il percorso. Quando l’altra persona accetta, nasce il percorso e vengono regolati gli eventuali crediti Socra.",
     note: "Puoi avere un solo percorso attivo come mentee; un mentor può seguirne al massimo tre.",
   },
   {
@@ -44,12 +44,25 @@ export default function TourPage() {
 }
 
 function TourContent() {
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const goalId = searchParams.get("goalId");
-  const [current, setCurrent] = useState(0);
+  const requestedStep = Number.parseInt(searchParams.get("step") || "1", 10);
+  const current = Number.isFinite(requestedStep)
+    ? Math.min(Math.max(requestedStep - 1, 0), STEPS.length - 1)
+    : 0;
   const item = STEPS[current];
   const Icon = item.icon;
   const matchingHref = goalId ? `/matching?goalId=${encodeURIComponent(goalId)}` : "/matching";
+
+  function goToStep(index: number) {
+    const next = new URLSearchParams(searchParams.toString());
+    if (index === 0) next.delete("step");
+    else next.set("step", String(index + 1));
+    const query = next.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
+  }
 
   return (
     <div className="tour-wrap">
@@ -66,7 +79,7 @@ function TourContent() {
             type="button"
             aria-label={`Vai al passaggio ${index + 1}: ${step.title}`}
             aria-current={index === current ? "step" : undefined}
-            onClick={() => setCurrent(index)}
+            onClick={() => goToStep(index)}
           >
             {index < current ? <CheckCircle2 size={15} aria-hidden /> : index + 1}
           </button>
@@ -83,16 +96,16 @@ function TourContent() {
 
       <div className="tour-actions">
         {current === 0 ? (
-          <Link className="button secondary" href="/goal">
+          <Link className="button secondary" href="/goal?edit=1">
             <ChevronLeft size={16} aria-hidden /> Modifica obiettivo
           </Link>
         ) : (
-          <button className="button secondary" type="button" onClick={() => setCurrent((value) => value - 1)}>
+          <button className="button secondary" type="button" onClick={() => goToStep(current - 1)}>
             <ChevronLeft size={16} aria-hidden /> Indietro
           </button>
         )}
         {current < STEPS.length - 1 ? (
-          <button className="button dark" type="button" onClick={() => setCurrent((value) => value + 1)}>
+          <button className="button dark" type="button" onClick={() => goToStep(current + 1)}>
             Continua <ChevronRight size={16} aria-hidden />
           </button>
         ) : (
@@ -106,7 +119,9 @@ function TourContent() {
         .tour-wrap {
           display: grid;
           gap: 22px;
+          margin-inline: auto;
           max-width: 760px;
+          width: 100%;
         }
         .tour-wrap h1 {
           color: var(--navy-950);
@@ -125,9 +140,9 @@ function TourContent() {
           color: var(--muted);
           display: inline-flex;
           font-weight: 850;
-          height: 34px;
+          height: 44px;
           justify-content: center;
-          width: 34px;
+          width: 44px;
         }
         .tour-progress button[aria-current="step"] {
           background: var(--navy-950);

@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Brand } from "@/components/Brand";
+import { PublicFooter, PublicNavbar } from "@/components/PublicLayout";
 import { authPost, ClientApiError } from "@/lib/api";
+import styles from "./auth.module.css";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -25,164 +27,110 @@ export default function LoginPage() {
       router.push(next);
       router.refresh();
     } catch (err) {
-      setError(err instanceof ClientApiError ? err.message : "Accesso non riuscito");
+      const reason = err instanceof ClientApiError ? err.message : "Accesso non riuscito.";
+      setError(`${reason} Controlla username o email e password, poi riprova.`);
     } finally {
       setLoading(false);
     }
   }
 
+  function updateIdentifier(value: string) {
+    setIdentifier(value);
+    if (error) setError(null);
+  }
+
+  function updatePassword(value: string) {
+    setPassword(value);
+    if (error) setError(null);
+  }
+
   return (
-    <main className="auth-page" id="main-content">
-      <div className="auth-card">
-        <div className="auth-brand">
-          <Brand variant="dark" />
-        </div>
-        <h1 className="auth-title">Bentornato su Socra</h1>
-        <p className="auth-sub">Accedi al tuo account</p>
-
-        {error && <div className="auth-error" role="alert">{error}</div>}
-
-        <form className="auth-form" onSubmit={onSubmit}>
-          <div>
-            <label className="auth-label" htmlFor="identifier">Username o email</label>
-            <input
-              id="identifier"
-              name="identifier"
-              className="input"
-              type="text"
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              autoComplete="username"
-              inputMode="email"
-              spellCheck={false}
-              required
-            />
+    <div className={styles.page}>
+      <PublicNavbar />
+      <main className={styles.main} id="main-content" tabIndex={-1}>
+        <section className={styles.card} aria-labelledby="login-title">
+          <div className={styles.brandRow}>
+            <Link className={styles.brandLink} href="/" aria-label="Torna alla pagina iniziale di Socra">
+              <Brand variant="dark" />
+            </Link>
           </div>
-          <div>
-            <label className="auth-label" htmlFor="password">Password</label>
-            <div className="auth-password-row">
-              <input
-                id="password"
-                name="password"
-                className="input"
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                required
-              />
-              <button
-                className="button secondary"
-                type="button"
-                onClick={() => setShowPassword((current) => !current)}
-                aria-label={showPassword ? "Nascondi password" : "Mostra password"}
-              >
-                {showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
-              </button>
-            </div>
-          </div>
-          <button
-            type="submit"
-            className="button dark"
-            style={{ width: "100%" }}
-            disabled={loading}
-            aria-busy={loading}
+          <h1 className={styles.title} id="login-title">Bentornato su Socra</h1>
+          <p className={styles.subtitle}>Accedi per continuare i tuoi percorsi nella community.</p>
+
+          {error ? <p className={styles.error} id="login-error" role="alert">{error}</p> : null}
+
+          <form
+            aria-describedby={error ? "login-error" : undefined}
+            className={styles.form}
+            onSubmit={onSubmit}
           >
-            {loading ? "Accesso…" : "Accedi"}
-          </button>
-        </form>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="identifier">Username o email</label>
+              <input
+                aria-invalid={error ? "true" : undefined}
+                autoComplete="username"
+                className={styles.input}
+                id="identifier"
+                inputMode="email"
+                name="identifier"
+                onChange={(event) => updateIdentifier(event.target.value)}
+                required
+                spellCheck={false}
+                type="text"
+                value={identifier}
+              />
+            </div>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="password">Password</label>
+              <div className={styles.passwordRow}>
+                <input
+                  aria-invalid={error ? "true" : undefined}
+                  autoComplete="current-password"
+                  className={styles.input}
+                  id="password"
+                  name="password"
+                  onChange={(event) => updatePassword(event.target.value)}
+                  required
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                />
+                <button
+                  aria-label={showPassword ? "Nascondi password" : "Mostra password"}
+                  className={styles.togglePassword}
+                  onClick={() => setShowPassword((current) => !current)}
+                  type="button"
+                >
+                  {showPassword ? <EyeOff aria-hidden="true" size={18} /> : <Eye aria-hidden="true" size={18} />}
+                </button>
+              </div>
+            </div>
+            <button
+              aria-busy={loading}
+              className={styles.submit}
+              disabled={loading}
+              type="submit"
+            >
+              {loading ? "Accesso…" : "Accedi"}
+            </button>
+          </form>
 
-        <p className="auth-footer">
-          Non hai un account?{" "}
-          <Link href="/register">Registrati</Link>
-        </p>
-      </div>
+          <details className={styles.help}>
+            <summary>Non riesci ad accedere?</summary>
+            <p>
+              Il recupero automatico della password non è ancora disponibile. Non creare
+              un secondo account: chiedi assistenza attraverso il canale con cui hai
+              ricevuto l’accesso a Socra, indicando username o email ma mai la password.
+            </p>
+          </details>
 
-      <style jsx global>{`
-        .auth-page {
-          align-items: center;
-          background: var(--paper);
-          display: flex;
-          justify-content: center;
-          min-height: 100vh;
-          padding: 24px;
-        }
-        .auth-card {
-          background: var(--card);
-          border: 1px solid var(--line);
-          border-radius: var(--radius-lg);
-          box-shadow: var(--shadow);
-          max-width: 440px;
-          padding: 40px;
-          width: 100%;
-        }
-        .auth-brand {
-          display: flex;
-          justify-content: center;
-          margin-bottom: 28px;
-        }
-        .auth-title {
-          font-size: 1.6rem;
-          font-weight: 800;
-          margin: 0 0 6px;
-          text-align: center;
-          color: var(--ink);
-        }
-        .auth-sub {
-          color: var(--muted);
-          margin: 0 0 28px;
-          text-align: center;
-          font-size: 0.95rem;
-        }
-        .auth-form {
-          display: grid;
-          gap: 16px;
-        }
-        .auth-label {
-          color: var(--ink);
-          display: block;
-          font-size: 0.875rem;
-          font-weight: 600;
-          margin-bottom: 6px;
-        }
-        .auth-password-row {
-          display: flex;
-          gap: 8px;
-          align-items: center;
-        }
-        .auth-password-row .input {
-          flex: 1;
-        }
-        .auth-error {
-          background: #fee2e2;
-          border: 1px solid #fca5a5;
-          border-radius: var(--radius-sm);
-          color: #dc2626;
-          font-size: 0.875rem;
-          margin-bottom: 16px;
-          padding: 10px 14px;
-        }
-        .auth-footer {
-          color: var(--muted);
-          font-size: 0.875rem;
-          margin-top: 20px;
-          text-align: center;
-        }
-        .auth-footer a {
-          color: var(--navy-950);
-          font-weight: 700;
-          text-decoration: none;
-        }
-        .auth-footer a:hover {
-          text-decoration: underline;
-        }
-        @media (max-width: 560px) {
-          .auth-card {
-            padding: 28px 20px;
-          }
-        }
-      `}</style>
-    </main>
+          <p className={styles.footerText}>
+            Non hai un account?{" "}
+            <Link className={styles.footerLink} href="/register">Crea il tuo profilo</Link>
+          </p>
+        </section>
+      </main>
+      <PublicFooter />
+    </div>
   );
 }
 

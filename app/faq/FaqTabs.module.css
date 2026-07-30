@@ -1,0 +1,144 @@
+.tabList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 32px;
+}
+
+.tab {
+  background: #fff;
+  border: 1px solid #aeb7c5;
+  border-radius: 999px;
+  color: #4f5d71;
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 750;
+  min-height: 42px;
+  padding: 8px 18px;
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease;
+  white-space: nowrap;
+}
+
+.tab:hover {
+  background: #fff;
+  border-color: var(--navy-950);
+  color: var(--navy-950);
+}
+
+.tab[data-active="true"] {
+  background: var(--navy-950);
+  border-color: var(--navy-950);
+  color: #fff;
+}
+
+.tab:focus-visible {
+  outline: 3px solid var(--navy-950);
+  outline-offset: 3px;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.item {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.item:hover {
+  border-color: #b2bcc9;
+}
+
+.summary {
+  align-items: center;
+  color: var(--ink);
+  cursor: pointer;
+  display: flex;
+  font-size: 0.96rem;
+  font-weight: 750;
+  gap: 12px;
+  justify-content: space-between;
+  list-style: none;
+  min-height: 58px;
+  padding: 17px 20px;
+}
+
+.summary::-webkit-details-marker {
+  display: none;
+}
+
+.summary:focus-visible {
+  outline: 3px solid var(--navy-950);
+  outline-offset: -4px;
+}
+
+.indicator {
+  align-items: center;
+  background: var(--paper);
+  border-radius: 50%;
+  color: var(--navy-950);
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 1.08rem;
+  font-weight: 800;
+  height: 30px;
+  justify-content: center;
+  width: 30px;
+}
+
+.indicator::before {
+  content: "+";
+}
+
+.item[open] .indicator::before {
+  content: "−";
+}
+
+.answer {
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.7;
+  padding: 17px 20px 20px;
+}
+
+.loading {
+  color: var(--muted);
+  margin: 0;
+  padding: 24px 0;
+}
+
+@media (max-width: 600px) {
+  .tabList {
+    flex-wrap: nowrap;
+    margin-inline: -16px;
+    overflow-x: auto;
+    padding: 3px 16px 10px;
+    scrollbar-width: thin;
+  }
+
+  .tab {
+    min-height: 44px;
+  }
+
+  .summary {
+    padding-inline: 16px;
+  }
+
+  .answer {
+    padding-inline: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tab {
+    transition-duration: 0.01ms;
+  }
+}

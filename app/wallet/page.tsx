@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
-import { EmptyState } from "@/components/Ui";
 import { clientGet, formatCredits } from "@/lib/api";
 import type { Wallet, WalletTransaction } from "@/lib/types";
 
@@ -18,7 +17,7 @@ const TX_TYPE_STYLES: Record<string, { background: string; color: string; label:
   reward: { background: "#d1fae5", color: "#059669", label: "Percorso completato" },
   bonus: { background: "#fef3c7", color: "#b07d1a", label: "Bonus" },
   spend: { background: "#fee2e2", color: "#dc2626", label: "Utilizzo" },
-  debt:  { background: "#fee2e2", color: "#dc2626", label: "Debito" }
+  debt:  { background: "#fff4dd", color: "#9a6700", label: "Margine utilizzato" }
 };
 
 const TX_REASON_LABELS: Record<string, string> = {
@@ -29,7 +28,12 @@ const TX_REASON_LABELS: Record<string, string> = {
 };
 
 function userSafeDescription(value: string): string {
-  return value.replace(/\bcoin\b/gi, "crediti").replace(/\bx\b/g, "per");
+  return value.replace(/\bcoin\b/gi, "crediti").replace(/\bwallet\b/gi, "saldo crediti");
+}
+
+function safeTransactionDate(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "Data non disponibile" : dateFormatter.format(date);
 }
 
 export default function WalletPage() {
@@ -37,19 +41,48 @@ export default function WalletPage() {
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryVersion, setRetryVersion] = useState(0);
+  const [walletReady, setWalletReady] = useState(false);
+  const [transactionsReady, setTransactionsReady] = useState(false);
   const currencyLabel = formatCredits(wallet?.currency_label);
   const creditTotal = transactions.filter((row) => row.amount > 0).reduce((total, row) => total + row.amount, 0);
   const debitTotal = transactions.filter((row) => row.amount < 0).reduce((total, row) => total + Math.abs(row.amount), 0);
 
   useEffect(() => {
-    Promise.all([clientGet<Wallet>("/wallet/me"), clientGet<WalletTransaction[]>("/wallet/me/transactions")])
-      .then(([walletData, rows]) => {
-        setWallet(walletData);
-        setTransactions(rows);
-      })
-      .catch((err: { message?: string }) => setError(err.message || "Wallet non disponibile"))
-      .finally(() => setLoading(false));
-  }, []);
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      setLoading(true);
+      setError(null);
+      setWalletReady(false);
+      setTransactionsReady(false);
+    });
+    Promise.allSettled([
+      clientGet<Wallet>("/wallet/me"),
+      clientGet<WalletTransaction[]>("/wallet/me/transactions")
+    ]).then(([walletResult, transactionsResult]) => {
+      if (!active) return;
+      if (walletResult.status === "fulfilled") {
+        setWallet(walletResult.value);
+        setWalletReady(true);
+      } else {
+        setWallet(null);
+      }
+      if (transactionsResult.status === "fulfilled") {
+        setTransactions(Array.isArray(transactionsResult.value) ? transactionsResult.value : []);
+        setTransactionsReady(true);
+      } else {
+        setTransactions([]);
+      }
+      if (walletResult.status === "rejected" || transactionsResult.status === "rejected") {
+        setError("Alcuni dati dei crediti non sono disponibili. Riprova.");
+      }
+      setLoading(false);
+    });
+    return () => {
+      active = false;
+    };
+  }, [retryVersion]);
 
   return (
     <AppShell>
@@ -59,23 +92,28 @@ export default function WalletPage() {
 	          <p className="wallet-subtitle">Unità interna di partecipazione, non monetizzabile, usata solo nei percorsi Socra.</p>
 	        </div>
 
-        {error && <div className="wallet-error" role="alert">{error}</div>}
+        {error && (
+          <div className="wallet-error" role="alert">
+            <span>{error}</span>
+            <button className="button secondary" type="button" onClick={() => setRetryVersion((value) => value + 1)}>Riprova</button>
+          </div>
+        )}
 
         <div className="wallet-stats-grid">
           <div className="card wallet-stat-card">
             <p className="wallet-stat-label">Crediti disponibili</p>
             <div className="wallet-stat-value" style={{ color: "var(--ink)" }}>
-              {wallet?.balance ?? "-"}
+              {loading || !walletReady ? "—" : wallet?.balance ?? "—"}
             </div>
             <p className="wallet-stat-sub">{currencyLabel}</p>
           </div>
           <div className="card wallet-stat-card">
-            <p className="wallet-stat-label">Debito corrente</p>
+            <p className="wallet-stat-label">Margine utilizzato</p>
             <div
               className="wallet-stat-value"
               style={{ color: wallet && wallet.debt > 0 ? "#dc2626" : "var(--mint-600)" }}
             >
-              {wallet?.debt ?? "-"}
+              {loading || !walletReady ? "—" : wallet?.debt ?? "—"}
             </div>
             <p className="wallet-stat-sub">L’eventuale margine disponibile dipende dal profilo e viene verificato prima di aprire un percorso.</p>
           </div>
@@ -83,7 +121,7 @@ export default function WalletPage() {
 
         <div className="card wallet-ledger-card">
           <div className="wallet-ledger-header">
-            <h2 className="wallet-ledger-title">Transazioni</h2>
+            <h2 className="wallet-ledger-title">Movimenti</h2>
             <div className="wallet-ledger-summary">
               <span className="wallet-summary-item positive">+{creditTotal} entrate</span>
               <span className="wallet-summary-item negative">-{debitTotal} uscite</span>
@@ -92,11 +130,13 @@ export default function WalletPage() {
 
           {loading ? (
             <p className="muted" role="status">Caricamento movimenti…</p>
+          ) : !transactionsReady ? (
+            <p className="muted">Lo storico dei movimenti non è disponibile.</p>
           ) : transactions.length === 0 ? (
-            <EmptyState
-              title="Nessun movimento"
-              body="I movimenti appariranno quando apri o completi percorsi."
-            />
+            <div className="wallet-empty">
+              <strong>Nessun movimento</strong>
+              <p className="muted">I movimenti appariranno quando apri o completi percorsi.</p>
+            </div>
           ) : (
             <div className="wallet-tx-list">
               {transactions.map((row) => {
@@ -115,9 +155,9 @@ export default function WalletPage() {
                         <span className="wallet-tx-desc">{userSafeDescription(row.description)}</span>
                         {row.reason && <span className="wallet-tx-reason">{TX_REASON_LABELS[row.reason] || "Movimento crediti"}</span>}
                         <span className="wallet-tx-date">
-                          {dateFormatter.format(new Date(row.created_at))}
+                          {safeTransactionDate(row.created_at)}
                           {" · "}saldo {row.balance_after}
-                          {" · "}debito {row.debt_after}
+                          {" · "}margine utilizzato {row.debt_after}
                         </span>
                       </div>
                     </div>
@@ -136,12 +176,13 @@ export default function WalletPage() {
       </div>
 
       <style jsx global>{`
-        .wallet-page {
-          max-width: 900px;
-          margin: 0 auto;
-          padding: 32px 24px;
-          display: grid;
-          gap: 24px;
+	        .wallet-page {
+	          max-width: 900px;
+	          margin: 0 auto;
+	          padding: 0;
+	          display: grid;
+	          gap: 24px;
+            width: 100%;
         }
 	        .wallet-heading {
 	          font-size: 1.75rem;
@@ -154,11 +195,16 @@ export default function WalletPage() {
 	          margin: 6px 0 0;
 	        }
         .wallet-error {
+          align-items: center;
           background: #fee2e2;
           border: 1px solid #fca5a5;
           border-radius: var(--radius-sm);
           color: #dc2626;
           font-size: 0.875rem;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          justify-content: space-between;
           padding: 10px 14px;
         }
         .wallet-stats-grid {
@@ -278,6 +324,37 @@ export default function WalletPage() {
           font-weight: 800;
           white-space: nowrap;
           flex-shrink: 0;
+        }
+        .wallet-empty {
+          align-items: center;
+          border: 1px dashed var(--line);
+          border-radius: var(--radius-sm);
+          display: grid;
+          gap: 6px;
+          justify-items: center;
+          padding: 32px 20px;
+          text-align: center;
+        }
+        @media (max-width: 600px) {
+          .wallet-tx-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+          }
+          .wallet-tx-left {
+            display: grid;
+          }
+          .wallet-tx-badge {
+            justify-self: start;
+          }
+          .wallet-tx-desc {
+            overflow: visible;
+            text-overflow: clip;
+            white-space: normal;
+            overflow-wrap: anywhere;
+          }
+          .wallet-tx-date {
+            line-height: 1.5;
+          }
         }
       `}</style>
     </AppShell>

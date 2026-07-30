@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { GraduationCap, Target, Users, BookOpen, TrendingUp, ShieldCheck } from "lucide-react";
 import { PublicNavbar, PublicFooter } from "@/components/PublicLayout";
+import publicStyles from "@/components/PublicLayout.module.css";
 
 export const metadata: Metadata = {
   title: "Come funziona Socra",
@@ -19,7 +20,7 @@ const steps = [
     num: 2,
     icon: Target,
     title: "Definisci il tuo obiettivo",
-    body: "Scegli il topic e il risultato di apprendimento su cui vuoi lavorare",
+    body: "Scegli l’argomento e il risultato di apprendimento su cui vuoi lavorare",
   },
   {
     num: 3,
@@ -60,7 +61,7 @@ const differences = [
   },
   {
     title: "Visibilità controllata",
-    body: "Livello, topic, metriche e badge possono essere pubblici; le risposte dettagliate della survey restano private",
+    body: "Livello, argomenti, risultati aggregati e badge possono essere visibili nella community; le risposte dettagliate della survey restano private",
   },
 ];
 
@@ -103,6 +104,28 @@ export default function ComeFunzionaPage() {
           background: "#ffffff",
           padding: "clamp(48px,7vw,88px) clamp(16px,4vw,40px)",
         }}>
+          <header style={{ maxWidth: "700px", margin: "0 auto 42px", textAlign: "center" }}>
+            <p style={{
+              color: "#80580c",
+              fontSize: "0.72rem",
+              fontWeight: 900,
+              letterSpacing: "0.17em",
+              margin: "0 0 12px",
+              textTransform: "uppercase",
+            }}>
+              In 5 passaggi
+            </p>
+            <h2 style={{
+              color: "var(--ink)",
+              fontSize: "clamp(1.7rem, 3.8vw, 2.7rem)",
+              fontWeight: 900,
+              letterSpacing: "-0.025em",
+              margin: 0,
+              textWrap: "balance",
+            }}>
+              Dal primo obiettivo al feedback reciproco
+            </h2>
+          </header>
           <div style={{
             display: "grid",
             gridTemplateColumns: "repeat(5, minmax(0,1fr))",
@@ -247,19 +270,8 @@ export default function ComeFunzionaPage() {
             }}>
               Crea il profilo e completa la survey per definire il primo obiettivo di apprendimento.
             </p>
-            <Link href="/register" style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              background: "var(--gold-500)",
-              color: "var(--navy-950)",
-              fontWeight: 800,
-              fontSize: "1rem",
-              padding: "14px 32px",
-              borderRadius: "999px",
-              textDecoration: "none",
-            }}>
-              Inizia ora →
+            <Link className={publicStyles.actionGold} href="/register">
+              Crea il tuo profilo
             </Link>
           </div>
         </section>

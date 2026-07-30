@@ -48,22 +48,36 @@ function currentLocalPath(page: Page) {
   return `${url.pathname}${url.search}${url.hash}`;
 }
 
-test("registration form keeps V1 password auth explicit", async ({ page }) => {
+test("registration form keeps legal documents available before acceptance", async ({ page }) => {
   await page.goto("/register");
 
   await expect(page.getByRole("heading", { name: "Crea il tuo account" })).toBeVisible();
-  await expect(page.getByText("senza codici SMS")).toBeVisible();
+  await expect(page.locator("body")).not.toContainText(/per ora|codici SMS|\bV1\b/i);
   await expect(page.getByLabel("Username")).toBeVisible();
   await expect(page.getByLabel("Password", { exact: true })).toBeVisible();
-  const essentialConsent = page.getByLabel(/Accetto i Termini della community/);
+  const form = page.getByRole("form", { name: "Crea il tuo account" });
+  const essentialConsent = page.getByLabel(/almeno 18 anni.*Termini.*privacy/i);
   const submit = page.getByRole("button", { name: "Crea account" });
 
   await expect(page.locator('input[type="checkbox"]')).toHaveCount(1);
   await expect(page.getByText(/consensi facoltativi in anticipo/i)).toBeVisible();
   await expect(essentialConsent).not.toBeChecked();
-  await expect(submit).toBeDisabled();
+  await expect(form.getByRole("link", { name: "Termini", exact: true })).toHaveAttribute("href", "/termini");
+  await expect(form.getByRole("link", { name: "informativa privacy", exact: true })).toHaveAttribute("href", "/privacy");
+  await expect(submit).toBeEnabled();
+  await submit.click();
+  expect(await essentialConsent.evaluate((input: HTMLInputElement) => input.validity.valueMissing)).toBe(true);
   await essentialConsent.check();
   await expect(submit).toBeEnabled();
+});
+
+test("login offers honest account assistance and a route back to the public site", async ({ page }) => {
+  await page.goto("/login");
+
+  await expect(page.getByRole("link", { name: /Torna alla pagina iniziale/i })).toHaveAttribute("href", "/");
+  await page.getByText("Non riesci ad accedere?").click();
+  await expect(page.getByText(/recupero automatico della password non è ancora disponibile/i)).toBeVisible();
+  await expect(page.getByText(/mai la password/i)).toBeVisible();
 });
 
 test("protected route redirects anonymous users to login", async ({ page }) => {

@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
 import { AlertTriangle, ShieldCheck } from "lucide-react";
 import { PublicNavbar, PublicFooter } from "@/components/PublicLayout";
+import publicStyles from "@/components/PublicLayout.module.css";
 import { FaqTabs } from "./FaqTabs";
+import tabStyles from "./FaqTabs.module.css";
 
 export const metadata: Metadata = {
   title: "FAQ Socra — Domande sulla community",
@@ -79,7 +82,6 @@ export default function FaqPage() {
           <style>{`
             @media (max-width: 760px) {
               .faq-hero-grid { grid-template-columns: 1fr !important; }
-              .faq-hero-aside { display: none !important; }
             }
           `}</style>
         </section>
@@ -89,7 +91,9 @@ export default function FaqPage() {
           padding: "clamp(48px,7vw,88px) clamp(16px,4vw,40px)",
         }}>
           <div style={{ maxWidth: "860px", margin: "0 auto" }}>
-            <FaqTabs />
+            <Suspense fallback={<p className={tabStyles.loading} role="status">Caricamento domande…</p>}>
+              <FaqTabs />
+            </Suspense>
           </div>
         </section>
 
@@ -154,14 +158,8 @@ export default function FaqPage() {
                 <p style={{ color: "var(--muted)", fontSize: "0.875rem", lineHeight: 1.55, margin: 0 }}>
                   Apri il dettaglio del percorso e usa “Segnala problema”. La segnalazione entra nella coda di revisione manuale.
                 </p>
-                <Link href="/paths" style={{
-                  color: "var(--navy-950)",
-                  fontSize: "0.875rem",
-                  fontWeight: 700,
-                  textDecoration: "none",
-                  marginTop: "auto",
-                }}>
-                  Vai ai percorsi →
+                <Link className={publicStyles.textLink} href="/paths" style={{ marginTop: "auto" }}>
+                  Apri i tuoi percorsi
                 </Link>
               </article>
 
@@ -189,22 +187,10 @@ export default function FaqPage() {
                   Prima di iniziare
                 </h3>
                 <p style={{ color: "rgba(255,255,255,0.65)", fontSize: "0.875rem", lineHeight: 1.55, margin: 0 }}>
-                  Leggi come funzionano prima call, dati visibili, metadati e revisione delle segnalazioni.
+                  Leggi come funzionano prima call, dati visibili, presenza e revisione delle segnalazioni.
                 </p>
-                <Link href="/sicurezza" style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  background: "var(--gold-500)",
-                  color: "var(--navy-950)",
-                  fontWeight: 800,
-                  fontSize: "0.875rem",
-                  padding: "10px 20px",
-                  borderRadius: "999px",
-                  textDecoration: "none",
-                  marginTop: "auto",
-                }}>
-                  Leggi le regole →
+                <Link className={publicStyles.actionGold} href="/sicurezza" style={{ marginTop: "auto" }}>
+                  Leggi le regole
                 </Link>
               </article>
             </div>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { GraduationCap, Target, Users, BookOpen, TrendingUp } from "lucide-react";
 import { PublicNavbar, PublicFooter } from "@/components/PublicLayout";
+import publicStyles from "@/components/PublicLayout.module.css";
 
 export const metadata: Metadata = {
   title: "Socra — Impara con un percorso peer-to-peer",
@@ -39,7 +40,7 @@ const steps = [
 const operatingPillars = [
   {
     title: "Matching spiegabile",
-    body: "Vedi una compatibilità finale e una motivazione leggibile, non i punteggi interni dell'algoritmo.",
+    body: "Ogni proposta è accompagnata da una compatibilità orientativa e da una motivazione facile da capire.",
   },
   {
     title: "Unità interne non monetizzabili",
@@ -58,7 +59,7 @@ const pathRules = [
   },
   {
     title: "Prima call collegata",
-    body: "Socra crea il link della prima call e conserva nel percorso i metadati operativi previsti.",
+    body: "Socra prepara il link della prima call e collega al percorso soltanto presenza e durata quando disponibili.",
   },
   {
     title: "Chiusura da entrambi i lati",
@@ -107,6 +108,7 @@ export default function HomePage() {
                 lineHeight: 1.0,
                 margin: "0 0 24px",
                 letterSpacing: "-0.02em",
+                textWrap: "balance",
               }}>
                 Impara con chi<br />ha esperienza.
               </h1>
@@ -120,30 +122,10 @@ export default function HomePage() {
                 SOCRA mette in contatto persone che vogliono imparare e persone disponibili a condividere esperienza sugli investimenti. Un obiettivo alla volta, dentro un percorso tracciabile.
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "center" }}>
-                <Link href="/register" style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  background: "var(--gold-500)",
-                  color: "var(--navy-950)",
-                  fontWeight: 800,
-                  fontSize: "0.95rem",
-                  padding: "14px 28px",
-                  borderRadius: "999px",
-                  textDecoration: "none",
-                  whiteSpace: "nowrap",
-                }}>
-                  Scopri il tuo livello →
+                <Link className={publicStyles.actionGold} href="/register">
+                  Scopri il tuo livello
                 </Link>
-                <a href="#come-funziona" style={{
-                  color: "rgba(255,255,255,0.75)",
-                  fontSize: "0.95rem",
-                  fontWeight: 600,
-                  textDecoration: "none",
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: "6px",
-                }}>
+                <a className={publicStyles.textLinkOnDark} href="#come-funziona">
                   Come funziona
                 </a>
               </div>
@@ -198,10 +180,11 @@ export default function HomePage() {
         <section id="come-funziona" style={{
           background: "#ffffff",
           padding: "clamp(48px,8vw,96px) clamp(16px,4vw,40px)",
+          scrollMarginTop: "80px",
         }}>
           <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
             <p style={{
-              color: "var(--gold-500)",
+              color: "#80580c",
               fontSize: "0.72rem",
               fontWeight: 800,
               letterSpacing: "0.18em",
@@ -265,16 +248,8 @@ export default function HomePage() {
             </div>
 
             <div style={{ textAlign: "center", marginTop: "36px" }}>
-              <Link href="/come-funziona" style={{
-                color: "var(--navy-950)",
-                fontWeight: 700,
-                fontSize: "0.9rem",
-                textDecoration: "none",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "6px",
-              }}>
-                Scopri tutti i dettagli →
+              <Link className={publicStyles.textLink} href="/come-funziona">
+                Scopri tutti i dettagli
               </Link>
             </div>
           </div>
@@ -296,7 +271,7 @@ export default function HomePage() {
         }}>
           <div style={{ maxWidth: "760px", margin: "0 auto 32px", textAlign: "center" }}>
             <p style={{
-              color: "var(--gold-500)",
+              color: "#80580c",
               fontSize: "0.72rem",
               fontWeight: 800,
               letterSpacing: "0.18em",
@@ -372,19 +347,8 @@ export default function HomePage() {
             }}>
               Crea il profilo, completa la survey e definisci il primo obiettivo di apprendimento.
             </p>
-            <Link href="/register" style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              background: "var(--gold-500)",
-              color: "var(--navy-950)",
-              fontWeight: 800,
-              fontSize: "1rem",
-              padding: "16px 36px",
-              borderRadius: "999px",
-              textDecoration: "none",
-            }}>
-              Inizia ora →
+            <Link className={publicStyles.actionGold} href="/register">
+              Crea il tuo profilo
             </Link>
           </div>
         </section>

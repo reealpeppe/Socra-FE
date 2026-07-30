@@ -173,7 +173,7 @@ export const topicOptions: SelectOption[] = [
   { value: "stocks", label: "Azioni singole", levels: ["L1", "L2"] },
   { value: "bonds", label: "Obbligazioni", levels: ["L1", "L2"] },
   { value: "crypto", label: "Crypto", levels: ["L1", "L2"] },
-  { value: "planning", label: "Pianificazione finanziaria / asset allocation", levels: ["L2"] },
+  { value: "planning", label: "Pianificazione e principi di diversificazione", levels: ["L2"] },
   { value: "taxation", label: "Fiscalità degli investimenti", levels: ["L2"] },
   { value: "derivatives", label: "Forex / derivati", levels: ["L2"] }
 ];
@@ -182,116 +182,116 @@ export const goalOptionsByLevelTopic: Record<string, Record<string, SelectOption
   L0: {
     undefined: [
       { value: "understand_basics", label: "Capire le basi: cos'è investire, come funziona, da dove si parte" },
-      { value: "guided_orientation", label: "Farmi aiutare a capire cosa potrebbe fare al caso mio" },
-      { value: "evaluate_readiness", label: "Capire se investire fa per me o se è meglio aspettare" }
+      { value: "guided_orientation", label: "Fare ordine tra i concetti e capire quali domande pormi" },
+      { value: "evaluate_readiness", label: "Capire prerequisiti, rischi e cautele prima di decidere in autonomia" }
     ],
     savings_first_steps: [
-      { value: "first_savings_placement", label: "Capire dove mettere i miei primi risparmi (conto deposito, buoni, ETF...)" },
-      { value: "bank_vs_invest", label: "Capire la differenza tra lasciare i soldi in banca e investirli" },
-      { value: "first_operation", label: "Aprire un conto di investimento e fare la mia prima operazione" },
-      { value: "build_savings_habit", label: "Costruire un'abitudine di risparmio e investimento regolare" }
+      { value: "first_savings_placement", label: "Confrontare gli strumenti di base e capirne le differenze" },
+      { value: "bank_vs_invest", label: "Capire la differenza tra liquidità, risparmio e investimento" },
+      { value: "first_operation", label: "Capire passaggi e cautele di una prima operazione" },
+      { value: "build_savings_habit", label: "Capire come funziona un piano periodico nel tempo" }
     ],
     etf_funds: [
       { value: "understand_etf", label: "Capire cosa sono gli ETF e come funzionano" },
       { value: "etf_vs_funds", label: "Capire la differenza tra ETF e fondi comuni" },
-      { value: "first_etf_pac", label: "Scegliere il mio primo ETF e iniziare un PAC" },
+      { value: "first_etf_pac", label: "Capire i criteri con cui si valutano ETF e piani periodici" },
       { value: "etf_costs_risks", label: "Capire i costi e i rischi degli ETF prima di iniziare" }
     ]
   },
   L1: {
     undefined: [
-      { value: "explore_options", label: "Esplorare le opzioni di investimento e capire quale direzione fa per me" },
-      { value: "organize_knowledge", label: "Mettere ordine in quello che so già e costruire un piano" },
+      { value: "explore_options", label: "Esplorare approcci diversi e chiarire le domande da approfondire" },
+      { value: "organize_knowledge", label: "Mettere ordine in quello che so già e costruire un metodo di studio" },
       { value: "learn_diversification", label: "Capire come diversificare rispetto a quello che faccio già" }
     ],
     savings_first_steps: [
-      { value: "savings_to_investing", label: "Passare dal risparmio passivo a un investimento strutturato" },
-      { value: "build_small_portfolio", label: "Costruire un piccolo portafoglio diversificato partendo da poco" },
-      { value: "monthly_plan", label: "Capire quanto mettere da parte ogni mese e dove investirlo" }
+      { value: "savings_to_investing", label: "Capire il passaggio dal risparmio a un approccio più strutturato" },
+      { value: "build_small_portfolio", label: "Studiare i principi di una diversificazione semplice" },
+      { value: "monthly_plan", label: "Confrontare metodi per organizzare un piano periodico" }
     ],
     etf_funds: [
-      { value: "build_pac", label: "Costruire un PAC su ETF adatto al mio profilo" },
+      { value: "build_pac", label: "Capire come si struttura e si valuta un PAC su ETF" },
       { value: "etf_selection", label: "Capire come scegliere un ETF (indice, costi, replica, dimensione)" },
-      { value: "diversify_etf_portfolio", label: "Diversificare un portafoglio ETF che ho già iniziato" },
-      { value: "compare_etf_funds", label: "Confrontare ETF e fondi comuni per capire cosa conviene a me" }
+      { value: "diversify_etf_portfolio", label: "Approfondire la diversificazione tra ETF" },
+      { value: "compare_etf_funds", label: "Confrontare caratteristiche, costi e limiti di ETF e fondi comuni" }
     ],
     stocks: [
       { value: "understand_stocks", label: "Capire come funziona il mercato azionario e come si compra un'azione" },
-      { value: "stock_evaluation_basics", label: "Imparare a valutare un'azienda prima di investirci" },
-      { value: "build_stock_portfolio", label: "Costruire un piccolo portafoglio di azioni singole" },
+      { value: "stock_evaluation_basics", label: "Imparare i criteri di base per studiare un'azienda" },
+      { value: "build_stock_portfolio", label: "Studiare rischi e principi di diversificazione tra azioni" },
       { value: "stocks_vs_etf", label: "Capire la differenza tra investire in azioni e investire in ETF" }
     ],
     bonds: [
-      { value: "understand_bonds", label: "Capire come funzionano le obbligazioni e quando ha senso usarle" },
-      { value: "evaluate_bond_types", label: "Valutare BTP, BOT e obbligazioni corporate per il mio profilo" },
-      { value: "bonds_for_diversification", label: "Inserire obbligazioni nel mio portafoglio per ridurre il rischio" },
+      { value: "understand_bonds", label: "Capire come funzionano le obbligazioni e quali rischi comportano" },
+      { value: "evaluate_bond_types", label: "Confrontare BTP, BOT e obbligazioni corporate" },
+      { value: "bonds_for_diversification", label: "Studiare il ruolo delle obbligazioni nella diversificazione" },
       { value: "bond_rate_relationship", label: "Capire il rapporto tra tassi di interesse e prezzo delle obbligazioni" }
     ],
     crypto: [
       { value: "understand_crypto", label: "Capire come funzionano le crypto e la blockchain a livello base" },
-      { value: "start_crypto_investing", label: "Iniziare a investire in crypto in modo consapevole (exchange, wallet, sicurezza)" },
-      { value: "crypto_risk_assessment", label: "Capire i rischi reali delle crypto prima di metterci soldi" },
+      { value: "start_crypto_investing", label: "Capire exchange, wallet e sicurezza prima di qualunque scelta" },
+      { value: "crypto_risk_assessment", label: "Approfondire i rischi reali delle crypto" },
       { value: "crypto_taxonomy", label: "Capire la differenza tra Bitcoin, altcoin, stablecoin e token" }
     ]
   },
   L2: {
     etf_funds: [
-      { value: "optimize_etf_portfolio", label: "Ottimizzare un portafoglio ETF esistente (ribilanciamento, costi, efficienza)" },
-      { value: "multi_asset_etf", label: "Costruire un portafoglio multi-asset con ETF (azionario, obbligazionario, commodity)" },
-      { value: "thematic_etf", label: "Valutare ETF settoriali o tematici per una strategia satellite" },
+      { value: "optimize_etf_portfolio", label: "Approfondire ribilanciamento, costi ed efficienza degli ETF" },
+      { value: "multi_asset_etf", label: "Studiare la diversificazione multi-asset con ETF" },
+      { value: "thematic_etf", label: "Valutare caratteristiche e rischi degli ETF settoriali o tematici" },
       { value: "pac_vs_pic", label: "Confrontare strategie: PAC vs PIC vs approccio ibrido" }
     ],
     stocks: [
       { value: "fundamental_analysis", label: "Imparare l'analisi fondamentale (bilanci, multipli, valutazione)" },
-      { value: "stock_picking_strategy", label: "Costruire una strategia di stock picking strutturata" },
-      { value: "exit_strategy", label: "Capire quando vendere e come gestire le posizioni in perdita" },
-      { value: "stocks_in_portfolio", label: "Integrare azioni singole in un portafoglio già diversificato" }
+      { value: "stock_picking_strategy", label: "Studiare metodi strutturati di analisi e selezione" },
+      { value: "exit_strategy", label: "Confrontare criteri di uscita e gestione delle perdite" },
+      { value: "stocks_in_portfolio", label: "Approfondire il ruolo delle azioni singole in un insieme diversificato" }
     ],
     bonds: [
-      { value: "bond_strategy", label: "Costruire una strategia obbligazionaria (duration, ladder, barbell)" },
+      { value: "bond_strategy", label: "Studiare approcci obbligazionari: duration, ladder e barbell" },
       { value: "corporate_bond_analysis", label: "Valutare obbligazioni corporate e il rischio di credito" },
-      { value: "optimize_bond_allocation", label: "Ottimizzare la componente obbligazionaria in un portafoglio multi-asset" },
-      { value: "macro_bond_impact", label: "Capire l'impatto della politica monetaria sul mio portafoglio obbligazionario" }
+      { value: "optimize_bond_allocation", label: "Approfondire il ruolo obbligazionario in un insieme multi-asset" },
+      { value: "macro_bond_impact", label: "Capire l'impatto della politica monetaria sulle obbligazioni" }
     ],
     crypto: [
-      { value: "crypto_allocation_strategy", label: "Costruire una strategia di allocazione crypto all'interno del portafoglio" },
+      { value: "crypto_allocation_strategy", label: "Studiare il ruolo e i rischi delle crypto in un insieme diversificato" },
       { value: "defi_deep_dive", label: "Approfondire la DeFi (lending, staking, liquidity pool)" },
       { value: "crypto_project_evaluation", label: "Valutare progetti crypto con criteri strutturati (tokenomics, team, roadmap)" },
       { value: "crypto_security", label: "Gestire la sicurezza avanzata (cold wallet, multisig, seed phrase management)" }
     ],
     planning: [
-      { value: "full_financial_plan", label: "Costruire un piano finanziario completo (obiettivi, allocazione, orizzonte)" },
-      { value: "optimize_asset_allocation", label: "Ottimizzare l'asset allocation del mio portafoglio attuale" },
-      { value: "goal_based_planning", label: "Pianificare per un obiettivo specifico (casa, pensione, libertà finanziaria)" },
-      { value: "rebalancing_strategy", label: "Definire una strategia di ribilanciamento periodico" }
+      { value: "full_financial_plan", label: "Studiare gli elementi di una pianificazione: obiettivi, diversificazione e orizzonte" },
+      { value: "optimize_asset_allocation", label: "Approfondire principi e limiti dell’asset allocation" },
+      { value: "goal_based_planning", label: "Capire come cambiano le scelte al variare di obiettivi e orizzonte" },
+      { value: "rebalancing_strategy", label: "Confrontare metodi di ribilanciamento periodico" }
     ],
     taxation: [
       { value: "tax_by_instrument", label: "Capire la tassazione sui diversi strumenti (ETF, azioni, obbligazioni, crypto)" },
-      { value: "tax_optimization", label: "Ottimizzare il carico fiscale del mio portafoglio (minus/plusvalenze, compensazione)" },
+      { value: "tax_optimization", label: "Capire minusvalenze, plusvalenze e meccanismi di compensazione" },
       { value: "tax_regime_choice", label: "Capire la differenza tra regime dichiarativo e amministrato" },
-      { value: "foreign_platform_tax", label: "Gestire gli adempimenti fiscali per investimenti su piattaforme estere" }
+      { value: "foreign_platform_tax", label: "Comprendere gli adempimenti fiscali legati alle piattaforme estere" }
     ],
     derivatives: [
-      { value: "understand_derivatives", label: "Capire come funzionano opzioni e futures e quando ha senso usarli" },
-      { value: "options_hedging", label: "Usare le opzioni come strumento di copertura (hedging) su un portafoglio esistente" },
-      { value: "forex_strategy", label: "Iniziare a operare sul forex con una strategia strutturata" },
+      { value: "understand_derivatives", label: "Capire come funzionano opzioni e futures e quali rischi comportano" },
+      { value: "options_hedging", label: "Studiare il funzionamento della copertura tramite opzioni" },
+      { value: "forex_strategy", label: "Approfondire funzionamento e rischi operativi del forex" },
       { value: "derivatives_risk_management", label: "Capire i rischi reali dei derivati e come gestire la leva" }
     ]
   }
 };
 
 export const capitalGoalOptions: SelectOption[] = [
-  { value: "undefined", label: "Non ho ancora un importo in mente", levels: ["L0", "L1", "L2"] },
-  { value: "lt_500", label: "Meno di 500 EUR", levels: ["L0", "L1"] },
-  { value: "500_5k", label: "Tra 500 EUR e 5.000 EUR", levels: ["L0", "L1", "L2"] },
-  { value: "5k_20k", label: "Tra 5.000 EUR e 20.000 EUR", levels: ["L1", "L2"] },
-  { value: "20k_50k", label: "Tra 20.000 EUR e 50.000 EUR", levels: ["L2"] },
-  { value: "gt_50k", label: "Più di 50.000 EUR", levels: ["L2"] }
+  { value: "undefined", label: "Preferisco non indicarlo", levels: ["L0", "L1", "L2"] },
+  { value: "lt_500", label: "Sto esplorando il tema con un primo passo contenuto", levels: ["L0", "L1"] },
+  { value: "500_5k", label: "Ho in mente un progetto personale contenuto", levels: ["L0", "L1", "L2"] },
+  { value: "5k_20k", label: "Ho già avviato un progetto personale", levels: ["L1", "L2"] },
+  { value: "20k_50k", label: "Parto da un contesto già strutturato", levels: ["L2"] },
+  { value: "gt_50k", label: "Il mio contesto richiede un confronto articolato", levels: ["L2"] }
 ];
 
 export const riskOptions: SelectOption[] = [
-  { value: "conservative", label: "Voglio rischiare il meno possibile" },
-  { value: "balanced", label: "Accetto un po' di rischio per un rendimento migliore" },
-  { value: "aggressive", label: "Sono disposto/a a rischiare per rendimenti alti" },
-  { value: "undefined", label: "Non lo so / non ci ho ancora pensato" }
+  { value: "conservative", label: "Preferisco partire da basi, rischi e cautele" },
+  { value: "balanced", label: "Voglio confrontare pro e contro in modo equilibrato" },
+  { value: "aggressive", label: "Voglio approfondire scenari complessi e relative criticità" },
+  { value: "undefined", label: "Non ho ancora una preferenza" }
 ];

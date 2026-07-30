@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useId, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Target } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
+import { AsyncState, Button } from "@/components/Ui";
 import { clientGet, clientPost, ClientApiError } from "@/lib/api";
 import { capitalGoalOptions, goalOptionsByLevelTopic, riskOptions, topicOptions, type SelectOption } from "@/lib/options";
 import type { Goal, GoalsMe } from "@/lib/types";
@@ -16,26 +17,60 @@ type OnboardingState = {
 };
 
 export default function GoalPage() {
+  return (
+    <AppShell>
+      <OnboardingGate>
+        <Suspense fallback={<div className="card" role="status">Caricamento obiettivo…</div>}>
+          <GoalForm />
+        </Suspense>
+      </OnboardingGate>
+    </AppShell>
+  );
+}
+
+function GoalForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const pathId = searchParams.get("pathId");
   const [level, setLevel] = useState<"L0" | "L1" | "L2" | null>(null);
-  const [pathId, setPathId] = useState<string | null>(null);
-  const [editMode, setEditMode] = useState(false);
+  const [hasCurrentGoal, setHasCurrentGoal] = useState(false);
   const [form, setForm] = useState({ topic: "", goal_tag: "", capital_goal: "", risk: "" });
+  const [currentTopicOption, setCurrentTopicOption] = useState<SelectOption | null>(null);
+  const [currentGoalOption, setCurrentGoalOption] = useState<SelectOption | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
 
-  const availableTopics = useMemo(() => level ? topicOptions.filter((option) => option.levels?.includes(level)) : [], [level]);
-  const availableGoals = level ? goalOptionsByLevelTopic[level]?.[form.topic] || [] : [];
+  const availableTopics = useMemo(() => {
+    const options = level ? topicOptions.filter((option) => option.levels?.includes(level)) : [];
+    if (
+      form.topic
+      && currentTopicOption?.value === form.topic
+      && !options.some((option) => option.value === form.topic)
+    ) {
+      return [...options, currentTopicOption];
+    }
+    return options;
+  }, [currentTopicOption, form.topic, level]);
+  const availableGoals = useMemo(() => {
+    const options = level ? goalOptionsByLevelTopic[level]?.[form.topic] || [] : [];
+    if (
+      form.goal_tag
+      && currentGoalOption?.value === form.goal_tag
+      && !options.some((option) => option.value === form.goal_tag)
+    ) {
+      return [...options, currentGoalOption];
+    }
+    return options;
+  }, [currentGoalOption, form.goal_tag, form.topic, level]);
   const availableCapital = useMemo(() => level ? capitalGoalOptions.filter((option) => option.levels?.includes(level)) : [], [level]);
+  const editMode = hasCurrentGoal;
   useUnsavedChangesGuard(dirty);
 
   useEffect(() => {
-    const queryPathId = new URLSearchParams(window.location.search).get("pathId");
-    const queryEditMode = new URLSearchParams(window.location.search).get("edit") === "1";
-    setPathId(queryPathId);
-    setEditMode(queryEditMode);
     Promise.all([
       clientGet<OnboardingState>("/surveys/onboarding/me"),
       clientGet<GoalsMe>("/goals/me")
@@ -47,11 +82,32 @@ export default function GoalPage() {
         const nextLevel = state.level as "L0" | "L1" | "L2";
         setLevel(nextLevel);
         const current = goals.current || goals.active_goal || null;
-        if (current && (queryPathId || queryEditMode)) setForm(goalToForm(current, nextLevel));
+        if (current) {
+          const currentForm = goalToForm(current, nextLevel);
+          setHasCurrentGoal(true);
+          setForm(currentForm);
+          setCurrentTopicOption(currentForm.topic
+            ? { value: currentForm.topic, label: current.topic || "Tema attuale" }
+            : null);
+          setCurrentGoalOption(currentForm.goal_tag
+            ? { value: currentForm.goal_tag, label: current.goal_tag || "Obiettivo attuale" }
+            : null);
+        }
       })
-      .catch((err: { message?: string }) => setError(err.message || "Impossibile caricare il tuo livello"))
+      .catch((err: { message?: string }) => setLoadError(err.message || "Impossibile caricare il tuo obiettivo"))
       .finally(() => setLoading(false));
-  }, []);
+  }, [loadAttempt]);
+
+  function retryLoad() {
+    setLoadError(null);
+    setError(null);
+    setLoading(true);
+    setHasCurrentGoal(false);
+    setCurrentTopicOption(null);
+    setCurrentGoalOption(null);
+    setLevel(null);
+    setLoadAttempt((value) => value + 1);
+  }
 
   function updateTopic(topic: string) {
     setDirty(true);
@@ -87,21 +143,49 @@ export default function GoalPage() {
     }
   }
 
+  if (loading) {
+    return (
+      <div style={{ marginInline: "auto", maxWidth: "860px", width: "100%" }}>
+        <AsyncState
+          status="loading"
+          title="Caricamento obiettivo…"
+          body="Stiamo recuperando il tuo punto di partenza."
+        />
+      </div>
+    );
+  }
+
+  if (loadError || !level) {
+    return (
+      <div style={{ marginInline: "auto", maxWidth: "860px", width: "100%" }}>
+        <AsyncState
+          status="error"
+          title="Non riusciamo a caricare il tuo obiettivo"
+          body={loadError || "Il livello iniziale non è disponibile."}
+          action={<Button variant="secondary" onClick={retryLoad}>Riprova</Button>}
+        />
+      </div>
+    );
+  }
+
   return (
-    <AppShell>
-      <OnboardingGate>
-        <form onSubmit={onSubmit} style={{ display: "grid", gap: "24px", maxWidth: "800px" }}>
+    <form
+      className="goal-page"
+      onSubmit={onSubmit}
+      aria-busy={loading || submitting}
+      style={{ display: "grid", gap: "24px", marginInline: "auto", maxWidth: "860px", width: "100%" }}
+    >
           {/* Header */}
           <div>
             <h1 style={{ color: "var(--navy-950)", fontSize: "clamp(1.6rem, 3vw, 2.4rem)", margin: "0 0 4px" }}>
-              {pathId ? "Rivedi il tuo obiettivo" : editMode ? "Aggiorna il tuo obiettivo" : "Il tuo obiettivo d’investimento"}
+              {pathId ? "Cosa vuoi approfondire adesso?" : editMode ? "Aggiorna cosa vuoi imparare" : "Cosa vuoi imparare?"}
             </h1>
             <p style={{ color: "var(--muted)", margin: 0 }}>
               {pathId
-                ? "Conferma o aggiorna tutte le scelte prima di iniziare un nuovo percorso."
+                ? "Conferma il tema o scegline uno nuovo prima del prossimo percorso."
                 : editMode
-                  ? "Le nuove scelte sostituiranno l’obiettivo attivo e verranno usate per il matching."
-                : "Area, obiettivo e capitale sono filtrati dal livello assegnato."}
+                  ? "Le nuove scelte sostituiranno l’obiettivo attivo e ci aiuteranno a proporti persone più pertinenti."
+                  : "Scegli un tema e un risultato concreto: Socra ti metterà in contatto con persone compatibili."}
             </p>
           </div>
 
@@ -116,7 +200,7 @@ export default function GoalPage() {
             </span>
             <div>
               <p style={{ color: "var(--muted)", fontSize: "0.75rem", fontWeight: 800, letterSpacing: "0.08em", margin: "0 0 2px", textTransform: "uppercase" }}>
-                Livello assegnato
+                Il tuo livello attuale
               </p>
               <strong style={{ color: "var(--navy-950)", fontSize: "1.25rem" }}>
                 {loading ? "Caricamento…" : level || "Non disponibile"}
@@ -130,36 +214,36 @@ export default function GoalPage() {
           <div className="card">
             <div style={{ display: "grid", gap: "20px" }}>
               <div>
-                <p style={{ color: "var(--navy-950)", fontWeight: 800, margin: "0 0 4px" }}>Definisci il tuo obiettivo</p>
+                <p style={{ color: "var(--navy-950)", fontWeight: 800, margin: "0 0 4px" }}>Scegli il tema del confronto</p>
                 <p style={{ color: "var(--muted)", fontSize: "0.88rem", margin: 0 }}>
-	                  Il mentor vede livello e obiettivo; il capitale resta privato.
+                  Nel profilo pubblico compare solo il tema generale. Il mentor che contatti vede l’obiettivo di apprendimento; il contesto resta privato.
                 </p>
               </div>
 
               <div className="goal-fields">
                 <SelectField
-	                  label="Area di interesse"
+                  label="Tema"
                   value={form.topic}
                   onChange={updateTopic}
                   options={availableTopics}
                   disabled={loading || submitting || !level}
                 />
                 <SelectField
-	                  label="Obiettivo concreto"
+                  label="Risultato di apprendimento"
                   value={form.goal_tag}
                   onChange={(value) => updateField("goal_tag", value)}
                   options={availableGoals}
                   disabled={loading || submitting || !form.topic}
                 />
                 <SelectField
-	                  label="Capitale indicativo"
+                  label="Contesto di partenza (privato)"
                   value={form.capital_goal}
                   onChange={(value) => updateField("capital_goal", value)}
                   options={availableCapital}
                   disabled={loading || submitting || !level}
                 />
                 <SelectField
-	                  label="Profilo di rischio"
+                  label="Stile del confronto (privato)"
                   value={form.risk}
                   onChange={(value) => updateField("risk", value)}
                   options={riskOptions}
@@ -175,18 +259,18 @@ export default function GoalPage() {
             border: "1px solid rgba(245,182,47,0.3)", borderRadius: "var(--radius-sm)",
             color: "var(--muted)", display: "flex", fontSize: "0.85rem", gap: "10px", padding: "12px 16px"
           }}>
-	            <span style={{ color: "var(--gold-500)", flexShrink: 0 }}>i</span>
-	            Salviamo l&apos;obiettivo e ti proponiamo mentor coerenti solo quando i dati sono completi.
+            <span aria-hidden style={{ color: "var(--gold-700, #855f00)", flexShrink: 0 }}>i</span>
+            Socra facilita il confronto tra persone: non valida decisioni personali né propone portafogli o allocazioni.
           </div>
 
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <button
               className="button dark"
               type="submit"
-              disabled={loading || submitting || !level || Object.values(form).some((value) => !value)}
+              disabled={loading || submitting || !level}
               style={{ minWidth: "220px" }}
             >
-              {submitting ? "Salvataggio…" : pathId ? "Conferma obiettivo" : editMode ? "Aggiorna e cerca mentor" : "Salva e cerca mentor"}
+              {submitting ? "Salvataggio…" : pathId ? "Conferma la scelta" : editMode ? "Aggiorna e vedi i mentor" : "Salva e continua"}
             </button>
           </div>
           <style jsx>{`
@@ -201,9 +285,7 @@ export default function GoalPage() {
               }
             }
           `}</style>
-        </form>
-      </OnboardingGate>
-    </AppShell>
+    </form>
   );
 }
 

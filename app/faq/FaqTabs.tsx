@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import styles from "./FaqTabs.module.css";
 
 const sections = [
   {
@@ -80,7 +81,7 @@ const sections = [
     faqs: [
       {
         q: "Le call vengono registrate?",
-        a: "Socra non registra audio o video. Per la prima call conserva soltanto i metadati operativi necessari, come ingresso, uscita, durata e presenza. Un’eventuale trascrizione richiede una scelta esplicita di entrambe le persone.",
+        a: "No. Socra non registra audio o video e oggi non acquisisce trascrizioni. Per la prima call conserva soltanto presenza e durata quando questi dati sono disponibili dal provider.",
       },
       {
         q: "Socra può garantire l'affidabilità di un mentor?",
@@ -105,26 +106,41 @@ const sections = [
       },
       {
         q: "Quali dati diventano pubblici?",
-        a: "Il profilo pubblico usa solo livello, topic tradotti, metriche aggregate, badge e testi facoltativi. Le risposte dettagliate della survey non vengono pubblicate.",
+        a: "Il profilo nella community usa solo livello, argomenti generalizzati, risultati aggregati, badge e testi facoltativi. Le risposte dettagliate della survey non vengono pubblicate.",
       },
     ],
   },
 ];
 
 const allFaqs = sections.flatMap((section) => section.faqs);
+const tabs = ["Tutte", ...sections.map((section) => section.label)];
 
 export function FaqTabs() {
-  const [activeTab, setActiveTab] = useState("Tutte");
-  const tabs = ["Tutte", ...sections.map((section) => section.label)];
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedTab = searchParams.get("categoria");
+  const activeTab = tabs.find((tab) => tabSlug(tab) === requestedTab) ?? "Tutte";
   const activeIndex = tabs.indexOf(activeTab);
   const displayed =
     activeTab === "Tutte"
       ? allFaqs
       : sections.find((section) => section.label === activeTab)?.faqs ?? [];
 
+  function updateTab(tab: string) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (tab === "Tutte") {
+      params.delete("categoria");
+    } else {
+      params.set("categoria", tabSlug(tab));
+    }
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }
+
   function selectTab(index: number) {
     const nextIndex = (index + tabs.length) % tabs.length;
-    setActiveTab(tabs[nextIndex]);
+    updateTab(tabs[nextIndex]);
     requestAnimationFrame(() => document.getElementById(`faq-tab-${nextIndex}`)?.focus());
   }
 
@@ -132,15 +148,8 @@ export function FaqTabs() {
     <div>
       <div
         aria-label="Categorie delle domande frequenti"
+        className={styles.tabList}
         role="tablist"
-        style={{
-          display: "flex",
-          flexWrap: "wrap",
-          gap: "8px",
-          marginBottom: "32px",
-          overflowX: "auto",
-          paddingBottom: "4px",
-        }}
       >
         {tabs.map((tab, index) => (
           <button
@@ -148,7 +157,9 @@ export function FaqTabs() {
             aria-selected={activeTab === tab}
             id={`faq-tab-${index}`}
             key={tab}
-            onClick={() => setActiveTab(tab)}
+            className={styles.tab}
+            data-active={activeTab === tab}
+            onClick={() => updateTab(tab)}
             onKeyDown={(event) => {
               if (event.key === "ArrowRight") {
                 event.preventDefault();
@@ -168,19 +179,6 @@ export function FaqTabs() {
               }
             }}
             role="tab"
-            style={{
-              background: activeTab === tab ? "var(--navy-950)" : "var(--paper)",
-              border: "1px solid",
-              borderColor: activeTab === tab ? "var(--navy-950)" : "var(--line)",
-              borderRadius: "999px",
-              color: activeTab === tab ? "#ffffff" : "var(--muted)",
-              cursor: "pointer",
-              fontSize: "0.82rem",
-              fontWeight: 700,
-              padding: "8px 18px",
-              transition: "background-color 0.15s, border-color 0.15s, color 0.15s",
-              whiteSpace: "nowrap",
-            }}
             tabIndex={activeTab === tab ? 0 : -1}
             type="button"
           >
@@ -191,53 +189,21 @@ export function FaqTabs() {
 
       <div
         aria-labelledby={`faq-tab-${activeIndex}`}
+        className={styles.panel}
         id="faq-panel"
         role="tabpanel"
-        style={{ display: "flex", flexDirection: "column", gap: "10px" }}
         tabIndex={0}
       >
         {displayed.map((faq) => (
           <details
+            className={styles.item}
             key={faq.q}
-            style={{
-              background: "#ffffff",
-              border: "1px solid var(--line)",
-              borderRadius: "10px",
-              overflow: "hidden",
-            }}
           >
-            <summary style={{
-              cursor: "pointer",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              padding: "18px 20px",
-              color: "var(--ink)",
-              fontSize: "0.95rem",
-              fontWeight: 700,
-              listStyle: "none",
-              gap: "12px",
-            }}>
+            <summary className={styles.summary}>
               {faq.q}
-              <span
-                aria-hidden="true"
-                style={{
-                  color: "var(--muted)",
-                  fontSize: "1.2rem",
-                  lineHeight: 1,
-                  flexShrink: 0,
-                }}
-              >
-                +
-              </span>
+              <span aria-hidden="true" className={styles.indicator} />
             </summary>
-            <div style={{
-              padding: "16px 20px 18px",
-              color: "var(--muted)",
-              fontSize: "0.875rem",
-              lineHeight: 1.65,
-              borderTop: "1px solid var(--line)",
-            }}>
+            <div className={styles.answer}>
               {faq.a}
             </div>
           </details>
@@ -245,4 +211,8 @@ export function FaqTabs() {
       </div>
     </div>
   );
+}
+
+function tabSlug(tab: string) {
+  return tab.toLocaleLowerCase("it-IT");
 }

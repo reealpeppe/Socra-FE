@@ -33,7 +33,7 @@ function StatusBadge({ status }: { status: string }) {
 export default function PathDetailPage() {
   const { pathId } = useParams<{ pathId: string }>();
   return (
-    <AppShell>
+    <AppShell primaryAction={{ href: "/paths", label: "I tuoi percorsi" }}>
       <OnboardingGate>
         <PathDetailContent pathId={pathId} />
       </OnboardingGate>
@@ -80,8 +80,30 @@ function PathDetailContent({ pathId }: { pathId: string }) {
   }, [pathId]);
 
   useEffect(() => {
-    load();
+    queueMicrotask(() => void load());
   }, [load]);
+
+  useEffect(() => {
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("feedback") === "sent") {
+        setMessage("Feedback inviato correttamente.");
+        params.delete("feedback");
+      } else if (params.get("goalReviewed") === "1") {
+        setMessage("Obiettivo aggiornato correttamente.");
+        params.delete("goalReviewed");
+      } else {
+        return;
+      }
+      const query = params.toString();
+      window.history.replaceState(null, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function closeSide() {
     if (!window.confirm("Confermi di aver concluso il percorso e di voler chiudere il tuo lato?")) return;
@@ -202,12 +224,13 @@ function PathDetailContent({ pathId }: { pathId: string }) {
       : false;
   const firstCallCompleted = !!path?.first_call_completed;
   const actionPending = pendingAction !== null;
+  const pathsHref = role ? `/paths?tab=${role}` : "/paths";
 
   return (
-    <div style={{ display: "grid", gap: "24px" }}>
+    <div style={{ display: "grid", gap: "24px", margin: "0 auto", maxWidth: "1100px", width: "100%" }}>
       <div>
         <Link
-          href="/paths"
+          href={pathsHref}
           style={{
             alignItems: "center", color: "var(--muted)", display: "inline-flex",
             fontSize: "0.85rem", fontWeight: 700, gap: "4px", textDecoration: "none"
@@ -232,13 +255,22 @@ function PathDetailContent({ pathId }: { pathId: string }) {
       {error ? <p className="error" role="alert">{error}</p> : null}
       {message ? <p className="success" role="status">{message}</p> : null}
       {loading && !path ? <div className="card" role="status">Caricamento percorso…</div> : null}
+      {!loading && !path ? (
+        <div className="card" style={{ display: "grid", gap: "12px", justifyItems: "start" }}>
+          <strong>Percorso non disponibile</strong>
+          <p className="muted">Riprova oppure torna all&apos;elenco dei tuoi percorsi.</p>
+          <div className="cluster">
+            <button className="button secondary" type="button" onClick={() => void load()}>Riprova</button>
+            <Link className="button" href="/paths">Vai ai percorsi</Link>
+          </div>
+        </div>
+      ) : null}
 
       {path ? (
         <>
           <div className="card">
             <div style={{ display: "grid", gap: "16px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                <StatusBadge status={path.status} />
                 {path.goal?.topic && (
                   <span style={{
                     background: "var(--blue-100)", border: "1px solid #cfdbff",
@@ -367,7 +399,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                       className="input"
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Aggiungi una nota per il team Socra"
+                      placeholder="Aggiungi una nota per il team Socra…"
                       disabled={actionPending}
                     />
                     <button className="button dark" type="button" onClick={closeSide} disabled={actionPending || isCompleted}>
@@ -402,27 +434,27 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                 {path.mentee_feedback_note ? (
                   <div style={{ background: "var(--paper)", borderRadius: "var(--radius-sm)", padding: "12px 14px" }}>
                     <strong style={{ display: "block", fontSize: "0.78rem", marginBottom: "5px" }}>Nota del mentee</strong>
-                    <p style={{ color: "var(--muted)", fontSize: "0.86rem", lineHeight: 1.55, margin: 0 }}>{path.mentee_feedback_note}</p>
+                    <p style={{ color: "var(--muted)", fontSize: "0.86rem", lineHeight: 1.55, margin: 0, overflowWrap: "anywhere", whiteSpace: "pre-wrap" }}>{path.mentee_feedback_note}</p>
                   </div>
                 ) : null}
                 {path.mentor_feedback_note ? (
                   <div style={{ background: "var(--paper)", borderRadius: "var(--radius-sm)", padding: "12px 14px" }}>
                     <strong style={{ display: "block", fontSize: "0.78rem", marginBottom: "5px" }}>Nota del mentor</strong>
-                    <p style={{ color: "var(--muted)", fontSize: "0.86rem", lineHeight: 1.55, margin: 0 }}>{path.mentor_feedback_note}</p>
+                    <p style={{ color: "var(--muted)", fontSize: "0.86rem", lineHeight: 1.55, margin: 0, overflowWrap: "anywhere", whiteSpace: "pre-wrap" }}>{path.mentor_feedback_note}</p>
                   </div>
                 ) : null}
               </div>
             </div>
           ) : null}
 
-          <div className="card" style={{ borderColor: "#fda29b" }}>
-            <div style={{ display: "grid", gap: "14px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <details className="card" style={{ borderColor: "#fda29b" }}>
+            <summary style={{ alignItems: "center", cursor: "pointer", display: "flex", gap: "8px", fontWeight: 800 }}>
                 <AlertTriangle size={18} color="#c43f31" aria-hidden />
-                <h2 style={{ fontSize: "1rem", fontWeight: 800, margin: 0 }}>Segnala problema</h2>
-              </div>
+                Segnala un problema
+            </summary>
+            <div style={{ display: "grid", gap: "14px", marginTop: "16px" }}>
               <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0 }}>
-                La segnalazione sarà esaminata dal team Socra e non produce blocchi automatici.
+                Descrivi cosa è successo: la segnalazione sarà esaminata dal team Socra.
               </p>
               <label htmlFor="path-report" style={{ color: "var(--navy-950)", fontSize: "0.85rem", fontWeight: 800 }}>
                 Descrizione
@@ -432,14 +464,14 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                 className="input"
                 value={report}
                 onChange={(e) => setReport(e.target.value)}
-                placeholder="Descrivi il problema"
+                placeholder="Descrivi il problema…"
                 disabled={actionPending}
               />
               <button className="button danger" type="button" onClick={reportIssue} disabled={actionPending || !report.trim()}>
                 {pendingAction === "report" ? "Invio…" : "Invia segnalazione"}
               </button>
             </div>
-          </div>
+          </details>
         </>
       ) : null}
       <style jsx>{`
@@ -503,7 +535,7 @@ function ClosePill({ label, closed }: { label: string; closed: boolean }) {
       gap: "5px",
       padding: "5px 12px"
     }}>
-      <CheckCircle2 size={13} aria-hidden />
+      {closed ? <CheckCircle2 size={13} aria-hidden /> : null}
       {label} {closed ? "chiuso" : "aperto"}
     </span>
   );

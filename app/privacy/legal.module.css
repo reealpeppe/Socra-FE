@@ -1,0 +1,147 @@
+.main {
+  background:
+    radial-gradient(circle at 86% 8%, rgba(245, 182, 47, 0.12), transparent 28rem),
+    var(--paper);
+  min-height: 100dvh;
+  padding-top: 64px;
+}
+
+.hero {
+  background: var(--navy-950);
+  color: #fff;
+  padding: clamp(64px, 9vw, 112px) clamp(18px, 5vw, 64px);
+}
+
+.heroInner,
+.content {
+  margin: 0 auto;
+  max-width: 1040px;
+}
+
+.eyebrow {
+  color: var(--gold-500);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.17em;
+  margin: 0 0 18px;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  color: #fff;
+  font-size: clamp(2.6rem, 7vw, 5.5rem);
+  font-weight: 900;
+  letter-spacing: -0.045em;
+  line-height: 0.96;
+  margin: 0;
+  max-width: 12ch;
+  text-wrap: balance;
+}
+
+.lead {
+  color: rgba(255, 255, 255, 0.74);
+  font-size: clamp(1rem, 1.8vw, 1.16rem);
+  line-height: 1.75;
+  margin: 28px 0 0;
+  max-width: 66ch;
+  text-wrap: pretty;
+}
+
+.status {
+  align-items: flex-start;
+  background: #fff7df;
+  border: 1px solid #d8a22f;
+  border-radius: 16px;
+  color: #4d3708;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 20px 22px;
+}
+
+.status strong {
+  color: var(--navy-950);
+}
+
+.status p {
+  line-height: 1.6;
+  margin: 0;
+}
+
+.content {
+  display: grid;
+  gap: 22px;
+  padding: clamp(48px, 7vw, 88px) clamp(18px, 4vw, 36px);
+}
+
+.section {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: 0 12px 34px rgba(2, 8, 23, 0.05);
+  display: grid;
+  gap: 16px;
+  padding: clamp(24px, 4vw, 38px);
+}
+
+.section h2 {
+  color: var(--ink);
+  font-size: clamp(1.25rem, 2.5vw, 1.7rem);
+  margin: 0;
+}
+
+.section h3 {
+  color: var(--ink);
+  font-size: 1rem;
+  margin: 4px 0 0;
+}
+
+.section p,
+.section li {
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+.section p,
+.section ul {
+  margin: 0;
+}
+
+.section ul {
+  display: grid;
+  gap: 10px;
+  padding-left: 22px;
+}
+
+.callout {
+  background: #eef8f3;
+  border-left: 4px solid var(--mint-600);
+  color: #174f3a;
+  line-height: 1.65;
+  padding: 16px 18px;
+}
+
+.linkRow {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.section a:focus-visible,
+.status a:focus-visible {
+  outline: 3px solid var(--navy-950);
+  outline-offset: 3px;
+}
+
+@media (max-width: 600px) {
+  .hero h1 {
+    max-width: none;
+  }
+
+  .section {
+    border-radius: 14px;
+  }
+}
+

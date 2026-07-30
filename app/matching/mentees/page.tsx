@@ -7,7 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
 import { LevelBadge, UserAvatar } from "@/components/Ui";
 import { ClientApiError, clientGet, clientPost } from "@/lib/api";
-import type { MatchRequestItem, MenteeCandidate, UserMe } from "@/lib/types";
+import type { MatchRequestItem, MenteeCandidate, PathItem, UserMe } from "@/lib/types";
 
 export default function MenteeMatchingPage() {
   return (
@@ -28,6 +28,8 @@ function MenteeMatchingContent() {
   const [message, setMessage] = useState<string | null>(null);
   const [sending, setSending] = useState<Set<string>>(new Set());
   const [retryVersion, setRetryVersion] = useState(0);
+  const [requestsReady, setRequestsReady] = useState(false);
+  const [activeMentorPaths, setActiveMentorPaths] = useState<number | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -35,6 +37,7 @@ function MenteeMatchingContent() {
     async function load() {
       setLoading(true);
       setError(null);
+      setRequestsReady(false);
       try {
         const user = await clientGet<UserMe>("/auth/me");
         if (!active) return;
@@ -44,13 +47,25 @@ function MenteeMatchingContent() {
           setRequests([]);
           return;
         }
-        const [candidateItems, requestItems] = await Promise.all([
+        const [candidateResult, requestResult, pathsResult] = await Promise.allSettled([
           clientGet<MenteeCandidate[]>("/matching/mentee-candidates"),
-          clientGet<MatchRequestItem[]>("/matching/requests/me?role=mentor")
+          clientGet<MatchRequestItem[]>("/matching/requests/me?role=mentor"),
+          clientGet<PathItem[]>("/paths/me")
         ]);
         if (!active) return;
-        setCandidates(Array.isArray(candidateItems) ? candidateItems : []);
-        setRequests(Array.isArray(requestItems) ? requestItems : []);
+        setCandidates(candidateResult.status === "fulfilled" && Array.isArray(candidateResult.value) ? candidateResult.value : []);
+        setRequests(requestResult.status === "fulfilled" && Array.isArray(requestResult.value) ? requestResult.value : []);
+        setRequestsReady(requestResult.status === "fulfilled");
+        setActiveMentorPaths(
+          pathsResult.status === "fulfilled" && Array.isArray(pathsResult.value)
+            ? pathsResult.value.filter((path) => path.mentor_id === user.id && path.status !== "completed").length
+            : null
+        );
+        if (candidateResult.status === "rejected") {
+          setError("Non riusciamo ad aggiornare i mentee compatibili. Riprova.");
+        } else if (requestResult.status === "rejected" || pathsResult.status === "rejected") {
+          setError("Alcuni dati operativi non sono disponibili. Riprova prima di inviare una proposta.");
+        }
       } catch (err) {
         if (!active) return;
         setError(err instanceof ClientApiError ? err.message : "Ricerca mentee non disponibile");
@@ -75,7 +90,7 @@ function MenteeMatchingContent() {
   );
 
   async function propose(candidate: MenteeCandidate) {
-    if (sending.has(candidate.goal_id) || proposedGoalIds.has(candidate.goal_id)) return;
+    if (!requestsReady || activeMentorPaths === null || activeMentorPaths >= 3 || sending.has(candidate.goal_id) || proposedGoalIds.has(candidate.goal_id)) return;
     setError(null);
     setMessage(null);
     setSending((current) => new Set(current).add(candidate.goal_id));
@@ -116,16 +131,21 @@ function MenteeMatchingContent() {
         <div className="mentee-search-capacity">
           <UsersRound size={22} aria-hidden />
           <span>La tua disponibilità</span>
-          <strong>Massimo 3 percorsi attivi</strong>
+          <strong>{activeMentorPaths === null ? "Capacità in verifica" : `${activeMentorPaths} di 3 percorsi attivi`}</strong>
           <small>Il costo è addebitato al mentee solo quando accetta.</small>
         </div>
       </header>
 
-      {error ? <div className="matching-error" role="alert">{error}</div> : null}
+      {error ? (
+        <div className="matching-error" role="alert">
+          <span>{error}</span>
+          <button className="button secondary" type="button" onClick={() => setRetryVersion((value) => value + 1)}>Riprova</button>
+        </div>
+      ) : null}
       {message ? <div className="matching-success" role="status">{message}</div> : null}
 
       {loading ? (
-        <div className="mentee-search-grid" aria-label="Caricamento mentee">
+        <div className="mentee-search-grid" role="status" aria-label="Caricamento mentee">
           <div className="mentee-search-skeleton" />
           <div className="mentee-search-skeleton" />
           <div className="mentee-search-skeleton" />
@@ -137,7 +157,7 @@ function MenteeMatchingContent() {
           <p>La ricerca dei mentee è riservata ai profili che possono ricevere e svolgere mentorship.</p>
           <Link href="/settings" className="button">Gestisci disponibilità</Link>
         </section>
-      ) : candidates.length === 0 ? (
+      ) : error && candidates.length === 0 ? null : candidates.length === 0 ? (
         <section className="card mentee-search-empty">
           <Target size={30} aria-hidden />
           <h2>Nessun obiettivo disponibile ora</h2>
@@ -174,7 +194,7 @@ function MenteeMatchingContent() {
                   <p>{candidate.goal_topic}</p>
                 </div>
 
-                <p className="mentee-goal-reason">{candidate.reason_summary}</p>
+                <p className="mentee-goal-reason">{candidate.reason_summary || "Obiettivo coerente con le competenze che puoi condividere."}</p>
 
                 <div className="mentee-goal-tags">
                   {candidate.availability_fallback ? (
@@ -184,13 +204,21 @@ function MenteeMatchingContent() {
                 </div>
 
                 <button
-                  className="mentee-proposal-button"
+                  className={`mentee-proposal-button ${proposed ? "sent" : pending ? "pending" : !requestsReady || activeMentorPaths === null || activeMentorPaths >= 3 ? "unavailable" : ""}`.trim()}
                   type="button"
-                  disabled={proposed || pending}
+                  disabled={proposed || pending || !requestsReady || activeMentorPaths === null || activeMentorPaths >= 3}
                   onClick={() => propose(candidate)}
                 >
                   <Send size={16} aria-hidden />
-                  {proposed ? "Proposta inviata" : pending ? "Invio in corso…" : "Proponi un percorso"}
+                  {proposed
+                    ? "Proposta inviata"
+                    : pending
+                      ? "Invio in corso…"
+                      : activeMentorPaths !== null && activeMentorPaths >= 3
+                        ? "Capacità mentor raggiunta"
+                        : !requestsReady || activeMentorPaths === null
+                          ? "Verifica operativa non disponibile"
+                          : "Proponi un percorso"}
                 </button>
               </article>
             );
@@ -199,11 +227,38 @@ function MenteeMatchingContent() {
       )}
 
       <style jsx global>{`
-        .mentee-search-page {
-          display: grid;
-          gap: 24px;
-          max-width: 1160px;
-        }
+      .mentee-search-page {
+        display: grid;
+        gap: 24px;
+        margin: 0 auto;
+        max-width: 1160px;
+        width: 100%;
+      }
+
+      .mentee-search-page .matching-error,
+      .mentee-search-page .matching-success {
+        align-items: center;
+        border-radius: var(--radius-sm, 10px);
+        display: flex;
+        flex-wrap: wrap;
+        font-size: 0.875rem;
+        font-weight: 750;
+        gap: 12px;
+        justify-content: space-between;
+        padding: 12px 16px;
+      }
+
+      .mentee-search-page .matching-error {
+        background: #fff1ee;
+        border: 1px solid #ffc9c1;
+        color: #b42318;
+      }
+
+      .mentee-search-page .matching-success {
+        background: var(--mint-100, #dcfce7);
+        border: 1px solid #b9ecd3;
+        color: var(--mint-600, #15803d);
+      }
 
         .mentee-search-back {
           align-items: center;
@@ -386,11 +441,21 @@ function MenteeMatchingContent() {
           transform: translateY(-1px);
         }
 
-        .mentee-proposal-button:disabled {
-          background: var(--mint-100, #dcfce7);
-          color: var(--mint-600, #15803d);
-          cursor: default;
-        }
+      .mentee-proposal-button.sent {
+        background: var(--mint-100, #dcfce7);
+        color: var(--mint-600, #15803d);
+        cursor: default;
+      }
+
+      .mentee-proposal-button.pending:disabled {
+        background: #fff1cd;
+        color: #8a6111;
+      }
+
+      .mentee-proposal-button.unavailable:disabled {
+        background: #eef1f4;
+        color: var(--muted);
+      }
 
         .mentee-search-empty {
           align-items: center;

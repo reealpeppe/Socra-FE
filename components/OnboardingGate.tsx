@@ -17,7 +17,7 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
   const [loginHref, setLoginHref] = useState("/login");
 
   const verify = useCallback(() => {
-    setState("loading");
+    window.queueMicrotask(() => setState("loading"));
     clientGet<OnboardingState>("/surveys/onboarding/me")
       .then((response) => setState(response.latest_answer_id ? "complete" : "missing"))
       .catch((error) => {
@@ -37,8 +37,8 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
 
   if (state === "loading") {
     return (
-      <Card>
-        <p className="muted" role="status">Verifica onboarding…</p>
+      <Card className="page-state-card">
+        <p className="muted" role="status">Verifica del profilo…</p>
       </Card>
     );
   }
@@ -47,10 +47,10 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
 
   if (state === "unauthenticated") {
     return (
-      <Card>
+      <Card className="page-state-card">
         <div className="stack">
           <p className="eyebrow">Sessione scaduta</p>
-          <h2>Accedi per continuare</h2>
+          <h1>Accedi per continuare</h1>
           <p className="muted">Dopo l&apos;accesso potrai riprendere il flusso da qui.</p>
           <ButtonLink href={loginHref}>Vai all&apos;accesso</ButtonLink>
         </div>
@@ -60,10 +60,10 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
 
   if (state === "error") {
     return (
-      <Card>
+      <Card className="page-state-card">
         <div className="stack">
           <p className="eyebrow">Verifica non disponibile</p>
-          <h2>Non riusciamo a controllare la survey</h2>
+          <h1>Non riusciamo a controllare la survey</h1>
           <p className="muted">Riprova tra poco: i flussi operativi restano protetti finché la verifica non riesce.</p>
           <button className="button secondary" type="button" onClick={verify}>Riprova</button>
         </div>
@@ -72,12 +72,12 @@ export function OnboardingGate({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <Card>
+    <Card className="page-state-card">
       <div className="stack">
         <p className="eyebrow">Survey obbligatoria</p>
-        <h2>Completa la survey prima di continuare</h2>
+        <h1>Completa la survey prima di continuare</h1>
         <p className="muted">
-          Obiettivo, matching, richieste, percorsi e feedback si attivano quando il livello iniziale è stato salvato.
+          Dopo la survey potrai scegliere cosa imparare, conoscere la community e avviare un percorso.
         </p>
         <ButtonLink href="/onboarding">Riprendi survey</ButtonLink>
       </div>

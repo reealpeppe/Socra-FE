@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Brand } from "@/components/Brand";
+import { PublicFooter, PublicNavbar } from "@/components/PublicLayout";
 import { authPost, ClientApiError } from "@/lib/api";
+import styles from "../login/auth.module.css";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -14,7 +16,7 @@ export default function RegisterPage() {
     email: "",
     password: "",
     nickname: "",
-    consent_essential: false
+    consent_essential: false,
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -22,6 +24,7 @@ export default function RegisterPage() {
 
   function update(name: string, value: string | boolean) {
     setForm((current) => ({ ...current, [name]: value }));
+    if (error) setError(null);
   }
 
   async function onSubmit(event: React.FormEvent) {
@@ -33,252 +36,155 @@ export default function RegisterPage() {
       router.push("/onboarding");
       router.refresh();
     } catch (err) {
-      setError(err instanceof ClientApiError ? err.message : "Registrazione non riuscita");
+      const reason = err instanceof ClientApiError ? err.message : "Registrazione non riuscita.";
+      setError(`${reason} Controlla i dati indicati e riprova.`);
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <main className="auth-page" id="main-content">
-      <div className="auth-card">
-        <div className="auth-brand">
-          <Brand variant="dark" />
-        </div>
-	        <h1 className="auth-title">Crea il tuo account</h1>
-	        <p className="auth-sub">Inizia il tuo percorso Socra. Per ora usi email o username e password, senza codici SMS.</p>
-
-        {error && <div className="auth-error" role="alert">{error}</div>}
-
-        <form className="auth-form" onSubmit={onSubmit}>
-          <div className="auth-grid-two">
-            <div>
-              <label className="auth-label" htmlFor="username">Username</label>
-              <input
-                id="username"
-                name="username"
-                className="input"
-                value={form.username}
-                onChange={(e) => update("username", e.target.value)}
-                minLength={3}
-                autoComplete="username"
-                spellCheck={false}
-                required
-              />
-            </div>
-            <div>
-              <label className="auth-label" htmlFor="nickname">Nome visibile</label>
-              <input
-                id="nickname"
-                name="nickname"
-                className="input"
-                value={form.nickname}
-                onChange={(e) => update("nickname", e.target.value)}
-                autoComplete="nickname"
-              />
-            </div>
+    <div className={styles.page}>
+      <PublicNavbar />
+      <main className={styles.main} id="main-content" tabIndex={-1}>
+        <section className={`${styles.card} ${styles.registerCard}`} aria-labelledby="register-title">
+          <div className={styles.brandRow}>
+            <Link className={styles.brandLink} href="/" aria-label="Torna alla pagina iniziale di Socra">
+              <Brand variant="dark" />
+            </Link>
           </div>
+          <h1 className={styles.title} id="register-title">Crea il tuo account</h1>
+          <p className={styles.subtitle}>
+            Entra nella community, completa la survey e definisci il primo obiettivo
+            su cui vuoi confrontarti.
+          </p>
 
-          <div>
-            <label className="auth-label" htmlFor="email">Email</label>
-            <input
-              id="email"
-              name="email"
-              className="input"
-              type="email"
-              value={form.email}
-              onChange={(e) => update("email", e.target.value)}
-              autoComplete="email"
-              spellCheck={false}
-              required
-            />
-          </div>
+          {error ? <p className={styles.error} id="register-error" role="alert">{error}</p> : null}
 
-          <div>
-            <label className="auth-label" htmlFor="password">Password</label>
-            <div className="auth-password-row">
-              <input
-                id="password"
-                name="password"
-                className="input"
-                type={showPassword ? "text" : "password"}
-                value={form.password}
-                onChange={(e) => update("password", e.target.value)}
-                minLength={10}
-                pattern="(?=.*[A-Za-z])(?=.*[0-9]).{10,}"
-                title="Usa almeno 10 caratteri, con almeno una lettera e un numero."
-                autoComplete="new-password"
-                required
-              />
-              <button
-                className="button secondary"
-                type="button"
-                onClick={() => setShowPassword((current) => !current)}
-                aria-label={showPassword ? "Nascondi password" : "Mostra password"}
-              >
-                {showPassword ? <EyeOff size={16} aria-hidden="true" /> : <Eye size={16} aria-hidden="true" />}
-              </button>
-            </div>
-            <p className="auth-password-hint">Almeno 10 caratteri, con almeno una lettera e un numero.</p>
-          </div>
-
-          <div className="auth-consents">
-            <label className="auth-check">
-              <input
-                name="consent_essential"
-                type="checkbox"
-                checked={form.consent_essential}
-                onChange={(e) => update("consent_essential", e.target.checked)}
-                required
-              />
-              <span>Accetto i Termini della community e dichiaro di aver letto l&apos;informativa privacy (obbligatorio).</span>
-            </label>
-            <p className="auth-consent-note">
-              Non ti chiediamo consensi facoltativi in anticipo: ogni scelta verrà proposta solo quando servirà davvero.
-            </p>
-          </div>
-
-          <button
-            type="submit"
-            className="button dark"
-            style={{ width: "100%" }}
-            disabled={loading || !form.consent_essential}
-            aria-busy={loading}
+          <form
+            aria-label="Crea il tuo account"
+            aria-describedby={error ? "register-error" : undefined}
+            className={styles.form}
+            onSubmit={onSubmit}
           >
-            {loading ? "Creazione…" : "Crea account"}
-          </button>
-        </form>
+            <div className={styles.twoColumns}>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="username">Username</label>
+                <input
+                  aria-invalid={error ? "true" : undefined}
+                  autoComplete="username"
+                  className={styles.input}
+                  id="username"
+                  minLength={3}
+                  name="username"
+                  onChange={(event) => update("username", event.target.value)}
+                  required
+                  spellCheck={false}
+                  value={form.username}
+                />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="nickname">Nome visibile (facoltativo)</label>
+                <input
+                  autoComplete="nickname"
+                  className={styles.input}
+                  id="nickname"
+                  name="nickname"
+                  onChange={(event) => update("nickname", event.target.value)}
+                  value={form.nickname}
+                />
+              </div>
+            </div>
 
-        <p className="auth-footer">
-          Hai già un account?{" "}
-          <Link href="/login">Accedi</Link>
-        </p>
-      </div>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="email">Email</label>
+              <input
+                aria-invalid={error ? "true" : undefined}
+                autoComplete="email"
+                className={styles.input}
+                id="email"
+                name="email"
+                onChange={(event) => update("email", event.target.value)}
+                required
+                spellCheck={false}
+                type="email"
+                value={form.email}
+              />
+            </div>
 
-      <style jsx global>{`
-        .auth-page {
-          align-items: center;
-          background: var(--paper);
-          display: flex;
-          justify-content: center;
-          min-height: 100vh;
-          padding: 24px;
-        }
-        .auth-card {
-          background: var(--card);
-          border: 1px solid var(--line);
-          border-radius: var(--radius-lg);
-          box-shadow: var(--shadow);
-          max-width: 440px;
-          padding: 40px;
-          width: 100%;
-        }
-        .auth-brand {
-          display: flex;
-          justify-content: center;
-          margin-bottom: 28px;
-        }
-        .auth-title {
-          font-size: 1.6rem;
-          font-weight: 800;
-          margin: 0 0 6px;
-          text-align: center;
-          color: var(--ink);
-        }
-        .auth-sub {
-          color: var(--muted);
-          margin: 0 0 28px;
-          text-align: center;
-          font-size: 0.95rem;
-        }
-        .auth-form {
-          display: grid;
-          gap: 16px;
-        }
-        .auth-label {
-          color: var(--ink);
-          display: block;
-          font-size: 0.875rem;
-          font-weight: 600;
-          margin-bottom: 6px;
-        }
-        .auth-grid-two {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-        }
-        .auth-password-row {
-          display: flex;
-          gap: 8px;
-          align-items: center;
-        }
-        .auth-password-row .input {
-          flex: 1;
-        }
-        .auth-password-hint {
-          color: var(--muted);
-          font-size: 0.78rem;
-          margin: 6px 0 0;
-        }
-        .auth-consents {
-          display: grid;
-          gap: 10px;
-          padding: 4px 0;
-        }
-        .auth-check {
-          display: flex;
-          gap: 10px;
-          align-items: flex-start;
-          cursor: pointer;
-          font-size: 0.85rem;
-          color: var(--ink);
-          line-height: 1.4;
-        }
-        .auth-check input[type="checkbox"] {
-          margin-top: 2px;
-          flex-shrink: 0;
-          accent-color: var(--navy-950);
-        }
-        .auth-consent-note {
-          border-left: 2px solid var(--gold-500);
-          color: var(--muted);
-          font-size: 0.78rem;
-          line-height: 1.5;
-          margin: 0 0 0 2px;
-          padding-left: 12px;
-        }
-        .auth-error {
-          background: #fee2e2;
-          border: 1px solid #fca5a5;
-          border-radius: var(--radius-sm);
-          color: #dc2626;
-          font-size: 0.875rem;
-          margin-bottom: 16px;
-          padding: 10px 14px;
-        }
-        .auth-footer {
-          color: var(--muted);
-          font-size: 0.875rem;
-          margin-top: 20px;
-          text-align: center;
-        }
-        .auth-footer a {
-          color: var(--navy-950);
-          font-weight: 700;
-          text-decoration: none;
-        }
-        .auth-footer a:hover {
-          text-decoration: underline;
-        }
-        @media (max-width: 560px) {
-          .auth-card {
-            padding: 28px 20px;
-          }
-          .auth-grid-two {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
-    </main>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="password">Password</label>
+              <div className={styles.passwordRow}>
+                <input
+                  aria-describedby="password-hint"
+                  aria-invalid={error ? "true" : undefined}
+                  autoComplete="new-password"
+                  className={styles.input}
+                  id="password"
+                  minLength={10}
+                  name="password"
+                  onChange={(event) => update("password", event.target.value)}
+                  pattern="(?=.*[A-Za-z])(?=.*[0-9]).{10,}"
+                  required
+                  title="Usa almeno 10 caratteri, con almeno una lettera e un numero."
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                />
+                <button
+                  aria-label={showPassword ? "Nascondi password" : "Mostra password"}
+                  className={styles.togglePassword}
+                  onClick={() => setShowPassword((current) => !current)}
+                  type="button"
+                >
+                  {showPassword ? <EyeOff aria-hidden="true" size={18} /> : <Eye aria-hidden="true" size={18} />}
+                </button>
+              </div>
+              <p className={styles.hint} id="password-hint">
+                Almeno 10 caratteri, con almeno una lettera e un numero.
+              </p>
+            </div>
+
+            <div className={styles.consentBox}>
+              <input
+                checked={form.consent_essential}
+                id="consent_essential"
+                name="consent_essential"
+                onChange={(event) => update("consent_essential", event.target.checked)}
+                required
+                type="checkbox"
+              />
+              <div className={styles.consentCopy}>
+                <label htmlFor="consent_essential">
+                  Dichiaro di avere almeno 18 anni, accetto i Termini della community
+                  e dichiaro di aver letto l’informativa privacy (obbligatorio).
+                </label>
+                <p>
+                  Prima di accettare, consulta i{" "}
+                  <Link className={styles.legalLink} href="/termini">Termini</Link>
+                  {" "}e l’{" "}
+                  <Link className={styles.legalLink} href="/privacy">informativa privacy</Link>.
+                  Non chiediamo consensi facoltativi in anticipo.
+                </p>
+              </div>
+            </div>
+
+            <button
+              aria-busy={loading}
+              className={styles.submit}
+              disabled={loading}
+              type="submit"
+            >
+              {loading ? "Creazione…" : "Crea account"}
+            </button>
+          </form>
+
+          <p className={styles.footerText}>
+            Hai già un account?{" "}
+            <Link className={styles.footerLink} href="/login">Accedi</Link>
+          </p>
+        </section>
+      </main>
+      <PublicFooter />
+    </div>
   );
 }

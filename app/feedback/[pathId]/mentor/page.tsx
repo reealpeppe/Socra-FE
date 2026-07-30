@@ -57,6 +57,12 @@ export default function MentorFeedbackPage() {
     event.preventDefault();
     if (!eligible || effort === null || reliability === null || competence === null || !topic) {
       setError("Completa tutte le valutazioni obbligatorie.");
+      const targetId = effort === null
+        ? "mentor-effort"
+        : reliability === null
+          ? "mentor-reliability"
+          : "mentor-competence";
+      window.requestAnimationFrame(() => document.getElementById(targetId)?.focus());
       return;
     }
     setError(null);
@@ -76,20 +82,20 @@ export default function MentorFeedbackPage() {
     }
   }
 
-  const isComplete = eligible && effort !== null && reliability !== null && competence !== null && !!topic;
+  const completedRequired = [effort, reliability, competence].filter((value) => value !== null).length;
   const isDirty = effort !== null || reliability !== null || competence !== null || text.length > 0;
   useUnsavedChangesGuard(eligible && isDirty);
 
   return (
-    <AppShell>
+    <AppShell primaryAction={{ href: `/paths/${pathId}`, label: "Torna al percorso" }}>
       <OnboardingGate>
-        <form onSubmit={onSubmit} style={{ display: "grid", gap: "24px", maxWidth: "700px" }}>
+        <form onSubmit={onSubmit} style={{ display: "grid", gap: "24px", margin: "0 auto", maxWidth: "700px", width: "100%" }}>
           <div>
             <h1 style={{ color: "var(--navy-950)", fontSize: "clamp(1.6rem, 3vw, 2.4rem)", margin: "0 0 4px" }}>
               Feedback sul mentee
             </h1>
             <p style={{ color: "var(--muted)", margin: 0 }}>
-              Le valutazioni restano indipendenti e non vengono mostrate all&apos;altra persona.
+              Le valutazioni numeriche restano indipendenti. L’eventuale nota testuale sarà visibile solo a voi due e agli admin, dopo che entrambi avrete inviato il feedback.
             </p>
           </div>
 
@@ -117,6 +123,9 @@ export default function MentorFeedbackPage() {
           {!loading && eligible ? (
             <>
               <div className="card">
+                <p className="muted" role="status" aria-live="polite" style={{ marginBottom: "16px" }}>
+                  Valutazioni completate: {completedRequired} di 3
+                </p>
                 <div className="mentor-feedback-grid">
                   <ScoreField
                     id="mentor-effort"
@@ -152,21 +161,29 @@ export default function MentorFeedbackPage() {
                     alignItems: "center", color: "var(--navy-950)",
                     display: "flex", fontSize: "0.85rem", fontWeight: 800, gap: "6px"
                   }}>
-                    <MessageSquareText size={15} aria-hidden /> Nota privata opzionale
+                    <MessageSquareText size={15} aria-hidden /> Nota condivisa opzionale
                   </label>
+                  <p id="mentor-feedback-note-hint" className="muted" style={{ fontSize: "0.8rem", margin: 0 }}>
+                    Diventa visibile soltanto a mentor, mentee e admin dopo entrambi i feedback. Non comparirà sul profilo pubblico.
+                  </p>
                   <textarea
                     id="mentor-feedback-note"
+                    name="mentor_feedback_note"
                     className="input"
                     value={text}
                     onChange={(event) => setText(event.target.value)}
                     disabled={submitting}
-                    placeholder="Un messaggio sul percorso, visibile solo a voi due e agli admin"
+                    aria-describedby="mentor-feedback-note-hint mentor-feedback-note-count"
+                    placeholder="Scrivi un messaggio sul percorso…"
                   />
+                  <span id="mentor-feedback-note-count" className="muted" style={{ fontSize: "0.75rem", textAlign: "right" }}>
+                    {text.length} caratteri
+                  </span>
                 </div>
               </div>
 
               <div style={{ display: "flex", justifyContent: "flex-end" }}>
-                <button className="button dark" type="submit" disabled={!isComplete || submitting} style={{ gap: "8px", minWidth: "200px" }}>
+                <button className="button dark" type="submit" disabled={submitting} style={{ gap: "8px", minWidth: "200px" }}>
                   <Star size={16} aria-hidden /> {submitting ? "Invio…" : "Invia feedback"}
                 </button>
               </div>

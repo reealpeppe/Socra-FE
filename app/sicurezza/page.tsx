@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Shield, Lock, Video, AlertTriangle, Users, Star, CheckCircle } from "lucide-react";
 import { PublicNavbar, PublicFooter } from "@/components/PublicLayout";
+import publicStyles from "@/components/PublicLayout.module.css";
 
 export const metadata: Metadata = {
   title: "Sicurezza Socra — Regole e strumenti della community",
@@ -12,17 +13,17 @@ const features = [
   {
     icon: Lock,
     title: "Profilo pubblico essenziale",
-    body: "Il profilo pubblico mostra livello, topic tradotti, metriche aggregate, badge e testi facoltativi. Le risposte dettagliate della survey non sono pubbliche",
+    body: "Il profilo nella community mostra livello, argomenti generalizzati, risultati aggregati, badge e testi facoltativi. Le risposte dettagliate della survey restano private",
   },
   {
     icon: Video,
-    title: "Nessuna registrazione audio o video",
-    body: "Socra non registra audio o video. Un’eventuale trascrizione della prima sessione richiede una scelta esplicita di entrambe le persone",
+    title: "Nessuna registrazione o trascrizione",
+    body: "Socra non registra audio o video e oggi non acquisisce trascrizioni della prima sessione",
   },
   {
     icon: Shield,
     title: "Prima call collegata al percorso",
-    body: "La prima call usa un Google Meet creato da Socra. Il percorso conserva solo i metadati operativi previsti: ingresso, uscita, durata e presenza",
+    body: "La prima call usa un Google Meet creato da Socra. Il percorso conserva soltanto presenza e durata quando questi dati sono disponibili",
   },
   {
     icon: CheckCircle,
@@ -87,7 +88,7 @@ export default function SicurezzaPage() {
                 margin: "0 0 28px",
                 maxWidth: "55ch",
               }}>
-                Socra combina regole di percorso, metadati minimi della prima call, feedback reciproco e revisione manuale delle segnalazioni.
+                Socra combina regole di percorso, presenza e durata della prima call, feedback reciproco e revisione manuale delle segnalazioni.
               </p>
               <div style={{
                 display: "flex",
@@ -293,18 +294,7 @@ export default function SicurezzaPage() {
             }}>
               Durante un percorso trovi l&apos;azione “Segnala problema” nel relativo dettaglio. Per conoscere regole e limiti della community, consulta le risposte frequenti.
             </p>
-            <Link href="/faq" style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "8px",
-              background: "var(--gold-500)",
-              color: "var(--navy-950)",
-              fontWeight: 800,
-              fontSize: "1rem",
-              padding: "14px 32px",
-              borderRadius: "999px",
-              textDecoration: "none",
-            }}>
+            <Link className={publicStyles.actionGold} href="/faq">
               Consulta le FAQ
             </Link>
           </div>

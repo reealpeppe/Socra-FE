@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, Award, CheckCircle2, Shield, ThumbsUp } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Shield, ThumbsUp } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { UserAvatar, LevelBadge, MetricStat } from "@/components/Ui";
 import { ClientApiError, clientGet, clientPost } from "@/lib/api";
@@ -34,9 +34,21 @@ function ProfileContent() {
   const [candidateLoading, setCandidateLoading] = useState(false);
   const [candidateError, setCandidateError] = useState<string | null>(null);
   const [candidateRetryVersion, setCandidateRetryVersion] = useState(0);
+  const [profileRetryVersion, setProfileRetryVersion] = useState(0);
+  const [requestStateReady, setRequestStateReady] = useState(false);
+  const [supportingDataError, setSupportingDataError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      setLoading(true);
+      setError(null);
+      setSupportingDataError(null);
+      setRequestStateReady(false);
+      setRequestSent(false);
+      setActiveGoal(null);
+    });
     Promise.allSettled([
       clientGet<UserMe>("/auth/me"),
       clientGet<PublicProfile>(`/profiles/${userId}`),
@@ -61,8 +73,14 @@ function ProfileContent() {
                 && request.mentor_id === userId
             );
             setRequestSent(sent);
+            setRequestStateReady(true);
           }
         }
+      }
+      if (goalsResult.status === "rejected" || requestsResult.status === "rejected") {
+        setSupportingDataError("Non riusciamo a verificare obiettivo e richieste già inviate. Riprova prima di procedere.");
+      } else {
+        setRequestStateReady(true);
       }
       setLoading(false);
     });
@@ -70,7 +88,7 @@ function ProfileContent() {
     return () => {
       active = false;
     };
-  }, [userId]);
+  }, [profileRetryVersion, userId]);
 
   const isOwnProfile = me?.id === userId;
   const displayName = profile?.nickname || (isOwnProfile ? me?.nickname || me?.username : null) || "Utente Socra";
@@ -80,34 +98,37 @@ function ProfileContent() {
   const completedPaths = profile?.completed_paths ?? 0;
   const goalsReached = percentMetric(profile?.aggregate_metrics?.goals_reached_pct);
   const wouldRepeat = percentMetric(profile?.aggregate_metrics?.would_repeat_pct);
-  const publicMetricsReady = goalsReached !== null && wouldRepeat !== null;
+  const hasAnyPublicMetric = goalsReached !== null || wouldRepeat !== null;
 
   useEffect(() => {
     let active = true;
-    if (!activeGoal?.id || !me || isOwnProfile || !profile?.is_coach) {
-      setCandidate(null);
-      setCandidateError(null);
-      setCandidateLoading(false);
-      return;
-    }
-    setCandidateError(null);
-    setCandidateLoading(true);
-    clientPost<MatchCandidate[]>("/matching/candidates", { goal_id: activeGoal.id })
-      .then((items) => {
-        if (active) setCandidate(items.find((item) => item.mentor_id === userId) || null);
-      })
-      .catch((err) => {
-        if (!active) return;
+    queueMicrotask(() => {
+      if (!active) return;
+      if (!activeGoal?.id || !me || isOwnProfile || !profile?.is_coach || requestSent) {
         setCandidate(null);
-        setCandidateError(err instanceof ClientApiError ? err.message : "Verifica compatibilità non disponibile");
-      })
-      .finally(() => {
-        if (active) setCandidateLoading(false);
-      });
+        setCandidateError(null);
+        setCandidateLoading(false);
+        return;
+      }
+      setCandidateError(null);
+      setCandidateLoading(true);
+      clientPost<MatchCandidate[]>("/matching/candidates", { goal_id: activeGoal.id })
+        .then((items) => {
+          if (active) setCandidate(items.find((item) => item.mentor_id === userId) || null);
+        })
+        .catch((err) => {
+          if (!active) return;
+          setCandidate(null);
+          setCandidateError(err instanceof ClientApiError ? err.message : "Verifica compatibilità non disponibile");
+        })
+        .finally(() => {
+          if (active) setCandidateLoading(false);
+        });
+    });
     return () => {
       active = false;
     };
-  }, [activeGoal?.id, candidateRetryVersion, isOwnProfile, me, profile?.is_coach, userId]);
+  }, [activeGoal?.id, candidateRetryVersion, isOwnProfile, me, profile?.is_coach, requestSent, userId]);
 
   async function sendMatchRequest() {
     if (!activeGoal || isOwnProfile || !me || !profile?.is_coach || !candidate) return;
@@ -134,12 +155,13 @@ function ProfileContent() {
           {isOwnProfile ? "Torna alla dashboard" : "Torna alla lista dei mentor"}
         </Link>
 
-        {loading ? (
+	        {loading ? (
           <ProfileSkeleton />
-        ) : error ? (
-          <div className="card profile-empty">
-            <p>{error}</p>
-            <Link href="/matching" className="button secondary">Torna al matching</Link>
+	        ) : error ? (
+	          <div className="card profile-empty">
+	            <p>{error}</p>
+              <button className="button secondary" type="button" onClick={() => setProfileRetryVersion((value) => value + 1)}>Riprova</button>
+	            <Link href="/matching" className="button secondary">Torna al matching</Link>
           </div>
         ) : profile ? (
           <>
@@ -188,19 +210,6 @@ function ProfileContent() {
                   )}
                 </section>
 
-                {badges.length ? (
-                  <section className="card">
-                    <p className="profile-section-label">Badge ottenuti</p>
-                    <div className="profile-badge-list">
-                      {badges.map((badge) => (
-                        <span key={badge} className="profile-badge-item">
-                          <Award size={14} aria-hidden /> {badge}
-                        </span>
-                      ))}
-                    </div>
-                  </section>
-                ) : null}
-
                 {!isOwnProfile && candidate ? (
                   <section className="card profile-match-card">
                     <p className="profile-section-label">Compatibilità con il tuo obiettivo</p>
@@ -213,30 +222,27 @@ function ProfileContent() {
                 ) : null}
 
                 <section className="card">
-                  <p className="profile-section-label">Performance pubblica</p>
-                  <div className="profile-metrics-grid">
-                    <div className="profile-metric-row">
-                      <span>Percorsi completati</span>
-                      <strong>{completedPaths}</strong>
-                    </div>
-                    {publicMetricsReady ? (
-                      <>
-                    <div className="profile-metric-row">
-                      <span>Obiettivi raggiunti o forte miglioramento</span>
-                      <strong>{goalsReached}</strong>
-                    </div>
-                    <div className="profile-metric-row">
-                      <span>Disponibili a ripetere il percorso</span>
-                      <strong>{wouldRepeat}</strong>
-                    </div>
-                      </>
-                    ) : (
-                      <div className="profile-metric-row">
-                        <span>Reputazione</span>
-                        <strong>Nuovo utente</strong>
-                      </div>
-                    )}
-                  </div>
+                  <p className="profile-section-label">Attività nella community</p>
+	                  <div className="profile-metrics-grid">
+                    {goalsReached !== null ? (
+	                    <div className="profile-metric-row">
+	                      <span>Obiettivi raggiunti o forte miglioramento</span>
+	                      <strong>{goalsReached}</strong>
+	                    </div>
+                    ) : null}
+                    {wouldRepeat !== null ? (
+	                    <div className="profile-metric-row">
+	                      <span>Disponibili a ripetere il percorso</span>
+	                      <strong>{wouldRepeat}</strong>
+	                    </div>
+                    ) : null}
+                    {!hasAnyPublicMetric ? (
+	                      <div className="profile-metric-row">
+	                        <span>Reputazione</span>
+	                        <strong>Nuovo utente</strong>
+	                      </div>
+                    ) : null}
+	                  </div>
                 </section>
               </div>
 
@@ -246,8 +252,8 @@ function ProfileContent() {
                     <Shield size={20} aria-hidden />
                     <div>
                       <p className="profile-card-title">Privacy protetta</p>
-                      <p className="profile-muted-text">
-                        Dati finanziari, capitale e componenti del matching non sono pubblici.
+	                      <p className="profile-muted-text">
+	                        Capitale, profilo di rischio e risposte private non sono pubblici.
                       </p>
                     </div>
                   </div>
@@ -267,7 +273,7 @@ function ProfileContent() {
                     <p className="profile-muted-text">La sessione non è disponibile.</p>
                     <Link href="/login" className="button">Vai all&apos;accesso</Link>
                   </section>
-                ) : requestSent ? (
+	                ) : requestSent ? (
                   <RequestCard
                     activeGoal={activeGoal}
                     pathCost={profile.path_cost}
@@ -276,6 +282,12 @@ function ProfileContent() {
                     requestError={null}
                     onRequest={sendMatchRequest}
                   />
+	                ) : supportingDataError || !requestStateReady ? (
+                  <section className="card profile-request-card" role="alert">
+                    <p className="profile-card-title">Verifica operativa non disponibile</p>
+                    <p className="profile-muted-text">{supportingDataError || "Riprova prima di inviare una richiesta."}</p>
+                    <button className="button secondary" type="button" onClick={() => setProfileRetryVersion((value) => value + 1)}>Riprova</button>
+                  </section>
                 ) : candidateLoading ? (
                   <section className="card profile-request-card" role="status">
                     <p className="profile-card-title">Verifica compatibilità…</p>
@@ -288,10 +300,10 @@ function ProfileContent() {
                       Riprova
                     </button>
                   </section>
-                ) : activeGoal && !candidate ? (
-                  <section className="card profile-request-card">
-                    <p className="profile-card-title">Non disponibile per questo obiettivo</p>
-                    <p className="profile-muted-text">Il profilo non rientra nelle proposte valide per livello e obiettivo attivi.</p>
+	                ) : activeGoal && !candidate ? (
+	                  <section className="card profile-request-card">
+	                    <p className="profile-card-title">Non disponibile per questo obiettivo</p>
+	                    <p className="profile-muted-text">Il profilo non rientra nei suggerimenti disponibili per il tuo obiettivo attivo.</p>
                     <Link href={`/matching?goalId=${activeGoal.id}`} className="button secondary">Vedi mentor compatibili</Link>
                   </section>
                 ) : (
@@ -380,14 +392,14 @@ function OwnProfileCard({ isCoach, level }: { isCoach: boolean; level: string })
               ? "Il tuo profilo mentor è attivo: puoi monitorare richieste e percorsi."
               : isEligibleForMentor
                 ? "Hai disattivato la disponibilità come mentor. Puoi riattivarla dalle impostazioni."
-                : "Il livello L0 non abilita ancora il ruolo mentor. Continua il percorso per sviluppare le competenze necessarie."}
+                : "Al momento il tuo profilo non è disponibile come mentor."}
           </p>
         </div>
       </div>
       <div className="profile-own-actions">
         {isCoach ? <Link href="/settings" className="button secondary">Impostazioni</Link> : null}
         <Link href={isCoach ? "/paths?tab=mentor" : isEligibleForMentor ? "/settings" : "/livelli"} className="button">
-          {isCoach ? "Percorsi mentor" : isEligibleForMentor ? "Gestisci ruolo mentor" : "Come crescere di livello"}
+          {isCoach ? "Percorsi mentor" : isEligibleForMentor ? "Gestisci ruolo mentor" : "Informazioni sui livelli"}
         </Link>
       </div>
     </section>
@@ -413,7 +425,9 @@ function ProfileStyles() {
       .profile-page {
         display: grid;
         gap: 20px;
+        margin: 0 auto;
         max-width: 1100px;
+        width: 100%;
       }
 
       .profile-back {
@@ -684,6 +698,8 @@ function ProfileStyles() {
       @media (max-width: 600px) {
         .profile-hero-left {
           flex-direction: column;
+          min-width: 0;
+          width: 100%;
         }
 
         .profile-hero-stats {

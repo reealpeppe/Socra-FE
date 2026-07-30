@@ -1,13 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, XCircle } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
+import { TabPanel, Tabs } from "@/components/Ui";
 import { ClientApiError, clientGet, clientPost } from "@/lib/api";
-import type { MatchRequestItem, UserMe } from "@/lib/types";
+import type { MatchRequestItem, UserMe, Wallet } from "@/lib/types";
+
+type RequestWithCost = MatchRequestItem & {
+  cost_at_request?: number;
+};
 
 type MatchRespondResult = {
   id: string;
@@ -47,7 +52,9 @@ export default function RequestsPage() {
   return (
     <AppShell>
       <OnboardingGate>
-        <RequestsContent />
+        <Suspense fallback={<div className="card" role="status">Caricamento proposte…</div>}>
+          <RequestsContent />
+        </Suspense>
       </OnboardingGate>
     </AppShell>
   );
@@ -55,38 +62,60 @@ export default function RequestsPage() {
 
 function RequestsContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const requestedTab: "received" | "sent" = searchParams.get("tab") === "sent" ? "sent" : "received";
   const [me, setMe] = useState<UserMe | null>(null);
-  const [requests, setRequests] = useState<MatchRequestItem[]>([]);
+  const [requests, setRequests] = useState<RequestWithCost[]>([]);
+  const [wallet, setWallet] = useState<Wallet | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [tab, setTab] = useState<"received" | "sent">("received");
+  const [tab, setTab] = useState<"received" | "sent">(requestedTab);
   const [loading, setLoading] = useState(true);
   const [pendingResponses, setPendingResponses] = useState<Set<string>>(new Set());
 
   async function load() {
+    setLoading(true);
     setError(null);
-    try {
-      const [user, items] = await Promise.all([
-        clientGet<UserMe>("/auth/me"),
-        clientGet<MatchRequestItem[]>("/matching/requests/me?role=all")
-      ]);
-      setMe(user);
-      setRequests(Array.isArray(items) ? items : []);
-    } catch (err) {
-      setError(err instanceof ClientApiError ? err.message : "Richieste non disponibili");
-    } finally {
-      setLoading(false);
+    const [userResult, requestsResult, walletResult] = await Promise.allSettled([
+      clientGet<UserMe>("/auth/me"),
+      clientGet<RequestWithCost[]>("/matching/requests/me?role=all"),
+      clientGet<Wallet>("/wallet/me")
+    ]);
+    if (userResult.status === "fulfilled") setMe(userResult.value);
+    else setMe(null);
+    if (requestsResult.status === "fulfilled") {
+      setRequests(Array.isArray(requestsResult.value) ? requestsResult.value : []);
+    } else {
+      setRequests([]);
     }
+    setWallet(walletResult.status === "fulfilled" ? walletResult.value : null);
+    if (userResult.status === "rejected" || requestsResult.status === "rejected") {
+      setError("Non riusciamo a caricare le proposte. Riprova.");
+    }
+    setLoading(false);
   }
 
   useEffect(() => {
-    const requestedTab = new URLSearchParams(window.location.search).get("tab");
-    if (requestedTab === "sent" || requestedTab === "received") setTab(requestedTab);
-    load();
+    queueMicrotask(() => {
+      void load();
+    });
   }, []);
+
+  useEffect(() => {
+    queueMicrotask(() => setTab(requestedTab));
+  }, [requestedTab]);
 
   async function respond(id: string, accept: boolean) {
     if (pendingResponses.has(id)) return;
+    const request = requests.find((item) => item.id === id);
+    if (!request) return;
+    if (accept) {
+      const cost = request.initiator_role === "mentor" ? request.cost_at_request : 0;
+      const costCopy = typeof cost === "number" && cost > 0
+        ? ` Il percorso costerà ${cost} ${cost === 1 ? "credito" : "crediti"}. Crediti disponibili: ${wallet?.balance ?? "non disponibili"}.`
+        : "";
+      if (!window.confirm(`Vuoi accettare e aprire questo percorso?${costCopy}`)) return;
+    }
     if (!accept && !window.confirm("Vuoi rifiutare questa proposta? L'altra persona potrà continuare la ricerca.")) return;
     setError(null);
     setMessage(null);
@@ -104,8 +133,8 @@ function RequestsContent() {
       }
       await load();
     } catch (err) {
-      if (err instanceof ClientApiError && err.status === 409 && err.message.includes("expired_by_timeout")) {
-        setMessage("La richiesta è scaduta prima della risposta. Nessun percorso è stato aperto.");
+      if (err instanceof ClientApiError && err.status === 409) {
+        setMessage("La richiesta non è più disponibile. Nessun percorso è stato aperto.");
         await load();
       } else {
         setError(err instanceof ClientApiError ? err.message : "Risposta non salvata");
@@ -121,7 +150,7 @@ function RequestsContent() {
 
   function selectTab(next: "received" | "sent") {
     setTab(next);
-    router.replace(`/requests?tab=${next}`);
+    router.replace(`/requests?tab=${next}`, { scroll: false });
   }
 
   const received = useMemo(
@@ -157,43 +186,35 @@ function RequestsContent() {
       </div>
 
       <div className="requests-stats">
-        <StatCard label="Ricevute" value={received.length} />
-        <StatCard label="Inviate" value={sent.length} />
-        <StatCard label="In attesa" value={requests.filter((request) => request.status === "pending").length} />
+        <StatCard label="Ricevute" value={loading || error ? "—" : received.length} />
+        <StatCard label="Inviate" value={loading || error ? "—" : sent.length} />
+        <StatCard label="In attesa" value={loading || error ? "—" : requests.filter((request) => request.status === "pending").length} />
       </div>
 
-      {error ? <p className="error" role="alert">{error}</p> : null}
+      {error ? (
+        <div className="error" role="alert" style={{ alignItems: "center", display: "flex", flexWrap: "wrap", gap: "12px", justifyContent: "space-between" }}>
+          <span>{error}</span>
+          <button className="button secondary" type="button" onClick={() => void load()}>Riprova</button>
+        </div>
+      ) : null}
       {message ? <p className="success" role="status">{message}</p> : null}
 
-      <div className="requests-tabs" role="tablist" aria-label="Richieste">
-        <button
-          id="requests-tab-received"
-          className={tab === "received" ? "active" : ""}
-          type="button"
-          role="tab"
-          aria-selected={tab === "received"}
-          aria-controls="requests-panel"
-          onClick={() => selectTab("received")}
-        >
-          Ricevute ({received.length})
-        </button>
-        <button
-          id="requests-tab-sent"
-          className={tab === "sent" ? "active" : ""}
-          type="button"
-          role="tab"
-          aria-selected={tab === "sent"}
-          aria-controls="requests-panel"
-          onClick={() => selectTab("sent")}
-        >
-          Inviate ({sent.length})
-        </button>
-      </div>
+      <Tabs
+        id="requests"
+        panelId="requests-panel"
+        ariaLabel="Richieste"
+        value={tab}
+        onValueChange={(value) => selectTab(value === "sent" ? "sent" : "received")}
+        items={[
+          { value: "received", label: `Ricevute (${received.length})` },
+          { value: "sent", label: `Inviate (${sent.length})` },
+        ]}
+      />
 
-      <div id="requests-panel" role="tabpanel" aria-labelledby={`requests-tab-${tab}`}>
+      <TabPanel id="requests-panel" labelledBy={`requests-tab-${tab}`}>
       {loading ? (
         <div className="card requests-empty"><p className="muted" role="status">Caricamento richieste…</p></div>
-      ) : displayed.length === 0 ? (
+      ) : error ? null : displayed.length === 0 ? (
         <div className="card requests-empty">
           <strong>Nessuna richiesta</strong>
           <p className="muted">Le richieste {tab === "received" ? "ricevute" : "inviate"} appariranno qui.</p>
@@ -212,14 +233,14 @@ function RequestsContent() {
           ))}
         </div>
       )}
-      </div>
+      </TabPanel>
 
       <RequestsStyles />
     </div>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
+function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="card requests-stat">
       <p>{label}</p>
@@ -235,7 +256,7 @@ function RequestRow({
   pending,
   onRespond
 }: {
-  request: MatchRequestItem;
+  request: RequestWithCost;
   isReceived: boolean;
   canRespond: boolean;
   pending: boolean;
@@ -272,6 +293,11 @@ function RequestRow({
           <strong>{request.goal?.goal_tag || "Obiettivo Socra"}</strong>
           {request.goal?.topic ? <span>{request.goal.topic}</span> : null}
           {isReceived && request.mentee?.level ? <span>Livello mentee: {request.mentee.level}</span> : null}
+          {isReceived && initiatedByMentor && typeof request.cost_at_request === "number" ? (
+            <span>
+              Costo all&apos;accettazione: {request.cost_at_request} {request.cost_at_request === 1 ? "credito" : "crediti"}
+            </span>
+          ) : null}
         </div>
         <div className="requests-meta">
           <span>Mentor: {request.mentor?.nickname || "Profilo mentor"}</span>
@@ -307,7 +333,9 @@ function RequestsStyles() {
       .requests-page {
         display: grid;
         gap: 20px;
+        margin: 0 auto;
         max-width: 980px;
+        width: 100%;
       }
 
       .requests-header {
@@ -346,27 +374,6 @@ function RequestsStyles() {
       .requests-stat strong {
         color: var(--navy-950, #07172d);
         font-size: 1.8rem;
-      }
-
-      .requests-tabs {
-        border-bottom: 1px solid var(--line);
-        display: flex;
-        gap: 4px;
-      }
-
-      .requests-tabs button {
-        background: transparent;
-        border: 0;
-        border-bottom: 3px solid transparent;
-        color: var(--muted);
-        font-weight: 800;
-        margin-bottom: -1px;
-        padding: 12px 16px;
-      }
-
-      .requests-tabs button.active {
-        border-bottom-color: var(--gold-500, #f5b62f);
-        color: var(--navy-950, #07172d);
       }
 
       .requests-empty {

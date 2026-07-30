@@ -16,12 +16,33 @@ export default function SettingsPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [savingMentorStatus, setSavingMentorStatus] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [retryVersion, setRetryVersion] = useState(0);
 
   useEffect(() => {
+    let active = true;
+    queueMicrotask(() => {
+      if (!active) return;
+      setLoading(true);
+      setError(null);
+    });
     clientGet<UserMe>("/auth/me")
-      .then(setMe)
-      .catch((err: { message?: string }) => setError(err.message || "Account non disponibile"));
-  }, []);
+      .then((user) => {
+        if (active) setMe(user);
+      })
+      .catch(() => {
+        if (active) {
+          setMe(null);
+          setError("Non riusciamo a caricare l’account. Riprova.");
+        }
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [retryVersion]);
 
   async function logout() {
     setLoggingOut(true);
@@ -38,14 +59,17 @@ export default function SettingsPage() {
 
   async function updateMentorStatus(isCoach: boolean) {
     if (!me || savingMentorStatus) return;
+    const previous = me;
     setSavingMentorStatus(true);
     setError(null);
     setMessage(null);
+    setMe({ ...me, is_coach: isCoach });
     try {
       const updated = await clientPatch<UserMe>("/profiles/me/mentor-status", { is_coach: isCoach });
       setMe(updated);
       setMessage(isCoach ? "Disponibilità come mentor attivata." : "Disponibilità come mentor disattivata.");
     } catch (err) {
+      setMe(previous);
       setError(err instanceof ClientApiError ? err.message : "Preferenza mentor non salvata.");
     } finally {
       setSavingMentorStatus(false);
@@ -53,15 +77,32 @@ export default function SettingsPage() {
   }
 
   const displayName = me?.nickname || me?.username || "Account";
+  const accountStatus = me?.account_status === "active"
+    ? "Attivo"
+    : me?.account_status === "suspended"
+      ? "Sospeso"
+      : me?.account_status === "pending"
+        ? "In verifica"
+        : me?.account_status
+          ? "Da verificare"
+          : "—";
 
   return (
     <AppShell>
       <div className="settings-page">
         <h1 className="settings-heading">Impostazioni</h1>
 
-        {error && <div className="settings-error" role="alert">{error}</div>}
+        {error && (
+          <div className="settings-error" role="alert">
+            <span>{error}</span>
+            {!me ? <button className="button secondary" type="button" onClick={() => setRetryVersion((value) => value + 1)}>Riprova</button> : null}
+          </div>
+        )}
         {message && <div className="settings-success" role="status">{message}</div>}
 
+        {loading ? <div className="card" role="status">Caricamento impostazioni…</div> : null}
+        {me ? (
+        <>
         <div className="card settings-card">
           <h2 className="settings-section-title">Il tuo profilo</h2>
           <div className="settings-profile-top">
@@ -94,7 +135,7 @@ export default function SettingsPage() {
             )}
             <div className="settings-field">
               <span className="settings-field-label">Stato account</span>
-              <span className="settings-field-value">{me?.account_status === "active" ? "Attivo" : me?.account_status || "-"}</span>
+              <span className="settings-field-value">{accountStatus}</span>
             </div>
           </div>
         </div>
@@ -104,7 +145,7 @@ export default function SettingsPage() {
           <div className="settings-level-row">
             {me ? <LevelBadge level={me.level} /> : <span className="settings-field-value">-</span>}
             <p className="settings-level-text">
-              Il livello iniziale deriva dalla survey e può evolvere con percorsi completati e segnali qualitativi.
+              Il livello descrive il punto di partenza con cui Socra organizza l&apos;esperienza.
               {me?.is_coach && " Sei attivo come mentor."}
             </p>
           </div>
@@ -116,19 +157,21 @@ export default function SettingsPage() {
         <div className="card settings-card">
           <h2 className="settings-section-title">Disponibilità come mentor</h2>
           <div className="settings-switch-row">
-            <div>
+            <label htmlFor="mentor-availability">
               <strong>Ricevi richieste compatibili</strong>
-              <p className="settings-account-note">
+              <p id="mentor-availability-hint" className="settings-account-note">
                 {me?.level === "L0"
-                  ? "La disponibilità si sblocca dal livello L1."
+                  ? "La disponibilità come mentor non è attiva per questo profilo."
                   : "Puoi disattivarla in qualsiasi momento. I percorsi già aperti non vengono interrotti."}
               </p>
-            </div>
+            </label>
             <label className="settings-switch">
               <input
+                id="mentor-availability"
                 type="checkbox"
                 role="switch"
                 aria-label="Disponibilità come mentor"
+                aria-describedby="mentor-availability-hint"
                 checked={!!me?.is_coach}
                 disabled={!me || me.level === "L0" || savingMentorStatus}
                 onChange={(event) => updateMentorStatus(event.target.checked)}
@@ -149,15 +192,18 @@ export default function SettingsPage() {
             {loggingOut ? "Disconnessione…" : "Esci"}
           </button>
         </div>
+        </>
+        ) : null}
       </div>
 
       <style jsx global>{`
         .settings-page {
           max-width: 800px;
           margin: 0 auto;
-          padding: 32px 24px;
+          padding: 0;
           display: grid;
           gap: 24px;
+          width: 100%;
         }
         .settings-heading {
           font-size: 1.75rem;
@@ -166,11 +212,16 @@ export default function SettingsPage() {
           margin: 0;
         }
         .settings-error {
+          align-items: center;
           background: #fee2e2;
           border: 1px solid #fca5a5;
           border-radius: var(--radius-sm);
           color: #dc2626;
           font-size: 0.875rem;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          justify-content: space-between;
           padding: 10px 14px;
         }
         .settings-success {
@@ -265,6 +316,10 @@ export default function SettingsPage() {
           color: var(--ink);
           display: block;
           margin-bottom: 5px;
+        }
+        .settings-switch-row > label:first-child {
+          cursor: pointer;
+          flex: 1;
         }
         .settings-switch {
           flex-shrink: 0;

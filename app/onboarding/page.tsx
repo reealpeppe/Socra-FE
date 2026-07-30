@@ -19,7 +19,8 @@ import {
   type SelectOption,
 } from "@/lib/options";
 
-const draftKey = "socra_onboarding_draft";
+const legacyDraftKey = "socra_onboarding_draft";
+const draftKeyFor = (userId: string) => `${legacyDraftKey}:${userId}`;
 
 type Answers = Record<string, unknown> & {
   D1?: string;
@@ -35,6 +36,7 @@ type Answers = Record<string, unknown> & {
 };
 
 type OnboardingState = {
+  user_id?: string;
   level: string;
   is_coach: boolean;
   latest_answer_id: string | null;
@@ -73,27 +75,34 @@ export default function OnboardingPage() {
   const [result, setResult] = useState<{ total_score: number; derived_level: string; is_coach: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [draftWarning, setDraftWarning] = useState<string | null>(null);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [loadedDraft, setLoadedDraft] = useState(false);
+  const [draftStorageKey, setDraftStorageKey] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const saveQueue = useRef<Promise<unknown>>(Promise.resolve());
+  const stepHeadingRef = useRef<HTMLHeadingElement>(null);
+  const errorRef = useRef<HTMLParagraphElement>(null);
 
   const scores = useMemo(() => estimateScores(answers), [answers]);
   const steps = useMemo(() => buildSteps(answers), [answers]);
   const safeStep = Math.min(step, steps.length - 1);
   const current = steps[safeStep];
-  const progressPct = Math.round(((safeStep + 1) / steps.length) * 100);
-  const progressStep = Math.min(4, Math.floor((safeStep / Math.max(steps.length - 1, 1)) * 5));
 
   useEffect(() => {
     let active = true;
 
     async function load() {
+      let resolvedDraftStorageKey: string | null = null;
       try {
         const state = await clientGet<OnboardingState>("/surveys/onboarding/me");
         if (!active) return;
+        const userDraftKey = state.user_id ? draftKeyFor(state.user_id) : null;
+        resolvedDraftStorageKey = userDraftKey;
+        setDraftStorageKey(userDraftKey);
+        window.sessionStorage.removeItem(legacyDraftKey);
         if (state.latest_answer_id) {
           setCompleted(state);
-          window.sessionStorage.removeItem(draftKey);
+          if (userDraftKey) window.sessionStorage.removeItem(userDraftKey);
           setLoadedDraft(true);
           return;
         }
@@ -121,14 +130,18 @@ export default function OnboardingPage() {
         if (active) setDraftWarning("Bozza online non disponibile: continuiamo a salvare su questo dispositivo.");
       }
 
-      const rawDraft = window.sessionStorage.getItem(draftKey);
+      const rawDraft = resolvedDraftStorageKey
+        ? window.sessionStorage.getItem(resolvedDraftStorageKey)
+        : null;
       if (rawDraft) {
         try {
           const draft = JSON.parse(rawDraft) as SurveyDraft;
           setStep(draft.step);
           setAnswers(draft.answers || {});
         } catch {
-          window.sessionStorage.removeItem(draftKey);
+          if (resolvedDraftStorageKey) {
+            window.sessionStorage.removeItem(resolvedDraftStorageKey);
+          }
         }
       }
       if (active) setLoadedDraft(true);
@@ -141,10 +154,6 @@ export default function OnboardingPage() {
   }, []);
 
   useEffect(() => {
-    if (step >= steps.length) setStep(Math.max(steps.length - 1, 0));
-  }, [step, steps.length]);
-
-  useEffect(() => {
     if (!loadedDraft || result || completed) return;
     const draft: SurveyDraft = {
       step: safeStep,
@@ -152,7 +161,9 @@ export default function OnboardingPage() {
       answers,
       dNeverInvested: answers.D1 === "none",
     };
-    window.sessionStorage.setItem(draftKey, JSON.stringify(draft));
+    if (draftStorageKey) {
+      window.sessionStorage.setItem(draftStorageKey, JSON.stringify(draft));
+    }
     const timer = window.setTimeout(() => {
       saveQueue.current = saveQueue.current
         .catch(() => undefined)
@@ -163,13 +174,28 @@ export default function OnboardingPage() {
           include_section_d: true,
           d_never_invested: draft.dNeverInvested,
         }))
-        .then(() => setDraftWarning(null))
+        .then(() => {
+          setDraftWarning(null);
+          setLastSavedAt(new Date());
+        })
         .catch(() => setDraftWarning("Salvataggio online temporaneamente non disponibile; la bozza resta su questo dispositivo."));
     }, 500);
     return () => window.clearTimeout(timer);
-  }, [answers, completed, loadedDraft, result, safeStep, scores]);
+  }, [answers, completed, draftStorageKey, loadedDraft, result, safeStep, scores]);
+
+  useEffect(() => {
+    if (!loadedDraft || result || completed) return;
+    const frame = window.requestAnimationFrame(() => stepHeadingRef.current?.focus());
+    return () => window.cancelAnimationFrame(frame);
+  }, [completed, loadedDraft, result, safeStep]);
+
+  function showValidationError(message: string) {
+    setError(message);
+    window.requestAnimationFrame(() => errorRef.current?.focus());
+  }
 
   function setExperience(key: "D1" | "D2" | "D5" | "D6", value: string) {
+    setError(null);
     setAnswers((currentAnswers) => {
       const next = { ...currentAnswers, [key]: value };
       if (key === "D1") {
@@ -186,6 +212,7 @@ export default function OnboardingPage() {
   }
 
   function setInstrument(topic: string, value: string) {
+    setError(null);
     setAnswers((currentAnswers) => ({
       ...currentAnswers,
       D3: { ...(currentAnswers.D3 || {}), [topic]: Number(value) },
@@ -193,6 +220,7 @@ export default function OnboardingPage() {
   }
 
   function setKnowledge(concept: string, value: string) {
+    setError(null);
     setAnswers((currentAnswers) => ({
       ...currentAnswers,
       D4: { ...(currentAnswers.D4 || {}), [concept]: Number(value) },
@@ -200,10 +228,12 @@ export default function OnboardingPage() {
   }
 
   function setSituation(key: string, value: string) {
+    setError(null);
     setAnswers((currentAnswers) => ({ ...currentAnswers, [key]: value }));
   }
 
   function setContextAnswer(key: string, value: string) {
+    setError(null);
     setAnswers((currentAnswers) => ({
       ...currentAnswers,
       section_d: { ...(currentAnswers.section_d || {}), [key]: value },
@@ -212,7 +242,7 @@ export default function OnboardingPage() {
 
   function next() {
     if (!isStepComplete(current, answers)) {
-      setError("Completa le risposte richieste in questa sezione.");
+      showValidationError("Completa ogni domanda della sezione. Quando preferisci non condividere un dato, scegli l’opzione dedicata.");
       return;
     }
     setError(null);
@@ -228,7 +258,7 @@ export default function OnboardingPage() {
 
   async function submit() {
     if (!isStepComplete("review", answers)) {
-      setError("La survey non è completa: rivedi le sezioni indicate.");
+      showValidationError("La survey non è completa: rivedi le sezioni indicate.");
       return;
     }
     setError(null);
@@ -241,7 +271,8 @@ export default function OnboardingPage() {
           answers: buildSubmittedAnswers(answers),
         }
       );
-      window.sessionStorage.removeItem(draftKey);
+      if (draftStorageKey) window.sessionStorage.removeItem(draftStorageKey);
+      window.sessionStorage.removeItem(legacyDraftKey);
       setResult(response);
     } catch (err) {
       setError(err instanceof ClientApiError ? err.message : "Survey non salvata");
@@ -255,13 +286,21 @@ export default function OnboardingPage() {
       <div className="survey-page">
         {!completed && !result ? (
           <ProgressSteps
-            steps={["Esperienza", "Conoscenze", "Scenari", "Contesto", "Conferma"]}
-            current={progressStep}
+            steps={steps.map((kind) => STEP_META[kind].title)}
+            current={safeStep}
           />
         ) : null}
 
-        {error ? <p className="error" role="alert">{error}</p> : null}
-        {draftWarning ? <p className="muted" role="status">{draftWarning}</p> : null}
+        {error ? <p ref={errorRef} className="error" role="alert" tabIndex={-1}>{error}</p> : null}
+        {!completed && !result && loadedDraft ? (
+          <p className="survey-save-status" role="status">
+            {draftWarning
+              ? draftWarning
+              : lastSavedAt
+                ? `Bozza salvata alle ${lastSavedAt.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}`
+                : "Salvataggio automatico attivo"}
+          </p>
+        ) : null}
 
         {!loadedDraft ? (
           <Card><p className="muted" role="status">Caricamento della survey…</p></Card>
@@ -284,19 +323,9 @@ export default function OnboardingPage() {
                   <div className="workflow-panel-head">
                     <div>
                       <p className="eyebrow">Sezione {safeStep + 1} di {steps.length}</p>
-                      <h2>{STEP_META[current].title}</h2>
+                      <h2 ref={stepHeadingRef} tabIndex={-1}>{STEP_META[current].title}</h2>
                     </div>
                     <span className="pill">{STEP_META[current].section}</span>
-                  </div>
-                  <div
-                    className="progress"
-                    role="progressbar"
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={progressPct}
-                    aria-label="Avanzamento survey"
-                  >
-                    <span style={{ width: `${progressPct}%` }} />
                   </div>
 
                   {current === "experience" ? (
@@ -345,7 +374,6 @@ export default function OnboardingPage() {
                         className="button primary"
                         type="button"
                         onClick={next}
-                        disabled={!isStepComplete(current, answers)}
                       >
                         Continua
                       </button>
@@ -364,15 +392,8 @@ export default function OnboardingPage() {
               <Card className="workflow-panel">
                 <p className="survey-sidebar-label">Perché questa survey?</p>
                 <p className="muted">
-                  Il matching parte da livello, obiettivo e competenze. Non usiamo classifiche pubbliche né profili “guru”.
+                  Serve a proporti confronti coerenti con ciò che conosci già. La scelta finale della persona resta sempre tua.
                 </p>
-              </Card>
-              <Card className="workflow-panel">
-                <p className="survey-sidebar-label">Avanzamento</p>
-                <div className="survey-progress-bar" aria-hidden>
-                  <div className="survey-progress-fill" style={{ width: `${progressPct}%` }} />
-                </div>
-                <p style={{ color: "var(--mint-600)", fontWeight: 800, margin: "8px 0 0" }}>{progressPct}%</p>
               </Card>
               <Card className="workflow-panel workflow-note">
                 <LockKeyhole size={18} aria-hidden />
@@ -517,35 +538,91 @@ function ReviewStep({
   steps: StepKind[];
   onEdit: (kind: StepKind) => void;
 }) {
-  const rows = [
-    { kind: "experience" as const, label: "Esperienza", value: answers.D1 === "none" ? "Nessun investimento precedente" : "Esperienza pratica compilata" },
-    ...(steps.includes("instruments") ? [{ kind: "instruments" as const, label: "Strumenti", value: `${Object.keys(answers.D3 || {}).length} su ${instrumentOptions.length} valutati` }] : []),
-    { kind: "knowledge" as const, label: "Conoscenze", value: `${Object.keys(answers.D4 || {}).length} su ${knowledgeConcepts.length} valutate` },
-    ...(steps.includes("situations") ? [{ kind: "situations" as const, label: "Scenari", value: "3 situazioni completate" }] : []),
+  const sections = [
+    {
+      kind: "experience" as const,
+      label: "Esperienza",
+      items: [
+        { label: "Esperienza precedente", value: optionLabel(practiceOptions, answers.D1) },
+        ...(answers.D1 && answers.D1 !== "none"
+          ? [
+              { label: "Da quanto tempo", value: optionLabel(durationOptions, answers.D2) },
+              { label: "Come decidi", value: optionLabel(autonomyOptions, answers.D5) },
+              { label: "Contesto indicativo", value: optionLabel(investedCapitalOptions, answers.D6) },
+            ]
+          : []),
+      ],
+    },
+    ...(steps.includes("instruments")
+      ? [{
+          kind: "instruments" as const,
+          label: "Strumenti",
+          items: instrumentOptions.map((item) => ({
+            label: item.label,
+            value: optionLabel(instrumentDepthOptions, String(answers.D3?.[item.value] ?? "")),
+          })),
+        }]
+      : []),
+    {
+      kind: "knowledge" as const,
+      label: "Conoscenze",
+      items: knowledgeConcepts.map((concept) => ({
+        label: concept.label,
+        value: optionLabel(knowledgeOptions, String(answers.D4?.[concept.value] ?? "")),
+      })),
+    },
+    ...(steps.includes("situations")
+      ? [{
+          kind: "situations" as const,
+          label: "Scenari",
+          items: situationalQuestions.map((question) => ({
+            label: question.prompt,
+            value: optionLabel(question.options, answers[question.key] as string | undefined),
+          })),
+        }]
+      : []),
     {
       kind: "context" as const,
       label: "Contesto personale",
-      value: `${Object.keys(answers.section_d || {}).length} su ${sectionDQuestions.length} risposte completate`,
+      items: sectionDQuestions.map((question) => ({
+        label: question.label,
+        value: optionLabel(question.options, answers.section_d?.[question.key]),
+      })),
     },
   ];
   return (
     <div className="stack">
       <p className="muted">
-        Controlla le sezioni prima di confermare. Le risposte dettagliate resteranno private.
+        Controlla le risposte prima di confermare. Le informazioni personali restano private.
       </p>
       <div className="review-list">
-        {rows.map((row) => (
-          <div className="review-row" key={row.kind}>
-            <div>
-              <strong>{row.label}</strong>
-              <p className="muted">{row.value}</p>
+        {sections.map((section) => (
+          <section className="review-row" key={section.kind} aria-labelledby={`review-${section.kind}`}>
+            <div className="review-row-head">
+              <h3 id={`review-${section.kind}`}>{section.label}</h3>
+              {section.kind === "context" ? <span className="pill">Privato</span> : null}
             </div>
-            <button className="button secondary" type="button" onClick={() => onEdit(row.kind)}>Modifica</button>
-          </div>
+            <dl className="review-values">
+              {section.items.map((item) => (
+                <div key={item.label}>
+                  <dt>{item.label}</dt>
+                  <dd>{item.value}</dd>
+                </div>
+              ))}
+            </dl>
+            <button className="button secondary" type="button" onClick={() => onEdit(section.kind)}>
+              Modifica {section.label.toLocaleLowerCase("it-IT")}
+            </button>
+          </section>
         ))}
       </div>
     </div>
   );
+}
+
+function optionLabel(options: SelectOption[], value?: string): string {
+  if (!value) return "Da completare";
+  return options.find((option) => option.value === value)?.label || value;
 }
 
 function QuestionSelect({
@@ -607,11 +684,13 @@ function ResultCard({
             </div>
             <p className="muted">
               {alreadyCompleted
-                ? "Puoi confermare o aggiornare il tuo obiettivo. Capitale e profilo di rischio restano privati."
-                : "Ora definisci un obiettivo concreto. Capitale e profilo di rischio resteranno privati."}
+                ? "Puoi aggiornare ciò che vuoi imparare. Il tuo contesto di partenza resta privato."
+                : "Ora scegli cosa vuoi imparare con l’aiuto della community. Il tuo contesto di partenza resterà privato."}
             </p>
             <div className="cluster">
-              <ButtonLink href="/goal">{alreadyCompleted ? "Gestisci obiettivo" : "Definisci il primo obiettivo"}</ButtonLink>
+              <ButtonLink href="/goal">
+                {alreadyCompleted ? "Gestisci obiettivo" : "Scegli cosa imparare"}
+              </ButtonLink>
               {alreadyCompleted ? <ButtonLink href="/dashboard" variant="secondary">Dashboard</ButtonLink> : null}
             </div>
           </div>
@@ -699,9 +778,16 @@ function SurveyStyles() {
       .survey-page {
         display: grid;
         gap: 20px;
+        margin-inline: auto;
         max-width: 1100px;
         min-width: 0;
         width: 100%;
+      }
+      .survey-save-status {
+        color: var(--muted);
+        font-size: 0.78rem;
+        margin: -10px 0 0;
+        text-align: right;
       }
       .survey-layout {
         align-items: start;
@@ -737,8 +823,7 @@ function SurveyStyles() {
         padding: clamp(18px, 3vw, 30px);
       }
       .workflow-panel-head,
-      .survey-navigation,
-      .review-row {
+      .survey-navigation {
         align-items: center;
         display: flex;
         gap: 14px;
@@ -790,29 +875,51 @@ function SurveyStyles() {
         overflow: hidden;
       }
       .review-row {
+        display: grid;
+        gap: 14px;
         padding: 14px 16px;
+      }
+      .review-row-head {
+        align-items: center;
+        display: flex;
+        gap: 10px;
+        justify-content: space-between;
+      }
+      .review-row-head h3 {
+        font-size: 0.95rem;
+        margin: 0;
       }
       .review-row + .review-row {
         border-top: 1px solid var(--line);
       }
-      .review-row p {
+      .review-row .button {
+        justify-self: start;
+      }
+      .review-values {
+        display: grid;
+        gap: 0;
+        margin: 0;
+      }
+      .review-values > div {
+        display: grid;
+        gap: 4px;
+        grid-template-columns: minmax(150px, 0.65fr) minmax(0, 1fr);
+        padding: 9px 0;
+      }
+      .review-values > div + div {
+        border-top: 1px solid var(--line);
+      }
+      .review-values dt {
+        color: var(--muted);
+        font-size: 0.78rem;
+        line-height: 1.45;
+      }
+      .review-values dd {
+        color: var(--navy-950);
         font-size: 0.82rem;
-        margin: 3px 0 0;
-      }
-      .survey-page .progress,
-      .survey-progress-bar {
-        background: #e6edf1;
-        border-radius: 999px;
-        height: 8px;
-        overflow: hidden;
-      }
-      .survey-page .progress span,
-      .survey-progress-fill {
-        background: linear-gradient(90deg, var(--mint-600), var(--gold-500));
-        border-radius: 999px;
-        display: block;
-        height: 100%;
-        transition: width 0.3s ease;
+        font-weight: 750;
+        line-height: 1.45;
+        margin: 0;
       }
       .survey-sidebar-label {
         color: var(--muted);
@@ -896,9 +1003,12 @@ function SurveyStyles() {
           grid-template-columns: 1fr;
         }
         .workflow-panel-head,
-        .review-row {
+        .review-row-head {
           align-items: stretch;
           display: grid;
+        }
+        .review-values > div {
+          grid-template-columns: 1fr;
         }
         .survey-navigation {
           align-items: stretch;

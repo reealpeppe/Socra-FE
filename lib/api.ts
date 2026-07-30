@@ -47,6 +47,8 @@ const ERROR_TRANSLATIONS: Record<string, string> = {
   "Invalid session": "La sessione è scaduta. Accedi di nuovo.",
   "Invalid user": "Account non disponibile.",
   "Invalid credentials": "Username, email o password non corretti.",
+  "Password must be at least 10 characters": "La password deve contenere almeno 10 caratteri.",
+  "Password must contain letters and numbers": "La password deve contenere almeno una lettera e un numero.",
   "Account is not active": "L’account non è attivo.",
   "Essential consent is required": "Il consenso essenziale è obbligatorio.",
   "User already exists": "Esiste già un account con questo username o questa email.",
@@ -58,8 +60,15 @@ const ERROR_TRANSLATIONS: Record<string, string> = {
   "Mentor not found": "Mentor non disponibile.",
   "Level gap is not allowed without invitation": "Il livello del mentor non è compatibile con il tuo.",
   "Pending match request already exists": "Hai già una richiesta in attesa per questo mentor.",
+  "A pending proposal already exists for this goal": "Esiste già una proposta in attesa per questo obiettivo.",
   "Mentor is not a valid candidate": "Questo mentor non è disponibile per l’obiettivo attivo.",
+  "Enable mentor availability before searching for mentees": "Attiva la disponibilità come mentor nelle impostazioni prima di cercare mentee.",
+  "A user cannot propose a path to themself": "Non puoi proporre un percorso a te stesso.",
+  "Enable mentor availability before proposing a path": "Attiva la disponibilità come mentor nelle impostazioni prima di proporre un percorso.",
+  "Mentee not found": "Mentee non disponibile.",
+  "Mentee is not a valid candidate": "Questa persona non è disponibile per una proposta.",
   "Mentee already has an open path": "Hai già un percorso aperto come mentee.",
+  "Mentee must review the completed path goal before starting a new cycle": "Rivedi l’obiettivo del percorso completato prima di iniziare un nuovo ciclo.",
   "Mentor has reached open path capacity": "Il mentor ha già raggiunto il limite di tre percorsi aperti.",
   "Wallet account is required": "Portafoglio crediti non disponibile.",
   "Debt must be settled before opening a new mentee path": "Devi prima ripianare il debito in crediti.",
@@ -67,6 +76,8 @@ const ERROR_TRANSLATIONS: Record<string, string> = {
   "Debt limit would be exceeded": "L’apertura supererebbe il limite massimo di debito.",
   "Match request not found": "Richiesta non disponibile.",
   "Only the requested mentor can respond": "Solo il mentor destinatario può rispondere.",
+  "Only the recipient of the proposal can respond": "Solo la persona che ha ricevuto la proposta può rispondere.",
+  "A participant is no longer available": "Una delle persone non è più disponibile.",
   "Match request is not pending": "La richiesta non è più in attesa.",
   "Path not found": "Percorso non disponibile.",
   "User is not part of this path": "Non fai parte di questo percorso.",
@@ -76,6 +87,7 @@ const ERROR_TRANSLATIONS: Record<string, string> = {
   "The path goal can be reviewed only after path completion": "Puoi rivedere l’obiettivo solo dopo il completamento del percorso.",
   "The completed path goal has already been reviewed": "L’obiettivo di questo percorso è già stato rivisto.",
   "Invalid feedback actor": "Questo feedback non è disponibile per il tuo ruolo.",
+  "Feedback answers are required": "Completa tutte le risposte del feedback prima di inviarlo.",
   "Feedback already submitted": "Hai già inviato il feedback.",
   "Close your side of the path before sending feedback": "Chiudi prima il tuo lato del percorso.",
   "Path is not ready for feedback": "Il percorso non è ancora pronto per il feedback.",
@@ -84,9 +96,18 @@ const ERROR_TRANSLATIONS: Record<string, string> = {
   "Call room not found": "Sessione Google Meet non disponibile.",
   "Only path participants or admins can access call room": "Solo i partecipanti al percorso possono aprire questa sessione.",
   "Cannot create or replace call rooms for a completed path": "Il percorso è completato: non puoi creare un nuovo link.",
+  "Google Meet non è configurato. Contatta il team Socra.": "Google Meet non è ancora disponibile in questo ambiente. Riprova più tardi o contatta il team Socra.",
+  "Google Meet non è momentaneamente raggiungibile. Riprova più tardi.": "Google Meet non è momentaneamente raggiungibile. Riprova più tardi.",
+  "Google Meet sta ricevendo troppe richieste, riprova più tardi.": "Google Meet sta ricevendo troppe richieste. Riprova più tardi.",
   "First-call metadata already exists": "La prima sessione è già stata verificata.",
+  "Sincronizza i metadati della prima call completata prima di chiudere il percorso": "Verifica la prima sessione completata prima di chiudere il percorso.",
   "Only L1 or L2 users can opt in as mentors": "Il tuo profilo non può ancora attivare la disponibilità come mentor.",
   "User not found": "Profilo non disponibile.",
+  "topic and goal_tag are required": "Scegli un argomento e un obiettivo di apprendimento.",
+  "topic is not available for the user's level": "L’argomento scelto non è disponibile per il tuo profilo.",
+  "goal_tag is not available for the user's level and topic": "L’obiettivo scelto non è disponibile per questo argomento.",
+  "capital_goal is not available for the user's level": "Il contesto selezionato non è disponibile per il tuo profilo.",
+  "risk is not valid": "Scegli uno stile di confronto valido.",
 };
 
 function friendlyErrorMessage(error: ApiError | null, status: number): string {
@@ -102,6 +123,10 @@ function friendlyErrorMessage(error: ApiError | null, status: number): string {
     raw.startsWith("D3.")
     || raw.startsWith("D4.")
     || raw.startsWith("section_d.")
+    || raw.startsWith("D1=")
+    || raw.startsWith("D7, D8 and D9")
+    || raw.startsWith("Invalid answer for")
+    || raw.endsWith("must be an object")
     || raw.startsWith("Missing mentee feedback answers")
     || raw.startsWith("Missing mentor feedback answers")
     || raw.startsWith("Invalid mentee feedback answer")
@@ -115,11 +140,20 @@ function friendlyErrorMessage(error: ApiError | null, status: number): string {
     raw.startsWith("SOCRA_GOOGLE_")
     || raw.startsWith("Credenziali OAuth Google")
     || raw.startsWith("Google Meet non configurato:")
+    || raw.startsWith("Autorizzazione Google Meet non disponibile:")
   ) {
-    return "Google Meet non è configurato. Contatta il team Socra.";
+    return "Google Meet richiede un intervento del team Socra prima di poter essere usato.";
   }
-  if (raw) return raw;
-  return `Richiesta non riuscita (${status})`;
+  if (raw.startsWith("Nessuna sessione Google Meet conclusa e disponibile.")) {
+    return "Non risulta ancora una prima sessione conclusa. Completa l’incontro dal link Socra e riprova la verifica.";
+  }
+  if (status === 401) return "La sessione è scaduta. Accedi di nuovo.";
+  if (status === 403) return "Non puoi eseguire questa operazione.";
+  if (status === 404) return "Il contenuto richiesto non è più disponibile.";
+  if (status === 409) return "La situazione è cambiata. Aggiorna la pagina e riprova.";
+  if (status === 422) return "Controlla i dati inseriti e riprova.";
+  if (status >= 500) return "Socra non è momentaneamente raggiungibile. Riprova tra poco.";
+  return "La richiesta non è riuscita. Riprova.";
 }
 
 export async function clientGet<T>(path: string): Promise<T> {
