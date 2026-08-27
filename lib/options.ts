@@ -20,21 +20,50 @@ export const durationOptions: SelectOption[] = [
 ];
 
 export const instrumentOptions = [
-  { value: "savings_first_steps", label: "Conto deposito / buoni postali" },
-  { value: "mutual_funds", label: "Fondi comuni (tramite banca/consulente)" },
+  { value: "savings_first_steps", label: "Conti deposito e buoni postali" },
+  { value: "mutual_funds", label: "Fondi comuni" },
   { value: "etf_funds", label: "ETF" },
   { value: "stocks", label: "Azioni singole" },
   { value: "bonds", label: "Obbligazioni" },
   { value: "crypto", label: "Crypto" },
-  { value: "derivatives", label: "Forex / derivati / opzioni" }
+  { value: "forex", label: "Forex" },
+  { value: "derivatives", label: "Derivati e opzioni" }
 ];
 
-export const instrumentDepthOptions: SelectOption[] = [
-  { value: "0", label: "Mai usato", score: 0 },
-  { value: "1", label: "Ho provato", score: 1 },
-  { value: "2", label: "Uso regolarmente", score: 2 },
-  { value: "3", label: "Uso con autonomia", score: 3 }
-];
+export const topicKnowledgeOptions = [
+  {
+    value: "K0",
+    label: "Nessuna",
+    shortLabel: "Nessuna",
+    description: "Non so ancora come funziona."
+  },
+  {
+    value: "K1",
+    label: "Base",
+    shortLabel: "Base",
+    description: "So cos’è e a cosa serve."
+  },
+  {
+    value: "K2",
+    label: "Intermedia",
+    shortLabel: "Intermedia",
+    description: "Comprendo funzionamento, costi e rischi principali."
+  },
+  {
+    value: "K3",
+    label: "Avanzata",
+    shortLabel: "Avanzata",
+    description: "So confrontare alternative, limiti e scenari più articolati."
+  }
+] as const;
+
+export const topicInvestmentOptions = [
+  { value: "A0", label: "0 €", shortLabel: "0 €" },
+  { value: "A1", label: "Meno di 100 €", shortLabel: "< 100 €" },
+  { value: "A2", label: "Da 100 a 999 €", shortLabel: "100–999 €" },
+  { value: "A3", label: "Da 1.000 a 9.999 €", shortLabel: "1.000–9.999 €" },
+  { value: "A4", label: "10.000 € o più", shortLabel: "10.000 €+" }
+] as const;
 
 export const knowledgeConcepts = [
   { value: "diversification", label: "Diversificazione" },
@@ -169,13 +198,15 @@ export const sectionDQuestions = [
 export const topicOptions: SelectOption[] = [
   { value: "undefined", label: "Non lo so ancora / voglio capire da dove partire", levels: ["L0", "L1"] },
   { value: "savings_first_steps", label: "Risparmio e primi investimenti", levels: ["L0", "L1"] },
-  { value: "etf_funds", label: "ETF e fondi", levels: ["L0", "L1", "L2"] },
+  { value: "etf_funds", label: "ETF", levels: ["L0", "L1", "L2"] },
+  { value: "mutual_funds", label: "Fondi comuni", levels: ["L0", "L1", "L2"] },
   { value: "stocks", label: "Azioni singole", levels: ["L1", "L2"] },
   { value: "bonds", label: "Obbligazioni", levels: ["L1", "L2"] },
   { value: "crypto", label: "Crypto", levels: ["L1", "L2"] },
+  { value: "forex", label: "Forex", levels: ["L1", "L2"] },
   { value: "planning", label: "Pianificazione e principi di diversificazione", levels: ["L2"] },
   { value: "taxation", label: "Fiscalità degli investimenti", levels: ["L2"] },
-  { value: "derivatives", label: "Forex / derivati", levels: ["L2"] }
+  { value: "derivatives", label: "Derivati / opzioni", levels: ["L2"] }
 ];
 
 export const goalOptionsByLevelTopic: Record<string, Record<string, SelectOption[]>> = {
@@ -196,6 +227,11 @@ export const goalOptionsByLevelTopic: Record<string, Record<string, SelectOption
       { value: "etf_vs_funds", label: "Capire la differenza tra ETF e fondi comuni" },
       { value: "first_etf_pac", label: "Capire i criteri con cui si valutano ETF e piani periodici" },
       { value: "etf_costs_risks", label: "Capire i costi e i rischi degli ETF prima di iniziare" }
+    ],
+    mutual_funds: [
+      { value: "understand_mutual_funds", label: "Capire come funzionano i fondi comuni" },
+      { value: "mutual_funds_vs_etf", label: "Capire le differenze tra fondi comuni ed ETF" },
+      { value: "mutual_fund_costs_risks", label: "Capire costi e rischi dei fondi comuni" }
     ]
   },
   L1: {
@@ -232,6 +268,16 @@ export const goalOptionsByLevelTopic: Record<string, Record<string, SelectOption
       { value: "start_crypto_investing", label: "Capire exchange, wallet e sicurezza prima di qualunque scelta" },
       { value: "crypto_risk_assessment", label: "Approfondire i rischi reali delle crypto" },
       { value: "crypto_taxonomy", label: "Capire la differenza tra Bitcoin, altcoin, stablecoin e token" }
+    ],
+    mutual_funds: [
+      { value: "compare_mutual_funds", label: "Confrontare caratteristiche e costi dei fondi comuni" },
+      { value: "mutual_funds_vs_etf", label: "Approfondire differenze e limiti di fondi comuni ed ETF" },
+      { value: "mutual_fund_costs_risks", label: "Valutare costi e rischi dei fondi comuni" }
+    ],
+    forex: [
+      { value: "understand_forex", label: "Capire come funziona il mercato Forex" },
+      { value: "forex_costs_mechanics", label: "Capire costi e meccanismi operativi del Forex" },
+      { value: "forex_leverage_risks", label: "Approfondire leva e rischi del Forex" }
     ]
   },
   L2: {
@@ -259,6 +305,16 @@ export const goalOptionsByLevelTopic: Record<string, Record<string, SelectOption
       { value: "crypto_project_evaluation", label: "Valutare progetti crypto con criteri strutturati (tokenomics, team, roadmap)" },
       { value: "crypto_security", label: "Gestire la sicurezza avanzata (cold wallet, multisig, seed phrase management)" }
     ],
+    mutual_funds: [
+      { value: "analyze_mutual_funds", label: "Approfondire criteri di analisi dei fondi comuni" },
+      { value: "mutual_fund_portfolio_role", label: "Studiare il ruolo dei fondi comuni in un insieme diversificato" },
+      { value: "mutual_funds_vs_etf", label: "Confrontare in modo strutturato fondi comuni ed ETF" }
+    ],
+    forex: [
+      { value: "forex_market_mechanics", label: "Approfondire i meccanismi del mercato Forex" },
+      { value: "forex_risk_management", label: "Studiare il rischio operativo nel Forex" },
+      { value: "forex_leverage_risks", label: "Approfondire leva, margine e rischio sul capitale proprio" }
+    ],
     planning: [
       { value: "full_financial_plan", label: "Studiare gli elementi di una pianificazione: obiettivi, diversificazione e orizzonte" },
       { value: "optimize_asset_allocation", label: "Approfondire principi e limiti dell’asset allocation" },
@@ -274,7 +330,6 @@ export const goalOptionsByLevelTopic: Record<string, Record<string, SelectOption
     derivatives: [
       { value: "understand_derivatives", label: "Capire come funzionano opzioni e futures e quali rischi comportano" },
       { value: "options_hedging", label: "Studiare il funzionamento della copertura tramite opzioni" },
-      { value: "forex_strategy", label: "Approfondire funzionamento e rischi operativi del forex" },
       { value: "derivatives_risk_management", label: "Capire i rischi reali dei derivati e come gestire la leva" }
     ]
   }

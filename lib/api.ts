@@ -102,8 +102,12 @@ const ERROR_TRANSLATIONS: Record<string, string> = {
   "First-call metadata already exists": "La prima sessione è già stata verificata.",
   "Sincronizza i metadati della prima call completata prima di chiudere il percorso": "Verifica la prima sessione completata prima di chiudere il percorso.",
   "Only L1 or L2 users can opt in as mentors": "Il tuo profilo non può ancora attivare la disponibilità come mentor.",
+  "Only L1-L5 users can opt in as mentors": "Il tuo profilo non può ancora attivare la disponibilità come mentor.",
+  "V2 instrument competence survey not found": "Completa la survey iniziale prima di modificare le preferenze per strumento.",
+  "Mentor topic preferences are incompatible with the competence snapshot": "Una o più preferenze non sono compatibili con le risposte della survey.",
   "User not found": "Profilo non disponibile.",
   "topic and goal_tag are required": "Scegli un argomento e un obiettivo di apprendimento.",
+  "topic requires a dedicated competence questionnaire that is not available yet": "Questo argomento non è ancora disponibile per un nuovo obiettivo.",
   "topic is not available for the user's level": "L’argomento scelto non è disponibile per il tuo profilo.",
   "goal_tag is not available for the user's level and topic": "L’obiettivo scelto non è disponibile per questo argomento.",
   "capital_goal is not available for the user's level": "Il contesto selezionato non è disponibile per il tuo profilo.",
@@ -122,9 +126,14 @@ function friendlyErrorMessage(error: ApiError | null, status: number): string {
   if (
     raw.startsWith("D3.")
     || raw.startsWith("D4.")
+    || raw.startsWith("D5")
     || raw.startsWith("section_d.")
     || raw.startsWith("D1=")
     || raw.startsWith("D7, D8 and D9")
+    || raw.startsWith("topic_competences_v2")
+    || raw.startsWith("knowledge_level")
+    || raw.startsWith("invested_amount_band")
+    || raw.startsWith("safety_scenario_answer")
     || raw.startsWith("Invalid answer for")
     || raw.endsWith("must be an object")
     || raw.startsWith("Missing mentee feedback answers")
@@ -135,6 +144,12 @@ function friendlyErrorMessage(error: ApiError | null, status: number): string {
     || raw.startsWith("Invalid mentor badges")
   ) {
     return "Controlla le risposte indicate e riprova.";
+  }
+  if (raw.startsWith("Complete the safety scenario before enabling")) {
+    return "Completa la domanda di sicurezza prima di attivare la disponibilità su questo strumento.";
+  }
+  if (raw.endsWith("is not eligible for mentor availability")) {
+    return "Questo strumento non è disponibile per la mentorship con le risposte attuali.";
   }
   if (
     raw.startsWith("SOCRA_GOOGLE_")
@@ -167,6 +182,16 @@ export async function clientGet<T>(path: string): Promise<T> {
 export async function clientPost<T>(path: string, payload?: unknown): Promise<T> {
   const response = await fetch(`/api/backend/${path.replace(/^\//, "")}`, {
     method: "POST",
+    credentials: "include",
+    headers: jsonHeaders,
+    body: payload === undefined ? undefined : JSON.stringify(payload)
+  });
+  return parseResponse<T>(response);
+}
+
+export async function clientPut<T>(path: string, payload?: unknown): Promise<T> {
+  const response = await fetch(`/api/backend/${path.replace(/^\//, "")}`, {
+    method: "PUT",
     credentials: "include",
     headers: jsonHeaders,
     body: payload === undefined ? undefined : JSON.stringify(payload)

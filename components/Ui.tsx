@@ -414,6 +414,7 @@ export function ProgressSteps({
             key={stepLabel}
             className={cx("progress-step", isDone && "done", isActive && "active")}
             aria-current={isActive ? "step" : undefined}
+            aria-label={`${index + 1} di ${steps.length}: ${stepLabel}${isActive ? " (corrente)" : isDone ? " (completato)" : ""}`}
           >
             {index > 0 ? (
               <span

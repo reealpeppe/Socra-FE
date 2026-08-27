@@ -65,6 +65,7 @@ export default function RegisterPage() {
             aria-label="Crea il tuo account"
             aria-describedby={error ? "register-error" : undefined}
             className={styles.form}
+            method="post"
             onSubmit={onSubmit}
           >
             <div className={styles.twoColumns}>

@@ -22,6 +22,11 @@ test.beforeEach(async ({ baseURL, context, page }) => {
       }
     });
   });
+  await page.route("**/api/backend/surveys/competences-v2/me", async (route) => route.fulfill({ json: {
+    instruments: [],
+    eligible_mentor_topics: [],
+    is_coach: true
+  } }));
   await page.route("**/api/backend/wallet/me", async (route) => route.fulfill({ json: { balance: 10, debt: 0, currency_label: "coin" } }));
   await page.route("**/api/backend/wallet/me/transactions", async (route) => route.fulfill({ json: [] }));
   await page.route("**/api/backend/notifications/me", async (route) => route.fulfill({ json: [
@@ -44,6 +49,23 @@ test.beforeEach(async ({ baseURL, context, page }) => {
     top_topics: ["ETF e fondi"],
     aggregate_metrics: {}
   } }));
+});
+
+test("auth forms keep credentials out of the URL before hydration", async ({ context, page }) => {
+  await context.clearCookies();
+
+  await page.goto("/login");
+  await expect(page.locator("form")).toHaveAttribute("method", "post");
+
+  await page.goto("/register");
+  await expect(page.getByRole("form", { name: "Crea il tuo account" })).toHaveAttribute("method", "post");
+});
+
+test("backend proxy accepts the V2 preference PUT method", async ({ page }) => {
+  const response = await page.request.put("/api/backend/surveys/competences-v2/me/mentor-topics", {
+    data: { topics: [] },
+  });
+  expect(response.status()).not.toBe(405);
 });
 
 test("dashboard renders responsive operational state", async ({ page }) => {
@@ -150,6 +172,151 @@ test("global navigation exposes the requests area", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Proposte di percorso" })).toBeVisible();
 });
 
+test("settings updates mentor topics and requires the Forex safety scenario", async ({ page }) => {
+  const topicCodes = ["savings_first_steps", "mutual_funds", "etf_funds", "stocks", "bonds", "crypto", "forex", "derivatives"];
+  let currentItems: Array<{
+    topic: string;
+    knowledge_level: string;
+    invested_amount_band: string;
+    wants_to_mentor: boolean;
+    mentor_eligible: boolean;
+    mentor_enabled: boolean;
+    safety_scenario_answer: string | null;
+    safety_scenario_passed: boolean | null;
+  }> = topicCodes.map((topic) => ({
+    topic,
+    knowledge_level: "K2",
+    invested_amount_band: "A3",
+    wants_to_mentor: topic === "etf_funds",
+    mentor_eligible: topic !== "forex" && topic !== "derivatives",
+    mentor_enabled: topic === "etf_funds",
+    safety_scenario_answer: null,
+    safety_scenario_passed: null
+  }));
+  let lastPutTopics: Array<Record<string, unknown>> = [];
+  await page.route("**/api/backend/surveys/competences-v2/me", async (route) => {
+    await route.fulfill({ json: { instruments: currentItems, is_coach: true } });
+  });
+  await page.route("**/api/backend/surveys/competences-v2/me/mentor-topics", async (route) => {
+    const body = route.request().postDataJSON() as { topics: Array<Record<string, unknown>> };
+    lastPutTopics = body.topics;
+    currentItems = currentItems.map((item) => {
+      const update = lastPutTopics.find((candidate) => candidate.topic === item.topic);
+      const answer = typeof update?.safety_scenario_answer === "string" ? update.safety_scenario_answer : null;
+      const wants = update?.wants_to_mentor === true;
+      const safetyPassed = item.topic === "forex"
+        ? answer === "leverage_can_exhaust_capital"
+        : item.topic === "derivatives"
+          ? answer === "risk_depends_on_position_and_can_exceed_premium"
+          : null;
+      const mentorEligible = safetyPassed === null ? true : safetyPassed;
+      return {
+        ...item,
+        wants_to_mentor: wants,
+        safety_scenario_answer: answer,
+        safety_scenario_passed: safetyPassed,
+        mentor_eligible: mentorEligible,
+        mentor_enabled: wants && mentorEligible
+      };
+    });
+    await route.fulfill({ json: { instruments: currentItems, consistency_flags: [], is_coach: true } });
+  });
+
+  await page.goto("/settings");
+  await expect(page.getByRole("heading", { name: "Disponibilità come mentor" })).toBeVisible();
+  await expect(page.getByRole("switch", { name: "Mentorship su ETF" })).toBeChecked();
+  await expect(page.getByRole("switch", { name: "Mentorship su Forex" })).toBeEnabled();
+  await expect(page.getByText("Non risultano ancora strumenti disponibili per la mentorship.")).toHaveCount(0);
+  await page.locator('label[for="mentor-topic-forex"]').click();
+  await expect(page.getByText("Prima di renderti disponibile sul Forex")).toBeVisible();
+  expect(lastPutTopics).toHaveLength(0);
+  await page.getByLabel("La leva può amplificare le perdite fino a esaurire il capitale esposto.").check();
+  await expect.poll(() => lastPutTopics.length).toBe(8);
+  expect(lastPutTopics.find((item) => item.topic === "forex")).toMatchObject({
+    wants_to_mentor: true,
+    safety_scenario_answer: "leverage_can_exhaust_capital"
+  });
+  await expect(page.getByText("Disponibilità per strumento aggiornata.")).toBeVisible();
+  await expect(page.getByText(/1\.000|9\.999|capitale investito/i)).toHaveCount(0);
+});
+
+test("settings keeps saved topic preferences neutral when the global mentor switch is off", async ({ page }) => {
+  const instruments = ["savings_first_steps", "mutual_funds", "etf_funds", "stocks", "bonds", "crypto", "forex", "derivatives"]
+    .map((topic) => ({
+      topic,
+      knowledge_level: "K2",
+      invested_amount_band: "A3",
+      wants_to_mentor: topic === "etf_funds",
+      mentor_eligible: true,
+      mentor_enabled: false,
+      safety_scenario_answer: null,
+      safety_scenario_passed: null
+    }));
+  await page.route("**/api/backend/auth/me", async (route) => route.fulfill({ json: {
+    id: "u1", username: "mentee", email: "mentee@example.com", nickname: "Mentee",
+    level: "L2", is_coach: false, role: "user", account_status: "active"
+  } }));
+  await page.route("**/api/backend/surveys/competences-v2/me", async (route) => route.fulfill({
+    json: { instruments, is_coach: false }
+  }));
+
+  await page.goto("/settings");
+
+  await expect(page.getByRole("switch", { name: "Mentorship su ETF" })).toBeChecked();
+  await expect(page.getByText("Non attiva con la risposta indicata")).toHaveCount(0);
+  await expect(page.getByText("Attivala per ricevere richieste sugli strumenti che hai selezionato.")).toBeVisible();
+  await expect(page.getByRole("switch", { name: "Disponibilità come mentor" })).toBeEnabled();
+});
+
+test("settings keeps high-risk topics read-only when a general guardrail blocks mentorship", async ({ page }) => {
+  const instruments = ["savings_first_steps", "mutual_funds", "etf_funds", "stocks", "bonds", "crypto", "forex", "derivatives"]
+    .map((topic) => ({
+      topic,
+      knowledge_level: "K2",
+      invested_amount_band: "A3",
+      wants_to_mentor: false,
+      mentor_eligible: false,
+      mentor_enabled: false,
+      safety_scenario_answer: null,
+      safety_scenario_passed: null
+    }));
+  await page.route("**/api/backend/surveys/competences-v2/me", async (route) => route.fulfill({ json: {
+    instruments,
+    consistency_flags: ["delegated_autonomy_caps_initial_level_and_mentor_eligibility"],
+    is_coach: false
+  } }));
+
+  await page.goto("/settings");
+
+  const forexBlock = page.locator(".settings-topic-block").filter({ hasText: "Forex" });
+  await expect(forexBlock.getByRole("switch", { name: "Mentorship su Forex" })).toBeDisabled();
+  await expect(forexBlock.getByText("Non disponibile per il profilo attuale")).toBeVisible();
+});
+
+test("settings treats a missing Forex safety answer as a completable preference", async ({ page }) => {
+  const instruments = ["savings_first_steps", "mutual_funds", "etf_funds", "stocks", "bonds", "crypto", "forex", "derivatives"]
+    .map((topic) => ({
+      topic,
+      knowledge_level: topic === "forex" ? "K2" : "K1",
+      invested_amount_band: topic === "forex" ? "A3" : "A0",
+      wants_to_mentor: false,
+      mentor_eligible: false,
+      mentor_enabled: false,
+      safety_scenario_answer: null,
+      safety_scenario_passed: null
+    }));
+  await page.route("**/api/backend/surveys/competences-v2/me", async (route) => route.fulfill({ json: {
+    instruments,
+    consistency_flags: [],
+    is_coach: false
+  } }));
+
+  await page.goto("/settings");
+
+  await expect(page.getByRole("switch", { name: "Mentorship su Forex" })).toBeEnabled();
+  await expect(page.getByText("Non risultano ancora strumenti disponibili per la mentorship.")).toHaveCount(0);
+});
+
 test("onboarding submits score and links to goal", async ({ page }) => {
   await page.route("**/api/backend/surveys/onboarding/me", async (route) => route.fulfill({ json: { user_id: "u1", level: "L0", is_coach: false, latest_answer_id: null } }));
   let submittedPayload: { section: string; answers: Record<string, unknown> } = { section: "", answers: {} };
@@ -159,19 +326,26 @@ test("onboarding submits score and links to goal", async ({ page }) => {
   });
 
   await page.goto("/onboarding");
-  await expect(page.getByRole("heading", { name: "La tua esperienza" })).toBeVisible();
-  await page.getByRole("button", { name: "Sì, investo regolarmente" }).click();
-  await page.getByLabel("Da quanto tempo investi?").selectOption("gt_5y");
-  await page.getByLabel("Come prendi le decisioni di investimento?").selectOption("independent");
-  await page.getByLabel("Ordine di grandezza del capitale investito?").selectOption("gt_50k");
+  await expect(page.getByRole("heading", { name: "Conoscenza degli strumenti" })).toBeVisible();
+  await expect(page.locator('input[name^="topic-knowledge-"]:checked')).toHaveCount(0);
+  const topicKnowledgeRadios = page.locator('input[name^="topic-knowledge-"][value="K3"]');
+  await expect(topicKnowledgeRadios).toHaveCount(8);
+  for (const radio of await topicKnowledgeRadios.all()) await radio.check();
   await page.getByRole("button", { name: "Continua", exact: true }).click();
 
-  await expect(page.getByRole("heading", { name: "Strumenti utilizzati" })).toBeVisible();
-  const instrumentSelects = page.locator(".survey-matrix select");
-  await expect(instrumentSelects).toHaveCount(7);
-  for (const select of await instrumentSelects.all()) {
-    await select.selectOption("3");
-  }
+  await expect(page.getByRole("heading", { name: "Esperienza diretta e importi" })).toBeVisible();
+  const topicInvestmentRadios = page.locator('input[name^="topic-investment-"][value="A3"]');
+  await expect(topicInvestmentRadios).toHaveCount(8);
+  for (const radio of await topicInvestmentRadios.all()) await radio.check();
+  await page.getByRole("button", { name: "Continua", exact: true }).click();
+
+  await expect(page.getByRole("heading", { name: "Disponibilità a condividere" })).toBeVisible();
+  const mentorNoRadios = page.locator('input[name^="topic-mentoring-"][value="no"]');
+  await expect(mentorNoRadios).toHaveCount(8);
+  for (const radio of await mentorNoRadios.all()) await radio.check();
+  await page.locator("#topic-mentoring-etf_funds-yes").check();
+  await page.locator("#topic-mentoring-forex-yes").check();
+  await page.getByLabel("La leva può amplificare le perdite fino a esaurire il capitale esposto.").check();
   await page.getByRole("button", { name: "Continua", exact: true }).click();
 
   await expect(page.getByRole("heading", { name: "Conoscenze di base" })).toBeVisible();
@@ -181,13 +355,19 @@ test("onboarding submits score and links to goal", async ({ page }) => {
     await select.selectOption("2");
   }
   await expect(page.locator(".progress-steps")).toHaveCount(1);
-  await expect(page.locator(".progress-step")).toHaveCount(6);
+  await expect(page.locator(".progress-step")).toHaveCount(7);
+  if ((page.viewportSize()?.width || 0) <= 620) {
+    await expect(page.locator(".progress-step-label").first()).toHaveCSS("width", "1px");
+  } else {
+    await expect(page.locator(".progress-step-label").first()).toBeVisible();
+  }
   await page.getByRole("button", { name: "Continua", exact: true }).click();
 
   await expect(page.getByRole("heading", { name: "Scelte in situazioni concrete" })).toBeVisible();
+  await page.getByLabel("Quando investi, come prendi le decisioni?").selectOption("independent");
   const situationSelects = page.locator(".survey-situations select");
-  await expect(situationSelects).toHaveCount(3);
-  for (const select of await situationSelects.all()) {
+  await expect(situationSelects).toHaveCount(4);
+  for (const select of await situationSelects.all().then((items) => items.slice(1))) {
     await select.selectOption("excellent");
   }
   await page.getByRole("button", { name: "Continua", exact: true }).click();
@@ -201,13 +381,13 @@ test("onboarding submits score and links to goal", async ({ page }) => {
   await page.getByRole("button", { name: "Continua", exact: true }).click();
 
   await expect(page.getByRole("heading", { name: "Rivedi e conferma" })).toBeVisible();
-  const experienceReview = page.locator(".review-row").filter({ hasText: "Esperienza" });
-  const instrumentsReview = page.locator(".review-row").filter({ hasText: "Strumenti" });
+  const instrumentsReview = page.locator(".topic-review");
   const knowledgeReview = page.locator(".review-row").filter({ hasText: "Conoscenze" });
   const situationsReview = page.locator(".review-row").filter({ hasText: "Scenari" });
-  await expect(experienceReview.getByText("Più di 5 anni")).toBeVisible();
-  await expect(instrumentsReview.getByText("Uso con autonomia").first()).toBeVisible();
+  await expect(instrumentsReview.getByText("Avanzata").first()).toBeVisible();
+  await expect(instrumentsReview.getByText("Da 1.000 a 9.999 €").first()).toBeVisible();
   await expect(knowledgeReview.getByText("Lo conosco bene").first()).toBeVisible();
+  await expect(situationsReview.getByText("Decido in autonomia dopo ricerche personali")).toBeVisible();
   await expect(situationsReview.getByText("Dipende dal resto della sua situazione finanziaria e orizzonte")).toBeVisible();
 
   const contextReview = page.locator(".review-row").filter({ hasText: "Contesto personale" });
@@ -220,9 +400,22 @@ test("onboarding submits score and links to goal", async ({ page }) => {
   await page.getByRole("button", { name: "Scopri il tuo livello" }).click();
 
   expect(submittedPayload.section).toBe("onboarding");
-  expect(Object.keys((submittedPayload.answers.D3 as Record<string, number>) || {})).toHaveLength(7);
+  const topicPayload = submittedPayload.answers.topic_competences_v2 as { instruments: Array<Record<string, unknown>> };
+  expect(topicPayload.instruments).toHaveLength(8);
+  expect(topicPayload.instruments.find((item) => item.topic === "etf_funds")).toMatchObject({
+    knowledge_level: "K3",
+    invested_amount_band: "A3",
+    wants_to_mentor: true
+  });
+  expect(topicPayload.instruments.find((item) => item.topic === "forex")).toMatchObject({
+    wants_to_mentor: true,
+    safety_scenario_answer: "leverage_can_exhaust_capital"
+  });
   expect(Object.keys((submittedPayload.answers.D4 as Record<string, number>) || {})).toHaveLength(6);
-  expect(submittedPayload.answers).toMatchObject({ D1: "regular", D2: "gt_5y", D5: "independent", D6: "gt_50k", D7: "excellent", D8: "excellent", D9: "excellent" });
+  expect(submittedPayload.answers).toMatchObject({ D5: "independent", D7: "excellent", D8: "excellent", D9: "excellent" });
+  expect(submittedPayload.answers).not.toHaveProperty("D1");
+  expect(submittedPayload.answers).not.toHaveProperty("D3");
+  expect(submittedPayload.answers).not.toHaveProperty("D6");
   expect(submittedPayload.answers.section_d).toEqual({
     D1: "undisclosed",
     D2: "undisclosed",
@@ -232,6 +425,72 @@ test("onboarding submits score and links to goal", async ({ page }) => {
   });
   await expect(page.getByLabel("Livello L2")).toBeVisible();
   await expect(page.getByRole("link", { name: "Scegli cosa imparare" })).toBeVisible();
+});
+
+test("onboarding omits the autonomy question when every invested amount is zero", async ({ page }) => {
+  const topicCodes = ["savings_first_steps", "mutual_funds", "etf_funds", "stocks", "bonds", "crypto", "forex", "derivatives"];
+  const topicAnswers = Object.fromEntries(topicCodes.map((topic) => [topic, {
+    knowledge_level: "K1",
+    invested_amount_band: "A0",
+    wants_to_mentor: false
+  }]));
+  let submittedAnswers: Record<string, unknown> = {};
+  await page.route("**/api/backend/surveys/onboarding/me", async (route) => route.fulfill({
+    json: { user_id: "u1", level: "L0", is_coach: false, latest_answer_id: null }
+  }));
+  await page.route("**/api/backend/surveys/onboarding/me/draft", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({ json: {
+        id: "draft-zero",
+        current_step: 4,
+        scores: { A: 8, B: 0, C: 0 },
+        answers: {
+          topic_competences_v2: topicAnswers,
+          D4: {
+            diversification: 1,
+            compound_interest: 1,
+            risk_return: 1,
+            pac: 1,
+            asset_allocation: 1,
+            taxation: 1
+          }
+        },
+        include_section_d: true,
+        d_never_invested: true,
+        updated_at: new Date().toISOString()
+      } });
+      return;
+    }
+    const body = route.request().postDataJSON();
+    await route.fulfill({ json: { id: "draft-zero", ...body, updated_at: new Date().toISOString() } });
+  });
+  await page.route("**/api/backend/surveys/onboarding/me/answers", async (route) => {
+    const body = route.request().postDataJSON() as { answers: Record<string, unknown> };
+    submittedAnswers = body.answers;
+    await route.fulfill({ json: { answer_id: "answer-zero", total_score: 5, derived_level: "L0", is_coach: false } });
+  });
+
+  await page.goto("/onboarding");
+
+  await expect(page.getByRole("heading", { name: "Scelte in situazioni concrete" })).toBeVisible();
+  await expect(page.getByLabel("Quando investi, come prendi le decisioni?")).toHaveCount(0);
+  await expect(page.getByText("questa domanda non serve nel tuo caso")).toBeVisible();
+  const scenarioSelects = page.locator(".survey-situations select");
+  await expect(scenarioSelects).toHaveCount(3);
+  for (const select of await scenarioSelects.all()) await select.selectOption("excellent");
+  await page.getByRole("button", { name: "Continua", exact: true }).click();
+
+  for (const select of await page.locator("#context-D1, #context-D2, #context-D3, #context-D4, #context-D5").all()) {
+    await select.selectOption("undisclosed");
+  }
+  await page.getByRole("button", { name: "Continua", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Rivedi e conferma" })).toBeVisible();
+  const situationsReview = page.locator(".review-row").filter({ hasText: "Scenari" });
+  await expect(situationsReview.getByText("Come prendi le decisioni")).toHaveCount(0);
+  await page.getByRole("button", { name: "Scopri il tuo livello" }).click();
+
+  expect(submittedAnswers).not.toHaveProperty("D5");
+  await expect(page.getByLabel("Livello L0")).toBeVisible();
 });
 
 test("onboarding draft survives navigation", async ({ page }) => {
@@ -264,24 +523,60 @@ test("onboarding draft survives navigation", async ({ page }) => {
   });
 
   await page.goto("/onboarding");
-  await page.getByRole("button", { name: "Sì, investo regolarmente" }).click();
-  await page.getByLabel("Da quanto tempo investi?").selectOption("2y_5y");
-  await page.getByLabel("Come prendi le decisioni di investimento?").selectOption("guided");
-  await page.getByLabel("Ordine di grandezza del capitale investito?").selectOption("10k_50k");
+  await expect(page.getByRole("heading", { name: "Conoscenza degli strumenti" })).toBeVisible();
+  const knowledgeRadios = page.locator('input[name^="topic-knowledge-"][value="K2"]');
+  await expect(knowledgeRadios).toHaveCount(8);
+  for (const radio of await knowledgeRadios.all()) await radio.check();
   await page.getByRole("button", { name: "Continua", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Strumenti utilizzati" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Esperienza diretta e importi" })).toBeVisible();
   await expect.poll(() => savedDraft?.current_step).toBe(1);
 
   await page.goto("/come-funziona");
   await expect(page.getByRole("heading", { name: /Come funziona SOCRA/i })).toBeVisible();
 
   await page.goto("/onboarding");
-  await expect(page.getByRole("heading", { name: "Strumenti utilizzati" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Esperienza diretta e importi" })).toBeVisible();
   await page.getByRole("button", { name: "Indietro" }).click();
-  await expect(page.getByRole("button", { name: "Sì, investo regolarmente" })).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByLabel("Da quanto tempo investi?")).toHaveValue("2y_5y");
-  await expect(page.getByLabel("Come prendi le decisioni di investimento?")).toHaveValue("guided");
-  await expect(page.getByLabel("Ordine di grandezza del capitale investito?")).toHaveValue("10k_50k");
+  await expect(page.locator("#topic-knowledge-etf_funds-K2")).toBeChecked();
+});
+
+test("onboarding clears mentor opt-in when a topic becomes unavailable", async ({ page }) => {
+  await page.route("**/api/backend/surveys/onboarding/me", async (route) => route.fulfill({
+    json: { user_id: "u1", level: "L0", is_coach: false, latest_answer_id: null }
+  }));
+  let latestAnswers: Record<string, unknown> = {};
+  await page.route("**/api/backend/surveys/onboarding/me/draft", async (route) => {
+    if (route.request().method() === "GET") {
+      await route.fulfill({ json: null });
+      return;
+    }
+    const body = route.request().postDataJSON();
+    latestAnswers = body.answers;
+    await route.fulfill({ json: { id: "draft-edge", ...body, updated_at: new Date().toISOString() } });
+  });
+
+  await page.goto("/onboarding");
+  await expect(page.getByRole("heading", { name: "Conoscenza degli strumenti" })).toBeVisible();
+  await expect(page.locator('input[name^="topic-knowledge-"][value="K2"]')).toHaveCount(8);
+  for (const radio of await page.locator('input[name^="topic-knowledge-"][value="K2"]').all()) await radio.check();
+  await page.getByRole("button", { name: "Continua", exact: true }).click();
+  for (const radio of await page.locator('input[name^="topic-investment-"][value="A3"]').all()) await radio.check();
+  await page.getByRole("button", { name: "Continua", exact: true }).click();
+  await page.locator("#topic-mentoring-etf_funds-yes").check();
+
+  await page.getByRole("button", { name: "Indietro" }).click();
+  await page.getByRole("button", { name: "Indietro" }).click();
+  await page.locator("#topic-knowledge-etf_funds-K1").check();
+  await page.getByRole("button", { name: "Continua", exact: true }).click();
+  await page.getByRole("button", { name: "Continua", exact: true }).click();
+
+  const etfRow = page.locator(".topic-matrix tbody tr").filter({ hasText: "ETF" });
+  await expect(etfRow).toHaveClass(/disabled/);
+  await expect(etfRow.getByText("Non disponibile con le risposte attuali")).toBeVisible();
+  await expect.poll(() => {
+    const topicDraft = latestAnswers.topic_competences_v2 as Record<string, { wants_to_mentor?: boolean }> | undefined;
+    return topicDraft?.etf_funds?.wants_to_mentor;
+  }).toBe(false);
 });
 
 test("onboarding never restores a draft from another account", async ({ page }) => {
@@ -321,7 +616,7 @@ test("onboarding never restores a draft from another account", async ({ page }) 
 
   await page.goto("/onboarding");
 
-  await expect(page.getByRole("heading", { name: "La tua esperienza" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Conoscenza degli strumenti" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Contesto personale" })).toHaveCount(0);
 });
 
@@ -330,7 +625,7 @@ test("completed onboarding cannot be restarted", async ({ page }) => {
   await expect(page.getByText("Survey già completata")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Basi operative" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Gestisci obiettivo" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "La tua esperienza" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Conoscenza degli strumenti" })).toHaveCount(0);
 });
 
 test("goal route preloads the current goal without requiring a special query", async ({ page }) => {
@@ -358,6 +653,37 @@ test("goal route preloads the current goal without requiring a special query", a
   await expect(page.getByLabel("Stile del confronto (privato)")).toHaveValue("balanced");
   const contextLabels = await page.getByLabel("Contesto di partenza (privato)").locator("option").allTextContents();
   expect(contextLabels.join(" ")).not.toMatch(/EUR|€/);
+});
+
+test("L4 goal flow uses the advanced catalog and keeps V2 topics coherent", async ({ page }) => {
+  await page.route("**/api/backend/surveys/onboarding/me", async (route) => route.fulfill({ json: {
+    user_id: "u-l4",
+    level: "L4",
+    is_coach: true,
+    latest_answer_id: "a-l4",
+    competence_v2_completed: true
+  } }));
+  await page.route("**/api/backend/goals/me", async (route) => route.fulfill({ json: {
+    current: null,
+    active_goal: null,
+    goals: [],
+    history: []
+  } }));
+
+  await page.goto("/goal");
+  await expect(page.getByText("L4", { exact: true })).toBeVisible();
+  const topic = page.getByLabel("Tema");
+  const topicValues = await topic.locator("option").evaluateAll((options) => options.map((option) => (option as HTMLOptionElement).value));
+  expect(topicValues).toContain("mutual_funds");
+  expect(topicValues).toContain("forex");
+  expect(topicValues).toContain("derivatives");
+  expect(topicValues).not.toContain("planning");
+  expect(topicValues).not.toContain("taxation");
+
+  await topic.selectOption("mutual_funds");
+  await expect(page.getByLabel("Risultato di apprendimento").locator('option[value="analyze_mutual_funds"]')).toHaveText("Approfondire criteri di analisi dei fondi comuni");
+  await topic.selectOption("forex");
+  await expect(page.getByLabel("Risultato di apprendimento").locator('option[value="forex_risk_management"]')).toHaveText("Studiare il rischio operativo nel Forex");
 });
 
 test("tour keeps the current step in the URL", async ({ page }) => {
@@ -645,6 +971,8 @@ test("profile restores a pending request without requiring candidate reload", as
 
   await page.goto("/profiles/mentor1");
 
+  await expect(page.getByText("Argomenti su cui può aiutare", { exact: true })).toBeVisible();
+  await expect(page.getByText("Competenze principali", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Richiesta inviata").first()).toBeVisible();
   await expect(page.getByText("Verifica compatibilità non disponibile")).toHaveCount(0);
 });

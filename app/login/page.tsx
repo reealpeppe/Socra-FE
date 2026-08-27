@@ -62,6 +62,7 @@ export default function LoginPage() {
           <form
             aria-describedby={error ? "login-error" : undefined}
             className={styles.form}
+            method="post"
             onSubmit={onSubmit}
           >
             <div className={styles.field}>

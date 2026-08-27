@@ -182,3 +182,39 @@ export type ApiError = {
   detail?: string;
   message?: string;
 };
+
+export type TopicKnowledgeLevel = "K0" | "K1" | "K2" | "K3";
+
+export type TopicInvestmentBand = "A0" | "A1" | "A2" | "A3" | "A4";
+
+export type TopicCompetenceInput = {
+  topic: string;
+  knowledge_level: TopicKnowledgeLevel;
+  invested_amount_band: TopicInvestmentBand;
+  wants_to_mentor: boolean;
+  safety_scenario_answer?: string | null;
+};
+
+export type TopicCompetencePayload = {
+  instruments: TopicCompetenceInput[];
+};
+
+export type TopicCompetenceDraft = {
+  knowledge_level?: TopicKnowledgeLevel;
+  invested_amount_band?: TopicInvestmentBand;
+  wants_to_mentor?: boolean;
+  safety_scenario_answer?: string | null;
+};
+
+export type TopicCompetenceSnapshotItem = TopicCompetenceInput & {
+  mentor_eligible?: boolean;
+  mentor_enabled?: boolean;
+  safety_scenario_passed?: boolean | null;
+};
+
+export type TopicCompetenceSnapshot = {
+  instruments: TopicCompetenceSnapshotItem[];
+  eligible_mentor_topics?: string[];
+  consistency_flags?: string[];
+  is_coach: boolean;
+};

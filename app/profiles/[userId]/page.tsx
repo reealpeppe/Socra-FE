@@ -192,7 +192,11 @@ function ProfileContent() {
             <div className="profile-body">
               <div className="profile-left">
                 <section className="card">
-                  <p className="profile-section-label">Competenze principali</p>
+                  <p className="profile-section-label">
+                    {topTopics.length && !competences.length
+                      ? "Argomenti su cui può aiutare"
+                      : "Competenze principali"}
+                  </p>
                   {competences.length ? (
                     <div className="profile-topic-list">
                       {competences.map((competence) => (
@@ -369,7 +373,7 @@ function RequestCard({
         Obiettivo: <strong>{activeGoal.goal_tag}</strong>
       </p>
       <p className="profile-muted-text">
-        Costo se accetta: {pathCost} {pathCost === 1 ? "credito" : "crediti"}.
+        Costo del percorso per te: {pathCost} {pathCost === 1 ? "credito" : "crediti"}.
       </p>
       {requestError ? <p className="profile-request-error">{requestError}</p> : null}
       <button className="button" type="button" onClick={onRequest} disabled={requestLoading}>

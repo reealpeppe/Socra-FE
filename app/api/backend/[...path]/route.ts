@@ -19,3 +19,8 @@ export async function PATCH(request: NextRequest, context: BackendRouteContext) 
   const { path } = await context.params;
   return proxyBackend(request, path);
 }
+
+export async function PUT(request: NextRequest, context: BackendRouteContext) {
+  const { path } = await context.params;
+  return proxyBackend(request, path);
+}

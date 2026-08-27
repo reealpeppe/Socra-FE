@@ -392,7 +392,7 @@ function MentorCandidateCard({
 
       <div className="mcc-actions">
         {Number.isFinite(cost) ? (
-          <span className="mcc-cost">Costo se accetta: {cost} {cost === 1 ? "credito" : "crediti"}</span>
+          <span className="mcc-cost">Costo del percorso per te: {cost} {cost === 1 ? "credito" : "crediti"}</span>
         ) : null}
         <button
           className={`mcc-request-btn ${requested ? "sent" : pending ? "pending" : !requestStateReady ? "unavailable" : ""}`.trim()}
