@@ -13,8 +13,8 @@ test("homepage presents the community without release jargon or fabricated metri
 test("levels and community keep internal product mechanics out of the user experience", async ({ page }) => {
   await page.goto("/livelli");
 
-  await expect(page.getByRole("heading", { name: /Un livello che orienta, non giudica/i })).toBeVisible();
-  await expect(page.getByRole("heading", { name: /Tre modi di entrare nel percorso/i })).toBeVisible();
+  await expect(page).toHaveURL(/\/come-funziona$/);
+  await expect(page.locator("body")).not.toContainText(/\bL[0-5]\b/);
   await expect(page.locator("body")).not.toContainText(
     /soglie? di progressione|L0\s*→\s*L1|reputazione\s*≥|verifica admin|approvazione admin|\bMVP\b|private beta/i,
   );

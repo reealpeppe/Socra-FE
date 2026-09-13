@@ -6,7 +6,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
-import { UserAvatar, LevelBadge } from "@/components/Ui";
+import { UserAvatar } from "@/components/Ui";
+import { AlignmentDialog } from "@/components/AlignmentDialog";
+import { GoalAlternatives } from "@/components/GoalAlternatives";
+import { useDiscoveryImpressions } from "@/lib/use-discovery-impressions";
 import { ClientApiError, clientGet, clientPost } from "@/lib/api";
 import type { Goal, GoalsMe, MatchCandidate, MatchRequestItem, UserMe } from "@/lib/types";
 
@@ -38,6 +41,7 @@ function MatchingContent() {
   const [requestStateReady, setRequestStateReady] = useState(false);
   const [pendingMentors, setPendingMentors] = useState<Set<string>>(new Set());
   const [retryVersion, setRetryVersion] = useState(0);
+  const [selected, setSelected] = useState<MatchCandidate | null>(null);
   const filter = searchParams.get("view") === "recommended" ? "top" : "all";
 
   useEffect(() => {
@@ -124,11 +128,12 @@ function MatchingContent() {
   const filteredCandidates = filter === "top"
     ? candidates.filter((candidate) => candidate.is_recommended)
     : candidates;
+  const discoveryRoot = useDiscoveryImpressions(filteredCandidates.map((candidate) => candidate.discovery_offer_id || "").join(","));
   const hasRecommendedCandidates = candidates.some((candidate) => candidate.is_recommended);
   const hasAvailabilityFallback = candidates.some((candidate) => candidate.availability_fallback);
   const goalFallbackActive = !!goalIdFromQuery && !!activeGoal && activeGoal.id !== goalIdFromQuery;
 
-  async function requestMentor(candidate: MatchCandidate) {
+  async function requestMentor(candidate: MatchCandidate, alignmentMessage: string) {
     if (!activeGoal?.id || !requestStateReady || candidate.mentor_id === me?.id || pendingMentors.has(candidate.mentor_id)) return;
     setError(null);
     setMessage(null);
@@ -136,12 +141,14 @@ function MatchingContent() {
     try {
       await clientPost<MatchRequestItem>("/matching/requests", {
         mentor_id: candidate.mentor_id,
-        goal_id: activeGoal.id
+        goal_id: activeGoal.id,
+        alignment_message: alignmentMessage
       });
       setRequestedMentors((prev) => new Set(prev).add(candidate.mentor_id));
       setMessage("Richiesta inviata. Il mentor ha 48 ore per rispondere.");
     } catch (err) {
       setError(err instanceof ClientApiError ? err.message : "Richiesta non inviata");
+      throw err;
     } finally {
       setPendingMentors((current) => {
         const next = new Set(current);
@@ -160,15 +167,14 @@ function MatchingContent() {
   }
 
   return (
-    <div className="matching-page">
+    <div className="matching-page" ref={discoveryRoot}>
+      {selected ? <AlignmentDialog name={selected.nickname || "il mentor"} onClose={() => setSelected(null)} onSend={(text) => requestMentor(selected, text)} /> : null}
       <div className="matching-header">
         <div>
           <p className="eyebrow">Matching mentor</p>
           <h1>I mentor più adatti al tuo obiettivo</h1>
           <p>
-            <span>Sei al</span>
-            <LevelBadge level={me?.level || "L0"} />
-            <span>Mostriamo solo compatibilità finale e motivazioni leggibili.</span>
+            <span>Trova un confronto adatto a ciò che vuoi imparare e al tuo punto di partenza.</span>
           </p>
         </div>
         <div className="cluster">
@@ -226,7 +232,7 @@ function MatchingContent() {
             <div className="card" role="status">
               <strong>Poche alternative disponibili in questo momento.</strong>
               <p className="muted">
-                Abbiamo ampliato i suggerimenti per non lasciarti senza opzioni. I profili interessati sono segnalati in ogni scheda.
+                Alcuni profili hanno una compatibilità più contenuta, ma restano idonei al tuo obiettivo. Leggi il motivo e confrontate le aspettative prima di iniziare.
               </p>
             </div>
           ) : null}
@@ -248,7 +254,7 @@ function MatchingContent() {
             <div className="card matching-empty">
               <Sparkles size={30} aria-hidden />
               <strong>Nessun match consigliato al momento</strong>
-              <p className="muted">Sono disponibili altri mentor compatibili con il tuo livello.</p>
+              <p className="muted">Sono disponibili altri mentor per il tuo obiettivo.</p>
               <button className="button secondary" type="button" onClick={() => setFilter("all")}>Mostra tutti i mentor</button>
             </div>
           ) : filteredCandidates.length === 0 ? (
@@ -257,6 +263,7 @@ function MatchingContent() {
               <strong>Nessun mentor disponibile ora</strong>
               <p className="muted">Riprova più tardi o aggiorna il tuo obiettivo per ampliare le possibilità.</p>
               <Link href="/goal?edit=1" className="button secondary">Modifica obiettivo</Link>
+              {requestedMentors.size === 0 ? <GoalAlternatives key={activeGoal.id} goalId={activeGoal.id} /> : <Link href="/requests">Vedi la richiesta in attesa</Link>}
             </div>
           ) : (
             <div className="matching-list">
@@ -267,7 +274,7 @@ function MatchingContent() {
                   requested={requestedMentors.has(candidate.mentor_id)}
                   pending={pendingMentors.has(candidate.mentor_id)}
                   requestStateReady={requestStateReady}
-                  onRequest={() => requestMentor(candidate)}
+                  onRequest={() => setSelected(candidate)}
                 />
               ))}
             </div>
@@ -336,10 +343,6 @@ function EmptyGoal() {
   );
 }
 
-function titleFromScore(score: number): string {
-  return score >= 55 ? "Match consigliato" : "Profilo da valutare";
-}
-
 function MentorCandidateCard({
   candidate,
   requested,
@@ -355,11 +358,11 @@ function MentorCandidateCard({
 }) {
   const displayName = candidate.nickname || "Mentor Socra";
   const score = Math.max(0, Math.min(100, Math.round(candidate.match_score)));
-  const reason = candidate.reason_summary || "In linea con il tuo obiettivo e il tuo livello.";
+  const reason = candidate.reason_summary || "Esperienza pertinente al tuo obiettivo.";
   const cost = candidate.path_cost;
 
   return (
-    <article className="mentor-candidate-card">
+    <article className="mentor-candidate-card" data-discovery-offer={candidate.discovery_offer_id}>
       <UserAvatar name={displayName} size="lg" />
 
       <div className="mcc-meta">
@@ -367,8 +370,7 @@ function MentorCandidateCard({
           <div>
             <h2>{displayName}</h2>
             <div className="mcc-title-row">
-              <span>{titleFromScore(candidate.match_score)}</span>
-              <LevelBadge level={candidate.level} />
+              {candidate.discovery_label ? <span>{candidate.discovery_label}</span> : null}
               {candidate.availability_fallback ? <span className="pill amber">Disponibilità limitata</span> : null}
               {candidate.is_recommended ? <span className="pill green">Consigliato</span> : null}
             </div>

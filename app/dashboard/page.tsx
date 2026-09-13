@@ -5,8 +5,9 @@ import Link from "next/link";
 import { Award } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
-import { UserAvatar, LevelBadge, MetricStat } from "@/components/Ui";
+import { UserAvatar, MetricStat } from "@/components/Ui";
 import { ClientApiError, clientGet, clientPost } from "@/lib/api";
+import { useDiscoveryImpressions } from "@/lib/use-discovery-impressions";
 import type { GoalsMe, MatchCandidate, MatchRequestItem, PathItem, PublicProfile, UserMe, Wallet } from "@/lib/types";
 
 type DashboardErrorKey = "user" | "wallet" | "goals" | "requests" | "paths";
@@ -18,6 +19,7 @@ export default function DashboardPage() {
   const [requests, setRequests] = useState<MatchRequestItem[]>([]);
   const [paths, setPaths] = useState<PathItem[]>([]);
   const [candidates, setCandidates] = useState<MatchCandidate[]>([]);
+  const discoveryRoot = useDiscoveryImpressions(candidates.map((candidate) => candidate.discovery_offer_id || "").join(","));
   const [candidatesLoading, setCandidatesLoading] = useState(false);
   const [candidatesError, setCandidatesError] = useState<string | null>(null);
   const [candidateRetryVersion, setCandidateRetryVersion] = useState(0);
@@ -148,7 +150,7 @@ export default function DashboardPage() {
         : undefined}
     >
       <OnboardingGate>
-      <div className="dash-page" aria-busy={loading}>
+      <div className="dash-page" aria-busy={loading} ref={discoveryRoot}>
         {/* Greeting */}
         <div className="dash-greeting">
           <h1>Ciao {displayName}</h1>
@@ -192,9 +194,8 @@ export default function DashboardPage() {
                 <div>
                   <p className="dash-identity-name">{displayName}</p>
                   <div className="dash-identity-meta">
-                    <LevelBadge level={me?.level || "L0"} />
                     <span className="dash-identity-role">
-                      {me?.is_coach ? "Mentor" : "Percorso verso mentor"}
+                      {me?.is_coach ? "Mentor" : "Community"}
                     </span>
                   </div>
                 </div>
@@ -214,16 +215,10 @@ export default function DashboardPage() {
                         <Link href="/requests?tab=received" className="dash-aside-cta">Vedi proposte ricevute</Link>
                       </div>
                     </>
-                  ) : me.level === "L0" ? (
-                    <>
-                      <p className="dash-aside-label">Mentoring non ancora disponibile</p>
-                      <p className="dash-muted-hint">Al momento il tuo profilo non può ricevere richieste come mentor.</p>
-                      <Link href="/livelli" className="dash-aside-cta">Informazioni sui livelli</Link>
-                    </>
                   ) : (
                     <>
                       <p className="dash-aside-label">Disponibilità mentor disattivata</p>
-                      <p className="dash-muted-hint">Il tuo livello è idoneo: puoi riattivare il ruolo mentor dalle impostazioni.</p>
+                      <p className="dash-muted-hint">Dalle impostazioni puoi verificare gli argomenti su cui renderti disponibile.</p>
                       <Link href="/settings" className="dash-aside-cta">Gestisci ruolo mentor</Link>
                     </>
                   )}
@@ -367,7 +362,7 @@ export default function DashboardPage() {
                 ) : candidates.length ? (
                   <div className="dash-candidate-list">
                     {candidates.map((candidate) => (
-                      <Link className="dash-candidate-row" href={`/profiles/${candidate.mentor_id}`} key={candidate.mentor_id}>
+                      <Link className="dash-candidate-row" data-discovery-offer={candidate.discovery_offer_id} href={`/profiles/${candidate.mentor_id}`} key={candidate.mentor_id}>
                         <div>
                           <strong>{candidate.nickname || "Mentor Socra"}</strong>
                           <p>{candidate.reason_summary}</p>

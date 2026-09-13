@@ -11,6 +11,15 @@ import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes-guard";
 
 const QUESTIONS = [
   {
+    key: "depth_adequacy",
+    label: "Il grado di approfondimento era adatto al tuo punto di partenza?",
+    options: [
+      ["adequate", "Sì, era adatto a me"],
+      ["too_simple", "Era troppo semplice"],
+      ["too_advanced", "Era troppo avanzato"],
+    ],
+  },
+  {
     key: "outcome",
     label: "Come si è concluso il tuo percorso?",
     options: [

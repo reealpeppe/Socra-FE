@@ -13,7 +13,7 @@ const features = [
   {
     icon: Lock,
     title: "Profilo pubblico essenziale",
-    body: "Il profilo nella community mostra livello, argomenti generalizzati, risultati aggregati, badge e testi facoltativi. Le risposte dettagliate della survey restano private",
+    body: "Il profilo nella community mostra argomenti generalizzati, risultati aggregati, badge e testi facoltativi. Le risposte dettagliate della survey restano private",
   },
   {
     icon: Video,

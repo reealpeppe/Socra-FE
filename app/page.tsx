@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 const steps = [
   {
     icon: GraduationCap,
-    title: "Scopri il livello",
+    title: "Racconta da dove parti",
     body: "Completa la survey guidata e trova un punto di partenza coerente con la tua esperienza",
   },
   {
@@ -123,7 +123,7 @@ export default function HomePage() {
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "center" }}>
                 <Link className={publicStyles.actionGold} href="/register">
-                  Scopri il tuo livello
+                  Entra nella community
                 </Link>
                 <a className={publicStyles.textLinkOnDark} href="#come-funziona">
                   Come funziona

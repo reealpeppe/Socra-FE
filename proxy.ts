@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const protectedPrefixes = [
   "/admin",
+  "/competenze",
   "/dashboard",
   "/feedback",
   "/goal",

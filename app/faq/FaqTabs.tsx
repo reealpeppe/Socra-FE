@@ -47,7 +47,7 @@ const sections = [
     faqs: [
       {
         q: "Come funziona il matching?",
-        a: "Socra cerca profili coerenti con il tuo obiettivo, il tuo livello e la disponibilità del momento. Se le alternative sono poche, può ampliare i suggerimenti e lo indica chiaramente. La scelta finale resta sempre alla persona che invia o riceve la proposta.",
+        a: "Socra cerca esperienza pertinente al tuo argomento e al tuo punto di partenza, tenendo conto dei risultati dei percorsi. Anche persone nuove o meno viste hanno spazio nei suggerimenti. Se non ci sono mentor idonei, puoi valutare esplicitamente un obiettivo diverso. La scelta finale resta tua.",
       },
       {
         q: "Che cosa vedo del punteggio?",
@@ -68,7 +68,7 @@ const sections = [
       },
       {
         q: "Quali informazioni mostra il profilo mentor?",
-        a: "Il profilo può mostrare livello, argomenti, percorsi completati e badge ricevuti. Quando lo storico è ancora limitato, il profilo viene presentato come “Nuovo utente”.",
+        a: "Il profilo può mostrare argomenti, percorsi completati e badge ricevuti. Quando lo storico è ancora limitato, il profilo viene presentato come “Nuovo utente”.",
       },
       {
         q: "Cosa succede dopo una segnalazione?",
@@ -106,7 +106,7 @@ const sections = [
       },
       {
         q: "Quali dati diventano pubblici?",
-        a: "Il profilo nella community usa solo livello, argomenti generalizzati, risultati aggregati, badge e testi facoltativi. Le risposte dettagliate della survey non vengono pubblicate.",
+        a: "Il profilo nella community usa argomenti generalizzati, risultati aggregati, badge e testi facoltativi. Le risposte dettagliate della survey e le valutazioni interne non vengono pubblicate.",
       },
     ],
   },

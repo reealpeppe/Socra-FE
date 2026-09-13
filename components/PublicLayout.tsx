@@ -9,7 +9,6 @@ import styles from "./PublicLayout.module.css";
 const navLinks = [
   { href: "/come-funziona", label: "Come funziona" },
   { href: "/community", label: "Community" },
-  { href: "/livelli", label: "Livelli" },
   { href: "/sicurezza", label: "Sicurezza" },
   { href: "/faq", label: "FAQ" },
 ];

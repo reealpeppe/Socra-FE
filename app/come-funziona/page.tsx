@@ -13,7 +13,7 @@ const steps = [
   {
     num: 1,
     icon: GraduationCap,
-    title: "Scopri il tuo livello",
+    title: "Racconta da dove parti",
     body: "Completa la survey iniziale e lascia che Socra adatti l’esperienza al tuo punto di partenza",
   },
   {
@@ -26,7 +26,7 @@ const steps = [
     num: 3,
     icon: Users,
     title: "Valuta i mentor",
-    body: "Socra suggerisce profili coerenti con il tuo obiettivo, il tuo livello e la disponibilità del momento",
+    body: "Socra suggerisce persone con esperienza pertinente all’argomento e al tuo punto di partenza. I risultati dei percorsi aiutano a migliorare i suggerimenti nel tempo",
   },
   {
     num: 4,
@@ -61,7 +61,7 @@ const differences = [
   },
   {
     title: "Visibilità controllata",
-    body: "Livello, argomenti, risultati aggregati e badge possono essere visibili nella community; le risposte dettagliate della survey restano private",
+    body: "Argomenti, risultati aggregati e badge possono essere visibili nella community; le risposte dettagliate della survey e le valutazioni interne restano private",
   },
 ];
 

@@ -50,7 +50,7 @@ export default function PrivacyPage() {
             <h2>2. Quali dati trattiamo</h2>
             <ul>
               <li>Account: username, email, password protetta, nickname e stato account.</li>
-              <li>Onboarding: risposte alla survey, livello derivato e argomenti di competenza.</li>
+              <li>Onboarding: risposte alla survey, valutazioni interne per argomento ed esperienza pratica.</li>
               <li>Obiettivi e percorsi: argomento, descrizione generalizzata, proposte, stati e crediti interni.</li>
               <li>Feedback e sicurezza: risposte strutturate, note private, badge e segnalazioni.</li>
               <li>Prima sessione: stanza, presenza e durata quando disponibili dal provider.</li>
@@ -74,17 +74,18 @@ export default function PrivacyPage() {
             <h3>Sezione di contesto personale</h3>
             <p>
               La sezione va completata, ma ogni domanda permette di scegliere “Preferisco
-              non rispondere”. Queste risposte non cambiano livello o matching e non
+              non rispondere”. Queste risposte non cambiano il matching e non
               diventano visibili ai mentor.
             </p>
           </section>
 
           <section className={styles.section}>
-            <h2>4. Livello, matching e visibilità</h2>
+            <h2>4. Matching e visibilità</h2>
+            <p>Per distribuire le opportunità di incontro registriamo le schede effettivamente visualizzate: utente che cerca, profilo mostrato, ruolo, argomento e momento della visualizzazione. Questi dati operativi restano privati e sono conservati per un massimo di 30 giorni. Non modificano le recensioni né i punteggi di competenza.</p>
             <p>
-              Il livello e il matching servono a rendere più pertinenti gli incontri.
+              Le valutazioni per argomento e il matching servono a rendere più pertinenti gli incontri.
               La persona sceglie sempre se inviare o accettare una proposta. Il profilo
-              nella community può mostrare nickname, livello, disponibilità mentor,
+              nella community può mostrare nickname, disponibilità mentor,
               argomenti generalizzati, percorsi completati, badge e risultati aggregati.
             </p>
             <p>

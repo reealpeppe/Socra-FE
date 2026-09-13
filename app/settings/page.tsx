@@ -6,7 +6,7 @@ import { LogOut, Mail, UserRound } from "lucide-react";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { TOPIC_SAFETY_SCENARIOS, isMentorEligible } from "@/components/TopicCompetenceMatrix";
-import { LevelBadge, UserAvatar } from "@/components/Ui";
+import { UserAvatar } from "@/components/Ui";
 import { authPost, ClientApiError, clientGet, clientPatch, clientPut } from "@/lib/api";
 import { instrumentOptions } from "@/lib/options";
 import type { TopicCompetenceSnapshot, TopicCompetenceSnapshotItem, UserMe } from "@/lib/types";
@@ -160,7 +160,7 @@ export default function SettingsPage() {
           : "—";
   const canEnableMentor = competences
     ? competences.instruments.some((item) => item.wants_to_mentor && item.mentor_eligible !== false)
-    : me?.level !== "L0";
+    : false;
   const generalMentorGuardrailBlocked = competences?.consistency_flags?.some(
     (flag) => GENERAL_MENTOR_GUARDRAIL_FLAGS.has(flag)
   ) ?? false;
@@ -227,15 +227,15 @@ export default function SettingsPage() {
         </div>
 
         <div className="card settings-card">
-          <h2 className="settings-section-title">Il tuo livello</h2>
+          <h2 className="settings-section-title">La tua esperienza</h2>
           <div className="settings-level-row">
-            {me ? <LevelBadge level={me.level} /> : <span className="settings-field-value">-</span>}
             <p className="settings-level-text">
-              Il livello descrive il punto di partenza con cui Socra organizza l&apos;esperienza.
+              Le risposte private e i percorsi svolti aiutano a trovare confronti pertinenti per ogni argomento.
               {me?.is_coach && " Sei attivo come mentor."}
             </p>
           </div>
           <div style={{ marginTop: 16 }}>
+            <Link href="/competenze" className="button secondary">Aggiorna la tua esperienza</Link>
             {me ? <Link href={`/profiles/${me.id}`} className="button secondary">Vedi il tuo profilo pubblico</Link> : null}
           </div>
         </div>
@@ -246,9 +246,7 @@ export default function SettingsPage() {
             <label htmlFor="mentor-availability">
               <strong>Ricevi richieste compatibili</strong>
               <p id="mentor-availability-hint" className="settings-account-note">
-                {me?.level === "L0"
-                  ? "La disponibilità come mentor non è attiva per questo profilo."
-                   : !me?.is_coach && !canEnableMentor
+                {!me?.is_coach && !canEnableMentor
                      ? "Seleziona prima almeno uno strumento disponibile."
                     : !me?.is_coach
                       ? "Attivala per ricevere richieste sugli strumenti che hai selezionato."
@@ -263,7 +261,7 @@ export default function SettingsPage() {
                 aria-label="Disponibilità come mentor"
                 aria-describedby="mentor-availability-hint"
                 checked={!!me?.is_coach}
-                disabled={!me || me.level === "L0" || savingMentorStatus || (!me.is_coach && !canEnableMentor)}
+                disabled={!me || savingMentorStatus || (!me.is_coach && !canEnableMentor)}
                 onChange={(event) => updateMentorStatus(event.target.checked)}
               />
               <span aria-hidden />

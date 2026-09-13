@@ -1,6 +1,14 @@
 import { expect, test } from "@playwright/test";
+import { goalOptionsByLevelTopic, topicOptions } from "../../lib/options";
 
 test.beforeEach(async ({ baseURL, context, page }) => {
+  await page.route("**/api/backend/surveys/goal/catalog", (route) => route.fulfill({ json: {
+    topics: topicOptions.filter((topic) => !["planning", "taxation", "undefined"].includes(topic.value)).map((topic) => ({
+      code: topic.value, label: topic.label,
+      goals: Array.from(new Map(Object.values(goalOptionsByLevelTopic).flatMap((matrix) => matrix[topic.value] || []).map((goal) => [goal.value, { code: goal.value, label: goal.label }])).values()),
+    })),
+  } }));
+  await page.route("**/api/backend/matching/alternatives?**", (route) => route.fulfill({ json: [] }));
   await context.addCookies([{ name: "socra_session", value: "test-token", url: baseURL!, httpOnly: true, sameSite: "Lax" }]);
   await page.route("**/api/backend/auth/me", async (route) => route.fulfill({ json: { id: "u1", username: "mentee", email: "mentee@example.com", nickname: "Mentee", level: "L1", is_coach: true, role: "user", account_status: "active" } }));
   await page.route("**/api/backend/surveys/onboarding/me", async (route) => route.fulfill({ json: { user_id: "u1", level: "L1", is_coach: true, latest_answer_id: "a1" } }));
@@ -144,8 +152,8 @@ test("L0 dashboard explains mentor eligibility without promising requests", asyn
 
   await page.goto("/dashboard");
 
-  await expect(page.getByText("Al momento il tuo profilo non può ricevere richieste come mentor.")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Informazioni sui livelli" })).toBeVisible();
+  await expect(page.getByText("Dalle impostazioni puoi verificare gli argomenti su cui renderti disponibile.")).toBeVisible();
+  await expect(page.getByRole("link", { name: "Gestisci ruolo mentor" })).toBeVisible();
   await expect(page.getByText(/si sblocca|come crescere|soglia/i)).toHaveCount(0);
   await expect(page.getByText("Puoi ricevere richieste")).toHaveCount(0);
 });
@@ -397,7 +405,7 @@ test("onboarding submits score and links to goal", async ({ page }) => {
   await expect(page.getByLabel("Situazione professionale")).toHaveValue("undisclosed");
   await page.getByRole("button", { name: "Continua", exact: true }).click();
 
-  await page.getByRole("button", { name: "Scopri il tuo livello" }).click();
+  await page.getByRole("button", { name: "Conferma le risposte" }).click();
 
   expect(submittedPayload.section).toBe("onboarding");
   const topicPayload = submittedPayload.answers.topic_competences_v2 as { instruments: Array<Record<string, unknown>> };
@@ -423,7 +431,8 @@ test("onboarding submits score and links to goal", async ({ page }) => {
     D4: "undisclosed",
     D5: "undisclosed"
   });
-  await expect(page.getByLabel("Livello L2")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Il tuo prossimo confronto parte da qui" })).toBeVisible();
+  await expect(page.getByLabel("Livello L2")).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Scegli cosa imparare" })).toBeVisible();
 });
 
@@ -487,10 +496,11 @@ test("onboarding omits the autonomy question when every invested amount is zero"
   await expect(page.getByRole("heading", { name: "Rivedi e conferma" })).toBeVisible();
   const situationsReview = page.locator(".review-row").filter({ hasText: "Scenari" });
   await expect(situationsReview.getByText("Come prendi le decisioni")).toHaveCount(0);
-  await page.getByRole("button", { name: "Scopri il tuo livello" }).click();
+  await page.getByRole("button", { name: "Conferma le risposte" }).click();
 
   expect(submittedAnswers).not.toHaveProperty("D5");
-  await expect(page.getByLabel("Livello L0")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Il tuo prossimo confronto parte da qui" })).toBeVisible();
+  await expect(page.getByLabel("Livello L0")).toHaveCount(0);
 });
 
 test("onboarding draft survives navigation", async ({ page }) => {
@@ -622,8 +632,8 @@ test("onboarding never restores a draft from another account", async ({ page }) 
 
 test("completed onboarding cannot be restarted", async ({ page }) => {
   await page.goto("/onboarding");
-  await expect(page.getByText("Survey già completata")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Basi operative" })).toBeVisible();
+  await expect(page.getByText("Le tue risposte sono salvate")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Il tuo prossimo confronto parte da qui" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Gestisci obiettivo" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Conoscenza degli strumenti" })).toHaveCount(0);
 });
@@ -671,8 +681,9 @@ test("L4 goal flow uses the advanced catalog and keeps V2 topics coherent", asyn
   } }));
 
   await page.goto("/goal");
-  await expect(page.getByText("L4", { exact: true })).toBeVisible();
+  await expect(page.getByText("L4", { exact: true })).toHaveCount(0);
   const topic = page.getByLabel("Tema");
+  await expect(topic).toBeVisible();
   const topicValues = await topic.locator("option").evaluateAll((options) => options.map((option) => (option as HTMLOptionElement).value));
   expect(topicValues).toContain("mutual_funds");
   expect(topicValues).toContain("forex");
@@ -738,8 +749,70 @@ test("matching shows reasons and can create request", async ({ page }) => {
   await expect(page.getByText("In linea con il tuo obiettivo")).toBeVisible();
   await expect(page.getByText("90/100")).toHaveCount(0);
   await page.getByRole("button", { name: "Invia richiesta al mentor" }).click();
-  expect(requestPayload).toEqual({ mentor_id: "mentor1", goal_id: "g1" });
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Invia", exact: true })).toBeDisabled();
+  await page.getByLabel("Il tuo messaggio", { exact: true }).fill("Vorrei capire come funziona un primo PAC in ETF.");
+  await page.getByRole("button", { name: "Invia", exact: true }).click();
+  expect(requestPayload).toEqual({ mentor_id: "mentor1", goal_id: "g1", alignment_message: "Vorrei capire come funziona un primo PAC in ETF." });
   await expect(page.getByRole("status")).toContainText("48 ore per rispondere");
+});
+
+test("V3 discovery acknowledges visible receipts, not every fetched profile", async ({ page }) => {
+  const seen: string[] = [];
+  await page.route("**/api/backend/matching/candidates", (route) => route.fulfill({ json: Array.from({ length: 10 }, (_, index) => ({
+    mentor_id: `visible-${index}`, nickname: `Mentor ${index}`, level: "L2", path_cost: 1,
+    match_score: 84, is_recommended: true, reason_summary: "Esperienza pertinente al tuo obiettivo.", discovery_offer_id: `receipt-${index}`,
+  })) }));
+  await page.route("**/api/backend/matching/discovery/impressions", (route) => {
+    seen.push(...route.request().postDataJSON().offer_ids);
+    return route.fulfill({ json: { recorded: 1, expired: 0, already_recorded: 0 } });
+  });
+  await page.goto("/matching");
+  await page.locator('[data-discovery-offer="receipt-0"]').scrollIntoViewIfNeeded();
+  await expect.poll(() => seen.includes("receipt-0")).toBe(true);
+  expect(seen).not.toContain("receipt-9");
+  await page.locator('[data-discovery-offer="receipt-9"]').scrollIntoViewIfNeeded();
+  await expect.poll(() => seen.includes("receipt-9")).toBe(true);
+  expect(seen.filter((id) => id === "receipt-0")).toHaveLength(1);
+});
+
+test("V3 mentor proposal requires the same alignment message", async ({ page }) => {
+  let sent: Record<string, unknown> | null = null;
+  await page.route("**/api/backend/matching/requests/me?role=mentor", (route) => route.fulfill({ json: [] }));
+  await page.route("**/api/backend/matching/mentee-candidates", (route) => route.fulfill({ json: [{
+    mentee_id: "learner", nickname: "Luca", goal_id: "learn", goal_tag: "Capire gli ETF", goal_topic: "ETF",
+    level: "L0", match_score: 79, is_recommended: false, reason_summary: "Puoi condividere la tua esperienza su ETF.",
+  }] }));
+  await page.route("**/api/backend/matching/proposals", (route) => {
+    sent = route.request().postDataJSON();
+    return route.fulfill({ json: { id: "proposal", status: "pending", initiator_role: "mentor", goal_id: "learn" } });
+  });
+  await page.goto("/matching/mentees");
+  await page.getByRole("button", { name: "Proponi un percorso" }).click();
+  await page.getByLabel("Il tuo messaggio", { exact: true }).fill("Posso condividere i miei primi passi con un PAC in ETF.");
+  await page.getByRole("button", { name: "Invia", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Proposta inviata" })).toBeVisible();
+  expect(sent).toMatchObject({ mentee_id: "learner", goal_id: "learn", alignment_message: "Posso condividere i miei primi passi con un PAC in ETF." });
+});
+
+test("V3 alternative needs an explicit goal replacement confirmation", async ({ page }) => {
+  let chosen: Record<string, unknown> | null = null;
+  await page.route("**/api/backend/matching/alternatives?**", (route) => route.fulfill({ json: [{
+    topic: "mutual_funds", goal_tag: "understand_mutual_funds", topic_label: "Fondi comuni", goal_label: "Capire i fondi comuni",
+    message: "È un obiettivo diverso: non soddisfa il bisogno originale.",
+  }] }));
+  await page.route("**/api/backend/matching/alternatives/choose", (route) => {
+    chosen = route.request().postDataJSON();
+    return route.fulfill({ json: { goal_id: "new-goal" } });
+  });
+  await page.goto("/matching");
+  await page.getByRole("button", { name: "Capire i fondi comuni · Fondi comuni" }).click();
+  await expect(page.getByRole("button", { name: "Conferma nuovo obiettivo" })).toBeDisabled();
+  expect(chosen).toBeNull();
+  await page.getByRole("checkbox", { name: /Voglio sostituire/ }).check();
+  await page.getByRole("button", { name: "Conferma nuovo obiettivo" }).click();
+  await expect(page).toHaveURL(/goalId=new-goal/);
+  expect(chosen).toMatchObject({ goal_id: "g1", topic: "mutual_funds", confirm: true });
 });
 
 test("matching restores a pending request after reload", async ({ page }) => {

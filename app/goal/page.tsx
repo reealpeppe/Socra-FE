@@ -7,18 +7,11 @@ import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
 import { AsyncState, Button } from "@/components/Ui";
 import { clientGet, clientPost, ClientApiError } from "@/lib/api";
-import { capitalGoalOptions, goalOptionsByLevelTopic, riskOptions, topicOptions, type SelectOption } from "@/lib/options";
+import { capitalGoalOptions, riskOptions, type SelectOption } from "@/lib/options";
 import type { Goal, GoalsMe } from "@/lib/types";
 import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes-guard";
 
-type OnboardingState = {
-  level: string;
-  latest_answer_id: string | null;
-  competence_v2_completed?: boolean;
-};
-
-type GlobalLevel = "L0" | "L1" | "L2" | "L3" | "L4" | "L5";
-type CatalogLevel = "L0" | "L1" | "L2";
+type GoalCatalog = { topics: Array<{ code: string; label: string; goals: Array<{ code: string; label: string }> }> };
 
 export default function GoalPage() {
   return (
@@ -36,8 +29,7 @@ function GoalForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathId = searchParams.get("pathId");
-  const [level, setLevel] = useState<GlobalLevel | null>(null);
-  const [competenceV2Completed, setCompetenceV2Completed] = useState(false);
+  const [catalog, setCatalog] = useState<GoalCatalog | null>(null);
   const [hasCurrentGoal, setHasCurrentGoal] = useState(false);
   const [form, setForm] = useState({ topic: "", goal_tag: "", capital_goal: "", risk: "" });
   const [currentTopicOption, setCurrentTopicOption] = useState<SelectOption | null>(null);
@@ -48,15 +40,9 @@ function GoalForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
-  const catalogLevel = level ? toCatalogLevel(level) : null;
 
   const availableTopics = useMemo(() => {
-    const options = catalogLevel
-      ? topicOptions.filter((option) => (
-          option.levels?.includes(catalogLevel)
-          && (!competenceV2Completed || !["planning", "taxation"].includes(option.value))
-        ))
-      : [];
+    const options = catalog?.topics.map((topic) => ({ value: topic.code, label: topic.label })) || [];
     if (
       form.topic
       && currentTopicOption?.value === form.topic
@@ -65,9 +51,9 @@ function GoalForm() {
       return [...options, currentTopicOption];
     }
     return options;
-  }, [catalogLevel, competenceV2Completed, currentTopicOption, form.topic]);
+  }, [catalog, currentTopicOption, form.topic]);
   const availableGoals = useMemo(() => {
-    const options = catalogLevel ? goalOptionsByLevelTopic[catalogLevel]?.[form.topic] || [] : [];
+    const options = catalog?.topics.find((topic) => topic.code === form.topic)?.goals.map((goal) => ({ value: goal.code, label: goal.label })) || [];
     if (
       form.goal_tag
       && currentGoalOption?.value === form.goal_tag
@@ -76,29 +62,21 @@ function GoalForm() {
       return [...options, currentGoalOption];
     }
     return options;
-  }, [catalogLevel, currentGoalOption, form.goal_tag, form.topic]);
-  const availableCapital = useMemo(
-    () => catalogLevel ? capitalGoalOptions.filter((option) => option.levels?.includes(catalogLevel)) : [],
-    [catalogLevel]
-  );
+  }, [catalog, currentGoalOption, form.goal_tag, form.topic]);
+  const availableCapital = capitalGoalOptions;
   const editMode = hasCurrentGoal;
   useUnsavedChangesGuard(dirty);
 
   useEffect(() => {
     Promise.all([
-      clientGet<OnboardingState>("/surveys/onboarding/me"),
+      clientGet<GoalCatalog>("/surveys/goal/catalog"),
       clientGet<GoalsMe>("/goals/me")
     ])
-      .then(([state, goals]) => {
-        if (!["L0", "L1", "L2", "L3", "L4", "L5"].includes(state.level)) {
-          throw new Error("Livello non valido: completa di nuovo la survey iniziale.");
-        }
-        const nextLevel = state.level as GlobalLevel;
-        setLevel(nextLevel);
-        setCompetenceV2Completed(!!state.competence_v2_completed);
+      .then(([nextCatalog, goals]) => {
+        setCatalog(nextCatalog);
         const current = goals.current || goals.active_goal || null;
         if (current) {
-          const currentForm = goalToForm(current, nextLevel);
+          const currentForm = goalToForm(current, nextCatalog);
           setHasCurrentGoal(true);
           setForm(currentForm);
           setCurrentTopicOption(currentForm.topic
@@ -120,8 +98,7 @@ function GoalForm() {
     setHasCurrentGoal(false);
     setCurrentTopicOption(null);
     setCurrentGoalOption(null);
-    setLevel(null);
-    setCompetenceV2Completed(false);
+    setCatalog(null);
     setLoadAttempt((value) => value + 1);
   }
 
@@ -137,7 +114,7 @@ function GoalForm() {
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (!level || Object.values(form).some((value) => !value)) {
+    if (!catalog || Object.values(form).some((value) => !value)) {
       setError("Completa tutte le scelte prima di continuare.");
       return;
     }
@@ -171,13 +148,13 @@ function GoalForm() {
     );
   }
 
-  if (loadError || !level) {
+  if (loadError || !catalog) {
     return (
       <div style={{ marginInline: "auto", maxWidth: "860px", width: "100%" }}>
         <AsyncState
           status="error"
           title="Non riusciamo a caricare il tuo obiettivo"
-          body={loadError || "Il livello iniziale non è disponibile."}
+          body={loadError || "Il catalogo degli obiettivi non è disponibile."}
           action={<Button variant="secondary" onClick={retryLoad}>Riprova</Button>}
         />
       </div>
@@ -216,10 +193,10 @@ function GoalForm() {
             </span>
             <div>
               <p style={{ color: "var(--muted)", fontSize: "0.75rem", fontWeight: 800, letterSpacing: "0.08em", margin: "0 0 2px", textTransform: "uppercase" }}>
-                Il tuo livello attuale
+                Il prossimo passo
               </p>
               <strong style={{ color: "var(--navy-950)", fontSize: "1.25rem" }}>
-                {loading ? "Caricamento…" : level || "Non disponibile"}
+                Un obiettivo, un confronto concreto
               </strong>
             </div>
           </div>
@@ -242,7 +219,7 @@ function GoalForm() {
                   value={form.topic}
                   onChange={updateTopic}
                   options={availableTopics}
-                  disabled={loading || submitting || !level}
+                  disabled={loading || submitting || !catalog}
                 />
                 <SelectField
                   label="Risultato di apprendimento"
@@ -256,14 +233,14 @@ function GoalForm() {
                   value={form.capital_goal}
                   onChange={(value) => updateField("capital_goal", value)}
                   options={availableCapital}
-                  disabled={loading || submitting || !level}
+                  disabled={loading || submitting || !catalog}
                 />
                 <SelectField
                   label="Stile del confronto (privato)"
                   value={form.risk}
                   onChange={(value) => updateField("risk", value)}
                   options={riskOptions}
-                  disabled={loading || submitting || !level}
+                  disabled={loading || submitting || !catalog}
                 />
               </div>
             </div>
@@ -283,7 +260,7 @@ function GoalForm() {
             <button
               className="button dark"
               type="submit"
-              disabled={loading || submitting || !level}
+              disabled={loading || submitting || !catalog}
               style={{ minWidth: "220px" }}
             >
               {submitting ? "Salvataggio…" : pathId ? "Conferma la scelta" : editMode ? "Aggiorna e vedi i mentor" : "Salva e continua"}
@@ -336,24 +313,13 @@ function SelectField({
   );
 }
 
-function goalToForm(goal: Goal, level: GlobalLevel) {
-  const topic = goal.topic_code || findOptionValue(goal.topic, topicOptions) || "";
-  const goalsForLevel = Object.values(goalOptionsByLevelTopic[toCatalogLevel(level)] || {}).flat();
-  const goalTag = goal.goal_tag_code || findOptionValue(goal.goal_tag, goalsForLevel) || "";
+function goalToForm(goal: Goal, catalog: GoalCatalog) {
+  const topic = goal.topic_code || catalog.topics.find((item) => item.label === goal.topic)?.code || "";
+  const goalTag = goal.goal_tag_code || catalog.topics.flatMap((item) => item.goals).find((item) => item.label === goal.goal_tag)?.code || "";
   return {
     topic,
     goal_tag: goalTag,
     capital_goal: goal.capital_goal || goal.amount_range || "",
     risk: goal.risk || ""
   };
-}
-
-function toCatalogLevel(level: GlobalLevel): CatalogLevel {
-  if (level === "L0" || level === "L1") return level;
-  return "L2";
-}
-
-function findOptionValue(valueOrLabel: string | null | undefined, options: SelectOption[]) {
-  if (!valueOrLabel) return null;
-  return options.find((option) => option.value === valueOrLabel || option.label === valueOrLabel)?.value || null;
 }

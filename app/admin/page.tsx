@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ClipboardList, Database, ShieldAlert } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
-import { ClientApiError, clientGet } from "@/lib/api";
+import { ClientApiError, clientGet, clientPost } from "@/lib/api";
 
 type ReviewItem = {
   id: string;
@@ -30,6 +30,7 @@ const SEVERITY_LABELS: Record<string, string> = {
 };
 
 const SOURCE_LABELS: Record<string, string> = {
+  external_competence_v3: "Verifica esperienza esterna",
   report: "Segnalazione",
   path_report: "Segnalazione percorso",
   call_anomaly: "Anomalia prima sessione",
@@ -38,6 +39,8 @@ const SOURCE_LABELS: Record<string, string> = {
 };
 
 const PAYLOAD_LABELS: Record<string, string> = {
+  description: "Esperienza descritta",
+  topic: "Argomento",
   reason: "Motivo",
   details: "Dettagli",
   verification_status: "Stato verifica",
@@ -46,6 +49,33 @@ const PAYLOAD_LABELS: Record<string, string> = {
   user_id: "Utente",
   created_at: "Creata il"
 };
+
+function ExternalReviewActions({ reviewId, onDone }: { reviewId: string; onDone: () => void }) {
+  const [reason, setReason] = useState("");
+  const [checked, setChecked] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  async function decide(approve: boolean) {
+    if (busy || reason.trim().length < 20 || (approve && !checked)) return;
+    setBusy(true); setError(null);
+    try {
+      await clientPost(`/admin/competences-v3/external-reviews/${reviewId}/decision`, { approve, technical_check_passed: checked, reason: reason.trim() });
+      onDone();
+    } catch (err) { setError(err instanceof Error ? err.message : "Decisione non salvata."); }
+    finally { setBusy(false); }
+  }
+  return <div className="stack">
+    <label htmlFor={`review-reason-${reviewId}`}>Motivazione da comunicare all’utente</label>
+    <textarea id={`review-reason-${reviewId}`} className="input" minLength={20} maxLength={255} value={reason} disabled={busy} onChange={(event) => setReason(event.target.value)} />
+    <small>Almeno 20 caratteri. Verifica la preparazione prima di approvare.</small>
+    <label><input type="checkbox" checked={checked} disabled={busy} onChange={(event) => setChecked(event.target.checked)} /> Ho svolto una verifica tecnica con esito positivo</label>
+    <div className="cluster">
+      <button className="button dark" disabled={busy || !checked || reason.trim().length < 20} onClick={() => void decide(true)}>Approva verifica</button>
+      <button className="button secondary" disabled={busy || reason.trim().length < 20} onClick={() => void decide(false)}>Non approvare</button>
+    </div>
+    {error ? <p className="error" role="alert">{error}</p> : null}
+  </div>;
+}
 
 function SeverityBadge({ severity }: { severity: string }) {
   const s = SEVERITY_STYLES[severity.toLowerCase()] || SEVERITY_STYLES.low;
@@ -275,6 +305,7 @@ export default function AdminPage() {
                           </strong>
                         </div>
                       ))}
+                      {item.source_type === "external_competence_v3" && item.status === "open" ? <ExternalReviewActions reviewId={item.id} onDone={() => setRetryVersion((value) => value + 1)} /> : null}
                     </div>
 
                   </div>

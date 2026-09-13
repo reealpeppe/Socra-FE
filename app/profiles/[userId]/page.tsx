@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { ArrowLeft, CheckCircle2, Shield, ThumbsUp } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
-import { UserAvatar, LevelBadge, MetricStat } from "@/components/Ui";
+import { UserAvatar, MetricStat } from "@/components/Ui";
+import { AlignmentDialog } from "@/components/AlignmentDialog";
 import { ClientApiError, clientGet, clientPost } from "@/lib/api";
 import type { GoalsMe, MatchCandidate, MatchRequestItem, PublicProfile, UserMe } from "@/lib/types";
 
@@ -27,6 +28,7 @@ function ProfileContent() {
   const [error, setError] = useState<string | null>(null);
   const [authError, setAuthError] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
+  const [showAlignment, setShowAlignment] = useState(false);
   const [requestLoading, setRequestLoading] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [activeGoal, setActiveGoal] = useState<{ id: string; goal_tag: string } | null>(null);
@@ -130,18 +132,20 @@ function ProfileContent() {
     };
   }, [activeGoal?.id, candidateRetryVersion, isOwnProfile, me, profile?.is_coach, requestSent, userId]);
 
-  async function sendMatchRequest() {
-    if (!activeGoal || isOwnProfile || !me || !profile?.is_coach || !candidate) return;
+  async function sendMatchRequest(alignmentMessage: string) {
+    if (!activeGoal || isOwnProfile || !me || !profile?.is_coach || !requestStateReady) return;
     setRequestLoading(true);
     setRequestError(null);
     try {
       await clientPost("/matching/requests", {
         mentor_id: userId,
-        goal_id: activeGoal.id
+        goal_id: activeGoal.id,
+        alignment_message: alignmentMessage
       });
       setRequestSent(true);
     } catch (err) {
       setRequestError(err instanceof ClientApiError ? err.message : "Richiesta non inviata");
+      throw err;
     } finally {
       setRequestLoading(false);
     }
@@ -150,6 +154,7 @@ function ProfileContent() {
 	  return (
 	    <>
 	      <div className="profile-page">
+        {showAlignment ? <AlignmentDialog name={profile?.nickname || "il mentor"} onClose={() => setShowAlignment(false)} onSend={sendMatchRequest} /> : null}
         <Link href={isOwnProfile ? "/dashboard" : "/matching"} className="profile-back">
           <ArrowLeft size={16} aria-hidden />
           {isOwnProfile ? "Torna alla dashboard" : "Torna alla lista dei mentor"}
@@ -171,7 +176,6 @@ function ProfileContent() {
                 <div className="profile-hero-info">
                   <h1 className="profile-name">{displayName}</h1>
                   <div className="profile-badges-row">
-                    <LevelBadge level={profile.level} />
                     {profile.is_coach ? <span className="profile-mentor-badge">Mentor attivo</span> : null}
                     {isOwnProfile ? <span className="profile-own-badge">Profilo personale</span> : null}
                   </div>
@@ -264,7 +268,7 @@ function ProfileContent() {
                 </section>
 
                 {isOwnProfile ? (
-                  <OwnProfileCard isCoach={profile.is_coach} level={profile.level} />
+                  <OwnProfileCard isCoach={profile.is_coach} />
                 ) : !profile.is_coach ? (
                   <section className="card profile-request-card">
                     <p className="profile-card-title">Profilo non disponibile come mentor</p>
@@ -284,7 +288,7 @@ function ProfileContent() {
                     requestSent
                     requestLoading={false}
                     requestError={null}
-                    onRequest={sendMatchRequest}
+                    onRequest={() => setShowAlignment(true)}
                   />
 	                ) : supportingDataError || !requestStateReady ? (
                   <section className="card profile-request-card" role="alert">
@@ -304,12 +308,6 @@ function ProfileContent() {
                       Riprova
                     </button>
                   </section>
-	                ) : activeGoal && !candidate ? (
-	                  <section className="card profile-request-card">
-	                    <p className="profile-card-title">Non disponibile per questo obiettivo</p>
-	                    <p className="profile-muted-text">Il profilo non rientra nei suggerimenti disponibili per il tuo obiettivo attivo.</p>
-                    <Link href={`/matching?goalId=${activeGoal.id}`} className="button secondary">Vedi mentor compatibili</Link>
-                  </section>
                 ) : (
                   <RequestCard
                     activeGoal={activeGoal}
@@ -317,7 +315,7 @@ function ProfileContent() {
                     requestSent={requestSent}
                     requestLoading={requestLoading}
                     requestError={requestError}
-                    onRequest={sendMatchRequest}
+                    onRequest={() => setShowAlignment(true)}
                   />
                 )}
               </aside>
@@ -383,8 +381,7 @@ function RequestCard({
   );
 }
 
-function OwnProfileCard({ isCoach, level }: { isCoach: boolean; level: string }) {
-  const isEligibleForMentor = level !== "L0";
+function OwnProfileCard({ isCoach }: { isCoach: boolean }) {
   return (
     <section className="card profile-own-card">
       <div className="profile-privacy-inner">
@@ -394,16 +391,14 @@ function OwnProfileCard({ isCoach, level }: { isCoach: boolean; level: string })
           <p className="profile-muted-text">
             {isCoach
               ? "Il tuo profilo mentor è attivo: puoi monitorare richieste e percorsi."
-              : isEligibleForMentor
-                ? "Hai disattivato la disponibilità come mentor. Puoi riattivarla dalle impostazioni."
-                : "Al momento il tuo profilo non è disponibile come mentor."}
+              : "Verifica gli argomenti e la disponibilità come mentor dalle impostazioni."}
           </p>
         </div>
       </div>
       <div className="profile-own-actions">
         {isCoach ? <Link href="/settings" className="button secondary">Impostazioni</Link> : null}
-        <Link href={isCoach ? "/paths?tab=mentor" : isEligibleForMentor ? "/settings" : "/livelli"} className="button">
-          {isCoach ? "Percorsi mentor" : isEligibleForMentor ? "Gestisci ruolo mentor" : "Informazioni sui livelli"}
+        <Link href={isCoach ? "/paths?tab=mentor" : "/settings"} className="button">
+          {isCoach ? "Percorsi mentor" : "Gestisci ruolo mentor"}
         </Link>
       </div>
     </section>

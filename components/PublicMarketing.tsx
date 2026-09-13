@@ -39,7 +39,7 @@ export function PublicAuthShell({
           <h1>{sideTitle}</h1>
           <p>{sideText}</p>
           <div className="premium-auth-proof">
-            <span>Livelli L0-L5</span>
+            <span>Esperienza condivisa</span>
             <span>Feedback reciproco</span>
             <span>Crediti interni</span>
           </div>
@@ -52,7 +52,7 @@ export function PublicAuthShell({
             <div>
               <span>02</span>
               <strong>Onboarding</strong>
-              <p>Il livello guida visibilita, richieste e matching.</p>
+              <p>Conoscenze, esperienza pratica e feedback rendono i confronti più pertinenti.</p>
             </div>
             <div>
               <span>03</span>

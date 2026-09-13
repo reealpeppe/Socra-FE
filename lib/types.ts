@@ -65,6 +65,8 @@ export type GoalsMe = {
 };
 
 export type MatchCandidate = {
+  discovery_offer_id?: string;
+  discovery_label?: string | null;
   mentor_id: string;
   nickname: string | null;
   level: string;
@@ -77,6 +79,8 @@ export type MatchCandidate = {
 };
 
 export type MenteeCandidate = {
+  discovery_offer_id?: string;
+  discovery_label?: string | null;
   mentee_id: string;
   nickname: string | null;
   level: string;
@@ -103,6 +107,8 @@ export type PublicProfile = {
 };
 
 export type MatchRequestItem = {
+  alignment_message?: string | null;
+  response_reason?: string | null;
   id: string;
   status: string;
   mentor_id: string;

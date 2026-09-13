@@ -292,7 +292,7 @@ function RequestRow({
         <div className="requests-goal">
           <strong>{request.goal?.goal_tag || "Obiettivo Socra"}</strong>
           {request.goal?.topic ? <span>{request.goal.topic}</span> : null}
-          {isReceived && request.mentee?.level ? <span>Livello mentee: {request.mentee.level}</span> : null}
+          {request.alignment_message ? <p style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}><strong>Messaggio iniziale:</strong> {request.alignment_message}</p> : null}
           {isReceived && initiatedByMentor && typeof request.cost_at_request === "number" ? (
             <span>
               Costo all&apos;accettazione: {request.cost_at_request} {request.cost_at_request === 1 ? "credito" : "crediti"}

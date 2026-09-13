@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Brand } from "@/components/Brand";
-import { UserAvatar, LevelBadge } from "@/components/Ui";
+import { UserAvatar } from "@/components/Ui";
 import { authPost, ClientApiError, clientGet, clientPost } from "@/lib/api";
 import type { NotificationItem, UserMe } from "@/lib/types";
 
@@ -51,7 +51,7 @@ function buildNavGroups(userId?: string, isCoach?: boolean): Array<{ label: stri
       items: [
         { id: "mentor-profile", href: userId ? `/profiles/${userId}` : "/dashboard", label: isCoach ? "Profilo mentor" : "Stato mentor", icon: Star },
         { id: "mentor-paths", href: "/paths?tab=mentor", label: "Percorsi da mentor", icon: Route },
-        { id: "levels", href: "/livelli", label: "Livelli Socra", icon: BarChart2 },
+        { id: "experience", href: "/competenze", label: "La mia esperienza", icon: BarChart2 },
       ]
     },
     {
@@ -284,8 +284,8 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
     },
     {
       id: "account-levels",
-      href: "/livelli",
-      label: "Livelli Socra",
+      href: "/competenze",
+      label: "La mia esperienza",
       icon: BarChart2
     },
     {
@@ -299,9 +299,7 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
       href: user?.is_coach ? "/matching/mentees" : "/settings",
       label: user?.is_coach
         ? "Trova mentee"
-        : user?.level === "L1" || user?.level === "L2"
-          ? "Attiva ruolo mentor"
-          : "Stato mentor",
+        : "Disponibilità mentor",
       icon: GraduationCap
     }
   ];
@@ -374,7 +372,6 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
                   <strong>{accountName}</strong>
                   <small title={user.email}>{user.email}</small>
                 </div>
-                <LevelBadge level={user.level || "L0"} />
               </div>
               <Link href={`/profiles/${user.id}`}>Vedi il tuo profilo <span aria-hidden>→</span></Link>
             </>
@@ -493,7 +490,7 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
                     <span className="account-avatar" aria-hidden>{accountName.slice(0, 1).toUpperCase()}</span>
                     <span className="account-copy">
                       <strong>{accountName}</strong>
-                      <small>{user.level || "L0"}</small>
+                      <small>{user.is_coach ? "Mentor" : "Community"}</small>
                     </span>
                   </>
                 ) : (

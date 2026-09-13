@@ -5,7 +5,9 @@ import Link from "next/link";
 import { ArrowLeft, Send, Target, UsersRound } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
-import { LevelBadge, UserAvatar } from "@/components/Ui";
+import { UserAvatar } from "@/components/Ui";
+import { AlignmentDialog } from "@/components/AlignmentDialog";
+import { useDiscoveryImpressions } from "@/lib/use-discovery-impressions";
 import { ClientApiError, clientGet, clientPost } from "@/lib/api";
 import type { MatchRequestItem, MenteeCandidate, PathItem, UserMe } from "@/lib/types";
 
@@ -30,6 +32,8 @@ function MenteeMatchingContent() {
   const [retryVersion, setRetryVersion] = useState(0);
   const [requestsReady, setRequestsReady] = useState(false);
   const [activeMentorPaths, setActiveMentorPaths] = useState<number | null>(null);
+  const [selected, setSelected] = useState<MenteeCandidate | null>(null);
+  const discoveryRoot = useDiscoveryImpressions(candidates.map((candidate) => candidate.discovery_offer_id || "").join(","));
 
   useEffect(() => {
     let active = true;
@@ -89,7 +93,7 @@ function MenteeMatchingContent() {
     [requests]
   );
 
-  async function propose(candidate: MenteeCandidate) {
+  async function propose(candidate: MenteeCandidate, alignmentMessage: string) {
     if (!requestsReady || activeMentorPaths === null || activeMentorPaths >= 3 || sending.has(candidate.goal_id) || proposedGoalIds.has(candidate.goal_id)) return;
     setError(null);
     setMessage(null);
@@ -97,12 +101,14 @@ function MenteeMatchingContent() {
     try {
       const request = await clientPost<MatchRequestItem>("/matching/proposals", {
         mentee_id: candidate.mentee_id,
-        goal_id: candidate.goal_id
+        goal_id: candidate.goal_id,
+        alignment_message: alignmentMessage
       });
       setRequests((current) => [request, ...current]);
       setMessage(`Proposta inviata a ${candidate.nickname || "questo utente"}. Avrà 48 ore per rispondere.`);
     } catch (err) {
       setError(err instanceof ClientApiError ? err.message : "Proposta non inviata");
+      throw err;
     } finally {
       setSending((current) => {
         const next = new Set(current);
@@ -113,7 +119,8 @@ function MenteeMatchingContent() {
   }
 
   return (
-    <div className="mentee-search-page">
+    <div className="mentee-search-page" ref={discoveryRoot}>
+      {selected ? <AlignmentDialog name={selected.nickname || "il mentee"} mentorProposal onClose={() => setSelected(null)} onSend={(text) => propose(selected, text)} /> : null}
       <Link href="/matching" className="mentee-search-back">
         <ArrowLeft size={16} aria-hidden /> Torna alla ricerca mentor
       </Link>
@@ -173,13 +180,12 @@ function MenteeMatchingContent() {
             const pending = sending.has(candidate.goal_id);
             const displayName = candidate.nickname || "Utente Socra";
             return (
-              <article className="mentee-goal-card" key={`${candidate.mentee_id}-${candidate.goal_id}`}>
+              <article className="mentee-goal-card" data-discovery-offer={candidate.discovery_offer_id} key={`${candidate.mentee_id}-${candidate.goal_id}`}>
                 <div className="mentee-goal-topline">
                   <div className="mentee-goal-person">
                     <UserAvatar name={displayName} size="md" />
                     <div>
                       <h2>{displayName}</h2>
-                      <LevelBadge level={candidate.level} />
                     </div>
                   </div>
                   <div className="mentee-goal-score">
@@ -207,7 +213,7 @@ function MenteeMatchingContent() {
                   className={`mentee-proposal-button ${proposed ? "sent" : pending ? "pending" : !requestsReady || activeMentorPaths === null || activeMentorPaths >= 3 ? "unavailable" : ""}`.trim()}
                   type="button"
                   disabled={proposed || pending || !requestsReady || activeMentorPaths === null || activeMentorPaths >= 3}
-                  onClick={() => propose(candidate)}
+                  onClick={() => setSelected(candidate)}
                 >
                   <Send size={16} aria-hidden />
                   {proposed
