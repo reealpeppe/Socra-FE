@@ -688,6 +688,8 @@ test("discussion preferences require one choice, cap at three and preserve priva
     return route.fulfill({ json: { id: "saved-pref", ...payload } });
   });
   await page.goto("/goal");
+  await expect(page.getByTestId("goal-selection-summary").first()).toBeVisible();
+  await expect(page.getByTestId("goal-selection-summary").first()).not.toBeEmpty();
   await page.getByRole("button", { name: "Aggiorna e vedi i mentor" }).click();
   await expect(page.getByText("Completa tutte le scelte prima di continuare.")).toBeVisible();
   expect(payload).toBeNull();

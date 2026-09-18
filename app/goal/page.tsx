@@ -351,7 +351,9 @@ function SelectField({
           <option key={option.value} value={option.value}>{option.label}</option>
         ))}
       </select>
-      {selectedLabel && selectedLabel.length > 55 ? <small className="muted" style={{ lineHeight: 1.5 }}>{selectedLabel}</small> : null}
+      {selectedLabel && (label === "Risultato di apprendimento" || selectedLabel.length > 28)
+        ? <small className="muted" data-testid="goal-selection-summary" style={{ lineHeight: 1.5, overflowWrap: "anywhere" }}>{selectedLabel}</small>
+        : null}
     </div>
   );
 }
