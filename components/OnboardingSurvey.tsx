@@ -121,7 +121,8 @@ export default function OnboardingSurvey({ reassessment = false }: { reassessmen
   const errorRef = useRef<HTMLParagraphElement>(null);
   const reassessmentKey = useRef("");
   const [loadFailed, setLoadFailed] = useState(false);
-  useUnsavedChangesGuard(reassessment && loadedDraft && !result);
+  const [initialAnswers, setInitialAnswers] = useState("");
+  useUnsavedChangesGuard(reassessment && loadedDraft && !result && JSON.stringify(answers) !== initialAnswers);
 
   const scores = useMemo(() => estimateDraftScores(answers), [answers]);
   const safeStep = Math.min(step, STEPS.length - 1);
@@ -138,7 +139,9 @@ export default function OnboardingSurvey({ reassessment = false }: { reassessmen
           if (!active) return;
           if (!snapshot.answers) throw new Error("Completa prima la survey iniziale.");
           const raw = snapshot.answers.topic_competences_v2 as TopicCompetencePayload | undefined;
-          setAnswers({ ...snapshot.answers, topic_competences_v2: Object.fromEntries((raw?.instruments || []).map((row) => [row.topic, row])) });
+          const restored = { ...snapshot.answers, topic_competences_v2: Object.fromEntries((raw?.instruments || []).map((row) => [row.topic, row])) };
+          setAnswers(restored);
+          setInitialAnswers(JSON.stringify(restored));
           reassessmentKey.current = crypto.randomUUID();
           setLoadedDraft(true);
         } catch (err) {
@@ -365,7 +368,7 @@ export default function OnboardingSurvey({ reassessment = false }: { reassessmen
               <Card className="workflow-panel workflow-question">
                 <div className="stack">
                   <div>
-                    <h1 className="survey-heading">Conosciamoci meglio</h1>
+                    <h1 className="survey-heading">{reassessment ? "Aggiorna la tua esperienza" : "Conosciamoci meglio"}</h1>
                     <p className="muted survey-subheading">
                       Distinguiamo ciò che conosci dall’esperienza maturata con denaro reale, strumento per strumento.
                     </p>
@@ -433,7 +436,7 @@ export default function OnboardingSurvey({ reassessment = false }: { reassessmen
               </Card>
               <Card className="workflow-panel workflow-note">
                 <LockKeyhole size={18} aria-hidden />
-                <p>Nessuna risposta è preselezionata. Puoi tornare indietro prima dell’invio finale.</p>
+                <p>{reassessment ? "Ritrovi le risposte già salvate: modifica solo ciò che è cambiato." : "Nessuna risposta è preselezionata."} Puoi tornare indietro prima dell’invio finale.</p>
               </Card>
             </aside>
           </div>
@@ -566,7 +569,7 @@ function ReviewStep({ answers, onEdit }: { answers: Answers; onEdit: (kind: Step
   return (
     <div className="stack">
       <p className="muted">
-        Controlla le risposte prima dell’invio. La classificazione iniziale è one-shot; la disponibilità alla mentorship potrà essere aggiornata in seguito.
+        Controlla le risposte prima dell’invio: sono il punto di partenza per proporti confronti adatti. In seguito potrai aggiornare la tua esperienza e la disponibilità a condividerla.
       </p>
       <TopicReview
         answers={answers.topic_competences_v2 || {}}

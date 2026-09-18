@@ -1,4 +1,5 @@
 "use client";
+import { DiscussionPreferences } from "@/components/DiscussionPreferences";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -134,7 +135,7 @@ function MatchingContent() {
   const goalFallbackActive = !!goalIdFromQuery && !!activeGoal && activeGoal.id !== goalIdFromQuery;
 
   async function requestMentor(candidate: MatchCandidate, alignmentMessage: string) {
-    if (!activeGoal?.id || !requestStateReady || candidate.mentor_id === me?.id || pendingMentors.has(candidate.mentor_id)) return;
+    if (!activeGoal?.id || !requestStateReady || candidate.mentor_id === me?.id || pendingMentors.size > 0 || requestedMentors.size > 0) return;
     setError(null);
     setMessage(null);
     setPendingMentors((current) => new Set(current).add(candidate.mentor_id));
@@ -179,7 +180,7 @@ function MatchingContent() {
         </div>
         <div className="cluster">
           {me?.is_coach ? (
-            <Link href="/matching/mentees" className="button dark">Cerca mentee</Link>
+            <Link href="/matching/mentees" className="button dark">Cerca apprendisti</Link>
           ) : null}
           <Link href="/come-funziona" className="button secondary">
             Scopri come funziona
@@ -194,6 +195,9 @@ function MatchingContent() {
         </div>
       ) : null}
       {message ? <div className="matching-success" role="status">{message}</div> : null}
+      {requestedMentors.size > 0 ? <div className="card" role="status">
+        Hai già una proposta in attesa per questo obiettivo. <Link href="/requests">Gestisci la proposta</Link> prima di inviarne un’altra.
+      </div> : null}
       {goalFallbackActive ? (
         <div className="matching-success" role="status">
           L&apos;obiettivo indicato non è più attivo. Stai visualizzando i risultati per il tuo obiettivo corrente.
@@ -274,6 +278,7 @@ function MatchingContent() {
                   requested={requestedMentors.has(candidate.mentor_id)}
                   pending={pendingMentors.has(candidate.mentor_id)}
                   requestStateReady={requestStateReady}
+                  anotherRequestPending={requestedMentors.size > 0 || pendingMentors.size > 0}
                   onRequest={() => setSelected(candidate)}
                 />
               ))}
@@ -297,6 +302,7 @@ function MatchingContent() {
             <div className="card stack">
               <p className="eyebrow">Obiettivo attivo</p>
               <h3>{activeGoal.goal_tag}</h3>
+              <DiscussionPreferences labels={activeGoal.discussion_type_labels} />
               <p className="muted">{activeGoal.topic}</p>
               <Link href="/goal?edit=1" className="matching-sidebar-link">
                 Modifica <ArrowRight size={14} aria-hidden />
@@ -348,12 +354,14 @@ function MentorCandidateCard({
   requested,
   pending,
   requestStateReady,
+  anotherRequestPending,
   onRequest
 }: {
   candidate: MatchCandidate;
   requested: boolean;
   pending: boolean;
   requestStateReady: boolean;
+  anotherRequestPending: boolean;
   onRequest: () => void;
 }) {
   const displayName = candidate.nickname || "Mentor Socra";
@@ -399,13 +407,15 @@ function MentorCandidateCard({
         <button
           className={`mcc-request-btn ${requested ? "sent" : pending ? "pending" : !requestStateReady ? "unavailable" : ""}`.trim()}
           type="button"
-          disabled={!requestStateReady || requested || pending}
+          disabled={!requestStateReady || requested || pending || anotherRequestPending}
           onClick={onRequest}
         >
           {requested
             ? "Richiesta inviata"
             : pending
               ? "Invio in corso…"
+              : anotherRequestPending
+                ? "Un’altra proposta è in attesa"
               : requestStateReady
                 ? "Invia richiesta al mentor"
                 : "Verifica richieste non disponibile"}

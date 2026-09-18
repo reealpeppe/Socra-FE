@@ -1,4 +1,6 @@
 "use client";
+import { DiscussionPreferences } from "@/components/DiscussionPreferences";
+import { useConfirmation } from "@/components/ConfirmationDialog";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -61,6 +63,7 @@ export default function RequestsPage() {
 }
 
 function RequestsContent() {
+  const { confirm, confirmationDialog } = useConfirmation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const requestedTab: "received" | "sent" = searchParams.get("tab") === "sent" ? "sent" : "received";
@@ -114,9 +117,9 @@ function RequestsContent() {
       const costCopy = typeof cost === "number" && cost > 0
         ? ` Il percorso costerà ${cost} ${cost === 1 ? "credito" : "crediti"}. Crediti disponibili: ${wallet?.balance ?? "non disponibili"}.`
         : "";
-      if (!window.confirm(`Vuoi accettare e aprire questo percorso?${costCopy}`)) return;
+      if (!await confirm(`Vuoi accettare e aprire questo percorso?${costCopy}`)) return;
     }
-    if (!accept && !window.confirm("Vuoi rifiutare questa proposta? L'altra persona potrà continuare la ricerca.")) return;
+    if (!accept && !await confirm("Vuoi rifiutare questa proposta? L'altra persona potrà continuare la ricerca.")) return;
     setError(null);
     setMessage(null);
     setPendingResponses((current) => new Set(current).add(id));
@@ -173,6 +176,7 @@ function RequestsContent() {
 
   return (
     <div className="requests-page">
+      {confirmationDialog}
       <div className="requests-header">
         <div>
           <p className="eyebrow">Matching</p>
@@ -180,7 +184,7 @@ function RequestsContent() {
           <p className="muted">Chi riceve la proposta decide: il percorso si apre soltanto dopo l’accettazione.</p>
         </div>
         <div className="cluster">
-          {me?.is_coach ? <Link href="/matching/mentees" className="button dark">Cerca mentee</Link> : null}
+          {me?.is_coach ? <Link href="/matching/mentees" className="button dark">Cerca apprendisti</Link> : null}
           <Link href="/matching" className="button secondary">Trova un mentor</Link>
         </div>
       </div>
@@ -283,7 +287,7 @@ function RequestRow({
                   ? "Ti propone di iniziare un percorso insieme"
                   : "Vuole iniziare un percorso con te"
                 : initiatedByMentor
-                  ? "Proposta inviata al mentee"
+                  ? "Proposta inviata all’apprendista"
                   : "Richiesta inviata al mentor"}
             </p>
           </div>
@@ -292,6 +296,7 @@ function RequestRow({
         <div className="requests-goal">
           <strong>{request.goal?.goal_tag || "Obiettivo Socra"}</strong>
           {request.goal?.topic ? <span>{request.goal.topic}</span> : null}
+          <DiscussionPreferences labels={request.goal?.discussion_type_labels} />
           {request.alignment_message ? <p style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}><strong>Messaggio iniziale:</strong> {request.alignment_message}</p> : null}
           {isReceived && initiatedByMentor && typeof request.cost_at_request === "number" ? (
             <span>
@@ -301,7 +306,7 @@ function RequestRow({
         </div>
         <div className="requests-meta">
           <span>Mentor: {request.mentor?.nickname || "Profilo mentor"}</span>
-          <span>Mentee: {request.mentee?.nickname || "Profilo mentee"}</span>
+          <span>Apprendista: {request.mentee?.nickname || "Profilo apprendista"}</span>
           {timing ? <span>{timing}</span> : null}
         </div>
         {request.status === "accepted" && request.path_id ? (

@@ -1,4 +1,5 @@
 "use client";
+import { DiscussionPreferences } from "@/components/DiscussionPreferences";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -66,13 +67,13 @@ function MenteeMatchingContent() {
             : null
         );
         if (candidateResult.status === "rejected") {
-          setError("Non riusciamo ad aggiornare i mentee compatibili. Riprova.");
+          setError("Non riusciamo ad aggiornare gli apprendisti compatibili. Riprova.");
         } else if (requestResult.status === "rejected" || pathsResult.status === "rejected") {
           setError("Alcuni dati operativi non sono disponibili. Riprova prima di inviare una proposta.");
         }
       } catch (err) {
         if (!active) return;
-        setError(err instanceof ClientApiError ? err.message : "Ricerca mentee non disponibile");
+        setError(err instanceof ClientApiError ? err.message : "Ricerca apprendisti non disponibile");
       } finally {
         if (active) setLoading(false);
       }
@@ -120,7 +121,7 @@ function MenteeMatchingContent() {
 
   return (
     <div className="mentee-search-page" ref={discoveryRoot}>
-      {selected ? <AlignmentDialog name={selected.nickname || "il mentee"} mentorProposal onClose={() => setSelected(null)} onSend={(text) => propose(selected, text)} /> : null}
+      {selected ? <AlignmentDialog name={selected.nickname || "l’apprendista"} mentorProposal onClose={() => setSelected(null)} onSend={(text) => propose(selected, text)} /> : null}
       <Link href="/matching" className="mentee-search-back">
         <ArrowLeft size={16} aria-hidden /> Torna alla ricerca mentor
       </Link>
@@ -131,15 +132,15 @@ function MenteeMatchingContent() {
           <h1>Trova un obiettivo<br />a cui dare slancio.</h1>
           <p className="mentee-search-intro">
             Scopri persone che stanno cercando un confronto sul tuo ambito. Vedi
-            soltanto il loro obiettivo generalizzato; saranno loro a scegliere se
-            aprire il percorso.
+            il risultato che cercano e il tipo di confronto, non i loro dati finanziari.
+            Saranno loro a scegliere se aprire il percorso.
           </p>
         </div>
         <div className="mentee-search-capacity">
           <UsersRound size={22} aria-hidden />
           <span>La tua disponibilità</span>
           <strong>{activeMentorPaths === null ? "Capacità in verifica" : `${activeMentorPaths} di 3 percorsi attivi`}</strong>
-          <small>Il costo è addebitato al mentee solo quando accetta.</small>
+          <small>Il costo è addebitato all’apprendista solo quando accetta.</small>
         </div>
       </header>
 
@@ -152,7 +153,7 @@ function MenteeMatchingContent() {
       {message ? <div className="matching-success" role="status">{message}</div> : null}
 
       {loading ? (
-        <div className="mentee-search-grid" role="status" aria-label="Caricamento mentee">
+        <div className="mentee-search-grid" role="status" aria-label="Caricamento apprendisti">
           <div className="mentee-search-skeleton" />
           <div className="mentee-search-skeleton" />
           <div className="mentee-search-skeleton" />
@@ -161,14 +162,14 @@ function MenteeMatchingContent() {
         <section className="card mentee-search-empty">
           <Target size={30} aria-hidden />
           <h2>Attiva prima la disponibilità mentor</h2>
-          <p>La ricerca dei mentee è riservata ai profili che possono ricevere e svolgere mentorship.</p>
+          <p>La ricerca degli apprendisti è riservata ai profili che possono ricevere e svolgere mentorship.</p>
           <Link href="/settings" className="button">Gestisci disponibilità</Link>
         </section>
       ) : error && candidates.length === 0 ? null : candidates.length === 0 ? (
         <section className="card mentee-search-empty">
           <Target size={30} aria-hidden />
           <h2>Nessun obiettivo disponibile ora</h2>
-          <p>Non ci sono mentee pronti per un nuovo percorso compatibile con il tuo profilo e la tua capacità.</p>
+          <p>Non ci sono apprendisti pronti per un nuovo percorso compatibile con il tuo profilo e la tua capacità.</p>
           <button className="button secondary" type="button" onClick={() => setRetryVersion((value) => value + 1)}>
             Aggiorna la ricerca
           </button>
@@ -201,6 +202,7 @@ function MenteeMatchingContent() {
                 </div>
 
                 <p className="mentee-goal-reason">{candidate.reason_summary || "Obiettivo coerente con le competenze che puoi condividere."}</p>
+                <DiscussionPreferences labels={candidate.discussion_type_labels} />
 
                 <div className="mentee-goal-tags">
                   {candidate.availability_fallback ? (

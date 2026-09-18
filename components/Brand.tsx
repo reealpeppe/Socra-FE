@@ -12,7 +12,7 @@ export function Brand({ compact = false, variant = "light" }: {
       </svg>
       {!compact && (
         <span style={{ color: textColor, fontFamily: "system-ui,sans-serif", fontSize: "1.1rem", fontWeight: 800, letterSpacing: "-0.02em" }}>
-          SOCRA
+          Socra
         </span>
       )}
     </span>

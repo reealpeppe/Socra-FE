@@ -12,32 +12,32 @@ export const metadata: Metadata = {
 const features = [
   {
     icon: Lock,
-    title: "Profilo pubblico essenziale",
-    body: "Il profilo nella community mostra argomenti generalizzati, risultati aggregati, badge e testi facoltativi. Le risposte dettagliate della survey restano private",
+    title: "Mostri solo ciò che serve",
+    body: "Il tuo profilo condivide argomenti, percorsi completati, badge e risultati aggregati. Le risposte dettagliate della survey e gli importi restano privati.",
   },
   {
     icon: Video,
-    title: "Nessuna registrazione o trascrizione",
-    body: "Socra non registra audio o video e oggi non acquisisce trascrizioni della prima sessione",
+    title: "Le tue conversazioni restano vostre",
+    body: "Socra non registra audio o video e oggi non acquisisce trascrizioni. Il contenuto del confronto tra mentor e apprendista non viene raccolto dalla piattaforma.",
   },
   {
     icon: Shield,
-    title: "Prima call collegata al percorso",
-    body: "La prima call usa un Google Meet creato da Socra. Il percorso conserva soltanto presenza e durata quando questi dati sono disponibili",
+    title: "Percorsi reali e verificabili",
+    body: "Quando l’integrazione Google Meet è attiva, la prima call viene collegata al percorso. Socra usa soltanto i metadati disponibili di presenza e durata, senza accedere al contenuto della conversazione.",
   },
   {
     icon: CheckCircle,
-    title: "Revisione manuale",
+    title: "Le decisioni importanti non sono automatiche",
     body: "I segnali anomali aprono una revisione amministrativa. Non generano sospensioni o blocchi automatici",
   },
   {
     icon: AlertTriangle,
-    title: "Segnala problema",
+    title: "Puoi segnalare un problema",
     body: "La segnalazione resta disponibile nel dettaglio del percorso. Il contesto viene valutato prima di qualsiasi intervento",
   },
   {
     icon: Star,
-    title: "Reputazione aggregata",
+    title: "La reputazione si costruisce nel tempo",
     body: "Il feedback reciproco alimenta badge e metriche sintetiche. I singoli voti e gli score interni non vengono mostrati pubblicamente",
   },
 ];
@@ -79,7 +79,7 @@ export default function SicurezzaPage() {
                 letterSpacing: "-0.02em",
                 lineHeight: 1.05,
               }}>
-                Sicurezza concreta,<br />regole leggibili.
+                Sicurezza concreta,<br />regole chiare.
               </h1>
               <p style={{
                 color: "var(--muted)",
@@ -88,7 +88,7 @@ export default function SicurezzaPage() {
                 margin: "0 0 28px",
                 maxWidth: "55ch",
               }}>
-                Socra combina regole di percorso, presenza e durata della prima call, feedback reciproco e revisione manuale delle segnalazioni.
+                La fiducia si costruisce con regole condivise, feedback e persone che si assumono la responsabilità del confronto. Socra mette a disposizione strumenti di segnalazione e revisione per prendersi cura della community.
               </p>
               <div style={{
                 display: "flex",
@@ -252,10 +252,10 @@ export default function SicurezzaPage() {
             }}>
               <Users size={32} color="var(--navy-950)" />
               <h3 style={{ color: "var(--ink)", fontSize: "1.2rem", fontWeight: 800, margin: 0 }}>
-                Community safety prima di tutto
+                La sicurezza è una responsabilità condivisa
               </h3>
               <p style={{ color: "var(--muted)", fontSize: "0.9rem", lineHeight: 1.6, margin: 0 }}>
-                SOCRA non può eliminare ogni rischio da un incontro tra persone. Per questo rende visibili le regole, mantiene la prima call collegata al percorso e raccoglie segnalazioni contestualizzate.
+                Nessuna piattaforma può eliminare completamente i rischi di un incontro tra persone. Socra mette a disposizione regole chiare, percorsi tracciabili e strumenti di segnalazione per rendere ogni interazione più consapevole.
               </p>
               <p style={{ color: "var(--muted)", fontSize: "0.85rem", lineHeight: 1.5, margin: 0 }}>
                 Le anomalie vengono portate in revisione manuale. Eventuali azioni sull&apos;account dipendono dalla valutazione del caso, non da un automatismo.
@@ -284,7 +284,7 @@ export default function SicurezzaPage() {
               margin: "0 0 16px",
               letterSpacing: "-0.02em",
             }}>
-              Hai bisogno di aiuto?
+              Siamo qui quando serve.
             </h2>
             <p style={{
               color: "rgba(255,255,255,0.65)",

@@ -1,8 +1,18 @@
 import { expect, test } from "@playwright/test";
 import { goalOptionsByLevelTopic, topicOptions } from "../../lib/options";
 
+const discussionTypes = [
+  ["start_from_basics", "Partire dalle basi"], ["deepen_topic", "Approfondire un argomento"],
+  ["concrete_case", "Confrontarmi su un caso concreto"], ["learn_by_doing", "Imparare facendo"],
+  ["understand_method", "Capire il metodo"], ["clarify_doubts", "Chiarire dubbi"],
+  ["compare_approaches", "Confrontare approcci diversi"], ["organize_knowledge", "Mettere ordine nelle mie conoscenze"],
+  ["check_understanding", "Verificare ciò che ho capito"],
+].map(([code, label]) => ({ code, label, description: `Preferenza: ${label}.` }));
+
 test.beforeEach(async ({ baseURL, context, page }) => {
+  await page.route("**/api/backend/calls/capabilities", route => route.fulfill({ json: { google_meet_available: true } }));
   await page.route("**/api/backend/surveys/goal/catalog", (route) => route.fulfill({ json: {
+    discussion_types: discussionTypes, max_discussion_types: 3,
     topics: topicOptions.filter((topic) => !["planning", "taxation", "undefined"].includes(topic.value)).map((topic) => ({
       code: topic.value, label: topic.label,
       goals: Array.from(new Map(Object.values(goalOptionsByLevelTopic).flatMap((matrix) => matrix[topic.value] || []).map((goal) => [goal.value, { code: goal.value, label: goal.label }])).values()),
@@ -10,7 +20,7 @@ test.beforeEach(async ({ baseURL, context, page }) => {
   } }));
   await page.route("**/api/backend/matching/alternatives?**", (route) => route.fulfill({ json: [] }));
   await context.addCookies([{ name: "socra_session", value: "test-token", url: baseURL!, httpOnly: true, sameSite: "Lax" }]);
-  await page.route("**/api/backend/auth/me", async (route) => route.fulfill({ json: { id: "u1", username: "mentee", email: "mentee@example.com", nickname: "Mentee", level: "L1", is_coach: true, role: "user", account_status: "active" } }));
+  await page.route("**/api/backend/auth/me", async (route) => route.fulfill({ json: { id: "u1", username: "mentee", email: "mentee@example.com", nickname: "Apprendista", level: "L1", is_coach: true, role: "user", account_status: "active" } }));
   await page.route("**/api/backend/surveys/onboarding/me", async (route) => route.fulfill({ json: { user_id: "u1", level: "L1", is_coach: true, latest_answer_id: "a1" } }));
   await page.route("**/api/backend/surveys/onboarding/me/draft", async (route) => {
     if (route.request().method() === "GET") {
@@ -49,7 +59,7 @@ test.beforeEach(async ({ baseURL, context, page }) => {
   await page.route("**/api/backend/paths/me", async (route) => route.fulfill({ json: [] }));
   await page.route("**/api/backend/profiles/u1", async (route) => route.fulfill({ json: {
     user_id: "u1",
-    nickname: "Mentee",
+    nickname: "Apprendista",
     level: "L1",
     is_coach: true,
     completed_paths: 0,
@@ -78,7 +88,7 @@ test("backend proxy accepts the V2 preference PUT method", async ({ page }) => {
 
 test("dashboard renders responsive operational state", async ({ page }) => {
   await page.goto("/dashboard");
-  await expect(page.getByRole("heading", { name: /Ciao Mentee/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Ciao Apprendista/ })).toBeVisible();
   await expect(page.getByRole("main").getByText("Crediti").first()).toBeVisible();
   await expect(page.getByRole("main").getByText("10").first()).toBeVisible();
   await expect(page.getByRole("main").getByRole("link", { name: "Trova un mentor", exact: true })).toBeVisible();
@@ -86,7 +96,7 @@ test("dashboard renders responsive operational state", async ({ page }) => {
   await expect(page.getByLabel("Badge qualitativi più ricevuti").getByText("Chiaro")).toBeVisible();
 });
 
-test("dashboard routes a completed mentee path to goal review before matching", async ({ page }) => {
+test("dashboard routes a completed apprendista path to goal review before matching", async ({ page }) => {
   let candidatesCalled = false;
   await page.route("**/api/backend/paths/me", async (route) => route.fulfill({ json: [{
     id: "path-review",
@@ -111,7 +121,7 @@ test("dashboard routes a completed mentee path to goal review before matching", 
   expect(candidatesCalled).toBe(false);
 });
 
-test("dashboard treats an active mentee path as progress, not a matching error", async ({ page }) => {
+test("dashboard treats an active apprendista path as progress, not a matching error", async ({ page }) => {
   let candidatesCalled = false;
   await page.route("**/api/backend/paths/me", async (route) => route.fulfill({ json: [{
     id: "path-active",
@@ -131,7 +141,7 @@ test("dashboard treats an active mentee path as progress, not a matching error",
   await page.goto("/dashboard");
 
   await expect(page.getByText("Percorso in corso", { exact: true })).toBeVisible();
-  await expect(page.getByText("Hai già un percorso attivo come mentee.")).toBeVisible();
+  await expect(page.getByText("Hai già un percorso attivo come apprendista.")).toBeVisible();
   await expect(page.getByRole("main").getByRole("link", { name: "Apri il percorso", exact: true })).toHaveAttribute("href", "/paths/path-active");
   await expect(page.locator(".topbar-shortcut")).toHaveAttribute("href", "/paths/path-active");
   await expect(page.getByText("Non riusciamo ad aggiornare i mentor compatibili.")).toHaveCount(0);
@@ -143,7 +153,7 @@ test("L0 dashboard explains mentor eligibility without promising requests", asyn
     id: "u1",
     username: "mentee",
     email: "mentee@example.com",
-    nickname: "Mentee",
+    nickname: "Apprendista",
     level: "L0",
     is_coach: false,
     role: "user",
@@ -162,10 +172,10 @@ test("global header shows user and notifications", async ({ page }) => {
   await page.goto("/dashboard");
   await expect(page.locator(".topbar-brand:visible, .sidebar-brand-link:visible").first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Notifiche" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Mentee" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Apprendista" })).toBeVisible();
   await page.getByRole("button", { name: "Notifiche" }).click();
   await expect(page.getByText("Percorso aperto.")).toBeVisible();
-  await page.getByRole("button", { name: "Mentee" }).click();
+  await page.getByRole("button", { name: "Apprendista" }).click();
   await expect(page.getByRole("button", { name: "Esci" })).toBeVisible();
 });
 
@@ -261,7 +271,7 @@ test("settings keeps saved topic preferences neutral when the global mentor swit
       safety_scenario_passed: null
     }));
   await page.route("**/api/backend/auth/me", async (route) => route.fulfill({ json: {
-    id: "u1", username: "mentee", email: "mentee@example.com", nickname: "Mentee",
+    id: "u1", username: "mentee", email: "mentee@example.com", nickname: "Apprendista",
     level: "L2", is_coach: false, role: "user", account_status: "active"
   } }));
   await page.route("**/api/backend/surveys/competences-v2/me", async (route) => route.fulfill({
@@ -660,9 +670,55 @@ test("goal route preloads the current goal without requiring a special query", a
   await expect(page.getByLabel("Tema")).toHaveValue("etf_funds");
   await expect(page.getByLabel("Risultato di apprendimento")).toHaveValue("understand_etf");
   await expect(page.getByLabel("Contesto di partenza (privato)")).toHaveValue("500_5k");
-  await expect(page.getByLabel("Stile del confronto (privato)")).toHaveValue("balanced");
+  await expect(page.getByLabel("Stile del confronto (privato)")).toHaveCount(0);
+  await expect(page.getByRole("checkbox")).toHaveCount(9);
+  await expect(page.getByRole("checkbox", { checked: true })).toHaveCount(0);
   const contextLabels = await page.getByLabel("Contesto di partenza (privato)").locator("option").allTextContents();
   expect(contextLabels.join(" ")).not.toMatch(/EUR|€/);
+});
+
+test("discussion preferences require one choice, cap at three and preserve private legacy context", async ({ page }) => {
+  let payload: Record<string, unknown> | null = null;
+  await page.route("**/api/backend/goals/me", route => route.fulfill({ json: { current: {
+    id: "goal-pref", topic_code: "etf_funds", goal_tag_code: "understand_etf", capital_goal: "500_5k",
+    risk: "balanced", discussion_types: [],
+  }, goals: [], history: [] } }));
+  await page.route("**/api/backend/surveys/goal/me", route => {
+    payload = route.request().postDataJSON();
+    return route.fulfill({ json: { id: "saved-pref", ...payload } });
+  });
+  await page.goto("/goal");
+  await page.getByRole("button", { name: "Aggiorna e vedi i mentor" }).click();
+  await expect(page.getByText("Completa tutte le scelte prima di continuare.")).toBeVisible();
+  expect(payload).toBeNull();
+  for (const name of ["Approfondire un argomento", "Capire il metodo", "Verificare ciò che ho capito"]) {
+    await page.getByRole("checkbox", { name, exact: true }).check();
+  }
+  await expect(page.getByRole("checkbox", { name: "Partire dalle basi", exact: true })).toBeDisabled();
+  await page.getByRole("checkbox", { name: "Capire il metodo", exact: true }).uncheck();
+  await expect(page.getByRole("checkbox", { name: "Partire dalle basi", exact: true })).toBeEnabled();
+  await page.getByRole("checkbox", { name: "Confrontare approcci diversi", exact: true }).check();
+  await page.getByRole("button", { name: "Aggiorna e vedi i mentor" }).click();
+  await expect(page).toHaveURL(/matching.*saved-pref/);
+  expect(payload).toMatchObject({ discussion_types: ["deepen_topic", "check_understanding", "compare_approaches"], risk: "balanced" });
+});
+
+test("discussion selections preload and remain visible in received requests", async ({ page }) => {
+  const preferences = { discussion_types: ["clarify_doubts", "concrete_case"], discussion_type_labels: ["Chiarire dubbi", "Confrontarmi su un caso concreto"] };
+  const goal = { id: "g1", topic_code: "etf_funds", topic: "ETF", goal_tag_code: "understand_etf", goal_tag: "Capire gli ETF", ...preferences };
+  await page.route("**/api/backend/goals/me", route => route.fulfill({ json: { current: goal, goals: [], history: [] } }));
+  await page.goto("/goal");
+  await expect(page.getByRole("checkbox", { name: "Chiarire dubbi", exact: true })).toBeChecked();
+  await expect(page.getByRole("checkbox", { checked: true })).toHaveCount(2);
+  await page.route("**/api/backend/matching/requests/me?role=all", route => route.fulfill({ json: [{
+    id: "r-discussion", status: "pending", mentor_id: "u1", mentee_id: "other", initiator_role: "mentee",
+    mentor: { user_id: "u1", nickname: "Mentor" }, mentee: { user_id: "other", nickname: "Luca" },
+    goal_id: "g1", goal, created_at: new Date().toISOString(), expires_at: new Date(Date.now() + 86400000).toISOString(),
+    alignment_message: "Vorrei chiarire i costi confrontando due esempi concreti.",
+  }] }));
+  await page.goto("/requests");
+  await expect(page.getByText("Chiarire dubbi", { exact: true })).toBeVisible();
+  await expect(page.getByText("Confrontarmi su un caso concreto", { exact: true })).toBeVisible();
 });
 
 test("L4 goal flow uses the advanced catalog and keeps V2 topics coherent", async ({ page }) => {
@@ -754,7 +810,7 @@ test("matching shows reasons and can create request", async ({ page }) => {
   await page.getByLabel("Il tuo messaggio", { exact: true }).fill("Vorrei capire come funziona un primo PAC in ETF.");
   await page.getByRole("button", { name: "Invia", exact: true }).click();
   expect(requestPayload).toEqual({ mentor_id: "mentor1", goal_id: "g1", alignment_message: "Vorrei capire come funziona un primo PAC in ETF." });
-  await expect(page.getByRole("status")).toContainText("48 ore per rispondere");
+  await expect(page.getByRole("status").filter({ hasText: "48 ore per rispondere" })).toBeVisible();
 });
 
 test("V3 discovery acknowledges visible receipts, not every fetched profile", async ({ page }) => {
@@ -832,6 +888,9 @@ test("matching restores a pending request after reload", async ({ page }) => {
     is_recommended: true,
     reason_summary: "In linea con il tuo obiettivo.",
     public_badges: []
+  }, {
+    mentor_id: "mentor-other", nickname: "Altro mentor", match_score: 76,
+    is_recommended: false, reason_summary: "In linea con il tuo obiettivo.", public_badges: []
   }] }));
 
   await page.goto("/matching?goalId=g1");
@@ -839,6 +898,7 @@ test("matching restores a pending request after reload", async ({ page }) => {
   const requested = page.getByRole("button", { name: "Richiesta inviata" });
   await expect(requested).toBeVisible();
   await expect(requested).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Un’altra proposta è in attesa" })).toBeDisabled();
 });
 
 test("matching ignores an inactive goal passed in the URL", async ({ page }) => {
@@ -897,7 +957,7 @@ test("request expiry during accept never reports an opened path", async ({ page 
     goal_id: "g1",
     expires_at: "2026-07-27T12:00:00Z",
     mentee: { user_id: "u2", nickname: "Luca", level: "L1", is_coach: true },
-    mentor: { user_id: "u1", nickname: "Mentee", level: "L1", is_coach: true },
+    mentor: { user_id: "u1", nickname: "Apprendista", level: "L1", is_coach: true },
     goal: { id: "g1", topic: "etf_funds", goal_tag: "understand_etf", is_active: true }
   };
   await page.route("**/api/backend/matching/requests/me?role=all", async (route) => {
@@ -913,11 +973,9 @@ test("request expiry during accept never reports an opened path", async ({ page 
   });
 
   await page.goto("/requests?tab=received");
-  page.once("dialog", async (dialog) => {
-    expect(dialog.message()).toContain("Vuoi accettare e aprire questo percorso?");
-    await dialog.accept();
-  });
   await page.getByRole("button", { name: "Accetta" }).click();
+  await expect(page.getByRole("dialog")).toContainText("Vuoi accettare e aprire questo percorso?");
+  await page.getByRole("button", { name: "Conferma", exact: true }).click();
 
   const outcome = page.getByText(/Nessun percorso è stato aperto/);
   await expect(outcome).toBeVisible();
@@ -935,7 +993,7 @@ test("accepting a mentor proposal confirms both path cost and available credits"
     goal_id: "g1",
     cost_at_request: 2,
     expires_at: "2026-08-02T12:00:00Z",
-    mentee: { user_id: "u1", nickname: "Mentee", level: "L1", is_coach: true },
+    mentee: { user_id: "u1", nickname: "Apprendista", level: "L1", is_coach: true },
     mentor: { user_id: "mentor1", nickname: "Anna", level: "L2", is_coach: true },
     goal: { id: "g1", topic: "etf_funds", goal_tag: "understand_etf", is_active: true }
   }] }));
@@ -946,12 +1004,10 @@ test("accepting a mentor proposal confirms both path cost and available credits"
 
   await page.goto("/requests?tab=received");
   await expect(page.getByText(/Costo all.accettazione: 2 crediti/)).toBeVisible();
-  page.once("dialog", async (dialog) => {
-    expect(dialog.message()).toContain("Il percorso costerà 2 crediti");
-    expect(dialog.message()).toContain("Crediti disponibili: 10");
-    await dialog.dismiss();
-  });
   await page.getByRole("button", { name: "Accetta" }).click();
+  await expect(page.getByRole("dialog")).toContainText("Il percorso costerà 2 crediti");
+  await expect(page.getByRole("dialog")).toContainText("Crediti disponibili: 10");
+  await page.getByRole("button", { name: "Annulla", exact: true }).click();
   expect(responseCalled).toBe(false);
 });
 
@@ -960,7 +1016,7 @@ test("mentor opt-out blocks pending response actions", async ({ page }) => {
     id: "u1",
     username: "mentee",
     email: "mentee@example.com",
-    nickname: "Mentee",
+    nickname: "Apprendista",
     level: "L1",
     is_coach: false,
     role: "user",
@@ -974,7 +1030,7 @@ test("mentor opt-out blocks pending response actions", async ({ page }) => {
     goal_id: "g1",
     expires_at: "2026-07-27T12:00:00Z",
     mentee: { user_id: "u2", nickname: "Luca", level: "L1", is_coach: true },
-    mentor: { user_id: "u1", nickname: "Mentee", level: "L1", is_coach: false }
+    mentor: { user_id: "u1", nickname: "Apprendista", level: "L1", is_coach: false }
   }] }));
 
   await page.goto("/requests?tab=received");
@@ -994,7 +1050,7 @@ test("terminal requests show their outcome date instead of a response deadline",
     goal_id: "g1",
     expires_at: "2026-07-27T12:00:00Z",
     updated_at: "2026-07-25T12:00:00Z",
-    mentee: { user_id: "u1", nickname: "Mentee", level: "L1", is_coach: true },
+    mentee: { user_id: "u1", nickname: "Apprendista", level: "L1", is_coach: true },
     mentor: { user_id: "mentor1", nickname: "Anna", level: "L2", is_coach: true },
     goal: { id: "g1", topic: "etf_funds", goal_tag: "understand_etf", is_active: true }
   }] }));
@@ -1103,7 +1159,7 @@ test("paths are grouped by current user role", async ({ page }) => {
       goal_id: "g1",
       goal: { id: "g1", topic: "etf_funds", goal_tag: "mentor_goal", is_active: true },
       mentee: { user_id: "u2", nickname: "Luca", level: "L1", is_coach: true },
-      mentor: { user_id: "u1", nickname: "Mentee", level: "L1", is_coach: true }
+      mentor: { user_id: "u1", nickname: "Apprendista", level: "L1", is_coach: true }
     },
     {
       id: "mentee-path",
@@ -1112,13 +1168,13 @@ test("paths are grouped by current user role", async ({ page }) => {
       mentor_id: "u3",
       goal_id: "g2",
       goal: { id: "g2", topic: "etf_funds", goal_tag: "mentee_goal", is_active: true },
-      mentee: { user_id: "u1", nickname: "Mentee", level: "L1", is_coach: true },
+      mentee: { user_id: "u1", nickname: "Apprendista", level: "L1", is_coach: true },
       mentor: { user_id: "u3", nickname: "Anna", level: "L2", is_coach: true }
     }
   ] }));
 
   await page.goto("/paths?tab=mentee");
-  await expect(page.getByRole("tab", { name: /Come mentee/ })).toBeVisible();
+  await expect(page.getByRole("tab", { name: /Come apprendista/ })).toBeVisible();
   await expect(page.getByText("mentee_goal")).toBeVisible();
   await expect(page.getByText("mentor_goal")).toHaveCount(0);
 
@@ -1136,7 +1192,7 @@ test("first-session verification uses user-safe provider states", async ({ page 
     mentor_id: "u3",
     goal_id: "g2",
     goal: { id: "g2", topic: "etf_funds", goal_tag: "mentee_goal", is_active: true },
-    mentee: { user_id: "u1", nickname: "Mentee", level: "L1", is_coach: true },
+    mentee: { user_id: "u1", nickname: "Apprendista", level: "L1", is_coach: true },
     mentor: { user_id: "u3", nickname: "Anna", level: "L2", is_coach: true },
     mentee_closed_at: null,
     mentor_closed_at: null,
@@ -1196,6 +1252,7 @@ test("first-session verification uses user-safe provider states", async ({ page 
 });
 
 test("path closure and feedback actions follow first-call and actor state", async ({ page }) => {
+  await page.route("**/api/backend/calls/capabilities", route => route.fulfill({ json: { google_meet_available: false } }));
   let pathState = {
     id: "path-1",
     status: "open",
@@ -1203,7 +1260,7 @@ test("path closure and feedback actions follow first-call and actor state", asyn
     mentor_id: "u3",
     goal_id: "g2",
     goal: { id: "g2", topic: "etf_funds", goal_tag: "mentee_goal", is_active: true },
-    mentee: { user_id: "u1", nickname: "Mentee", level: "L1", is_coach: true },
+    mentee: { user_id: "u1", nickname: "Apprendista", level: "L1", is_coach: true },
     mentor: { user_id: "u3", nickname: "Anna", level: "L2", is_coach: true },
     first_call_completed: false,
     mentee_closed_at: null as string | null,
@@ -1218,6 +1275,8 @@ test("path closure and feedback actions follow first-call and actor state", asyn
   });
 
   await page.goto("/paths/path-1");
+  await expect(page.getByText(/Google Meet integrato non è disponibile/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Prepara Google Meet" })).toHaveCount(0);
   await expect(page.getByText(/Puoi chiudere il tuo lato dopo che la prima sessione/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Chiudi il mio lato" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Lascia feedback sul mentor" })).toHaveCount(0);
@@ -1225,6 +1284,8 @@ test("path closure and feedback actions follow first-call and actor state", asyn
   pathState = { ...pathState, first_call_completed: true };
   await page.reload();
   await expect(page.getByRole("button", { name: "Chiudi il mio lato" })).toBeVisible();
+  await expect(page.getByText(/Non sono necessarie altre azioni per questa verifica/)).toBeVisible();
+  await expect(page.getByText(/Google Meet integrato non è disponibile/)).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Lascia feedback sul mentor" })).toHaveCount(0);
 
   pathState = {
@@ -1260,7 +1321,7 @@ test("feedback note visibility is explicit and path success banners are restored
     mentor_id: "u3",
     goal_id: "g2",
     goal: { id: "g2", topic: "ETF e fondi", topic_code: "etf_funds", goal_tag: "Capire gli ETF", is_active: true },
-    mentee: { user_id: "u1", nickname: "Mentee", level: "L1", is_coach: true },
+    mentee: { user_id: "u1", nickname: "Apprendista", level: "L1", is_coach: true },
     mentor: { user_id: "u3", nickname: "Anna", level: "L2", is_coach: true },
     first_call_completed: true,
     mentee_closed_at: "2026-07-25T12:00:00Z",

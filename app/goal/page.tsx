@@ -7,11 +7,15 @@ import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
 import { AsyncState, Button } from "@/components/Ui";
 import { clientGet, clientPost, ClientApiError } from "@/lib/api";
-import { capitalGoalOptions, riskOptions, type SelectOption } from "@/lib/options";
+import { capitalGoalOptions, type SelectOption } from "@/lib/options";
 import type { Goal, GoalsMe } from "@/lib/types";
 import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes-guard";
 
-type GoalCatalog = { topics: Array<{ code: string; label: string; goals: Array<{ code: string; label: string }> }> };
+type GoalCatalog = {
+  topics: Array<{ code: string; label: string; goals: Array<{ code: string; label: string }> }>;
+  discussion_types: Array<{ code: string; label: string; description: string }>;
+  max_discussion_types: number;
+};
 
 export default function GoalPage() {
   return (
@@ -31,7 +35,7 @@ function GoalForm() {
   const pathId = searchParams.get("pathId");
   const [catalog, setCatalog] = useState<GoalCatalog | null>(null);
   const [hasCurrentGoal, setHasCurrentGoal] = useState(false);
-  const [form, setForm] = useState({ topic: "", goal_tag: "", capital_goal: "", risk: "" });
+  const [form, setForm] = useState({ topic: "", goal_tag: "", capital_goal: "", risk: "", discussion_types: [] as string[] });
   const [currentTopicOption, setCurrentTopicOption] = useState<SelectOption | null>(null);
   const [currentGoalOption, setCurrentGoalOption] = useState<SelectOption | null>(null);
   const [loading, setLoading] = useState(true);
@@ -112,9 +116,17 @@ function GoalForm() {
     setForm((current) => ({ ...current, [field]: value }));
   }
 
+  function toggleDiscussion(code: string) {
+    setDirty(true);
+    setForm((current) => ({ ...current, discussion_types: current.discussion_types.includes(code)
+      ? current.discussion_types.filter((item) => item !== code)
+      : current.discussion_types.length < (catalog?.max_discussion_types || 3)
+        ? [...current.discussion_types, code] : current.discussion_types }));
+  }
+
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (!catalog || Object.values(form).some((value) => !value)) {
+    if (!catalog || !form.topic || !form.goal_tag || !form.capital_goal || !form.discussion_types.length) {
       setError("Completa tutte le scelte prima di continuare.");
       return;
     }
@@ -122,7 +134,7 @@ function GoalForm() {
     setSubmitting(true);
     try {
       const endpoint = pathId ? `/paths/${pathId}/update-goal` : "/surveys/goal/me";
-      const goal = await clientPost<Goal>(endpoint, { ...form, amount_range: form.capital_goal });
+      const goal = await clientPost<Goal>(endpoint, { ...form, risk: form.risk || null, amount_range: form.capital_goal });
       setDirty(false);
       router.push(pathId
         ? `/paths/${pathId}?goalReviewed=1`
@@ -148,7 +160,7 @@ function GoalForm() {
     );
   }
 
-  if (loadError || !catalog) {
+  if (loadError || !catalog || !catalog.discussion_types?.length) {
     return (
       <div style={{ marginInline: "auto", maxWidth: "860px", width: "100%" }}>
         <AsyncState
@@ -178,7 +190,7 @@ function GoalForm() {
                 ? "Conferma il tema o scegline uno nuovo prima del prossimo percorso."
                 : editMode
                   ? "Le nuove scelte sostituiranno l’obiettivo attivo e ci aiuteranno a proporti persone più pertinenti."
-                  : "Scegli un tema e un risultato concreto: Socra ti metterà in contatto con persone compatibili."}
+                  : "Dalle basi a un confronto avanzato: scegli cosa vuoi approfondire e come vorresti lavorarci."}
             </p>
           </div>
 
@@ -209,7 +221,7 @@ function GoalForm() {
               <div>
                 <p style={{ color: "var(--navy-950)", fontWeight: 800, margin: "0 0 4px" }}>Scegli il tema del confronto</p>
                 <p style={{ color: "var(--muted)", fontSize: "0.88rem", margin: 0 }}>
-                  Nel profilo pubblico compare solo il tema generale. Il mentor che contatti vede l’obiettivo di apprendimento; il contesto resta privato.
+                  Chi valuta un percorso con te vede il tema, il risultato di apprendimento e i tipi di confronto. Il contesto di partenza resta privato.
                 </p>
               </div>
 
@@ -235,14 +247,32 @@ function GoalForm() {
                   options={availableCapital}
                   disabled={loading || submitting || !catalog}
                 />
-                <SelectField
-                  label="Stile del confronto (privato)"
-                  value={form.risk}
-                  onChange={(value) => updateField("risk", value)}
-                  options={riskOptions}
-                  disabled={loading || submitting || !catalog}
-                />
               </div>
+
+              <fieldset className="discussion-fieldset" aria-describedby="discussion-help discussion-count" disabled={submitting}>
+                <legend>Che tipo di confronto cerchi?</legend>
+                <p id="discussion-help" className="muted">
+                  Scegli da uno a tre modi in cui vorresti affrontare l’argomento. Aiutano il mentor a capire cosa cerchi;
+                  il risultato di apprendimento scelto sopra definisce cosa approfondirete.
+                </p>
+                <div className="discussion-options">
+                  {catalog.discussion_types.map((option) => {
+                    const checked = form.discussion_types.includes(option.code);
+                    const disabled = !checked && form.discussion_types.length >= catalog.max_discussion_types;
+                    return (
+                      <label className="discussion-option" key={option.code} data-selected={checked} data-disabled={disabled}>
+                        <input type="checkbox" name="discussion_types" value={option.code} checked={checked}
+                          disabled={disabled} onChange={() => toggleDiscussion(option.code)} aria-label={option.label} />
+                        <span><strong>{option.label}</strong><span>{option.description}</span></span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <p id="discussion-count" role="status" className="muted">
+                  {form.discussion_types.length} di {catalog.max_discussion_types} selezionati.
+                  {form.discussion_types.length >= catalog.max_discussion_types ? " Deseleziona una voce per cambiarla." : " Almeno una scelta richiesta."}
+                </p>
+              </fieldset>
             </div>
           </div>
 
@@ -267,13 +297,24 @@ function GoalForm() {
             </button>
           </div>
           <style jsx>{`
+            .discussion-fieldset { border: 0; padding: 0; margin: 12px 0 0; min-width: 0; }
+            .discussion-fieldset legend { font-size: 1.15rem; font-weight: 800; color: var(--navy-950); }
+            .discussion-fieldset p { font-size: .88rem; line-height: 1.6; }
+            .discussion-options { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .discussion-option { display: flex; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; }
+            .discussion-option[data-selected="true"] { border-color: var(--navy-950); background: var(--paper); box-shadow: inset 0 0 0 1px var(--navy-950); }
+            .discussion-option[data-disabled="true"] { opacity: .65; cursor: not-allowed; }
+            .discussion-option:focus-within { outline: 3px solid var(--gold-500); outline-offset: 3px; }
+            .discussion-option input { width: 18px; height: 18px; flex-shrink: 0; margin-top: 3px; accent-color: var(--navy-950); }
+            .discussion-option strong { display: block; margin-bottom: 5px; font-size: .91rem; }
+            .discussion-option span span { display: block; font-size: .82rem; line-height: 1.55; color: var(--muted); }
             .goal-fields {
               display: grid;
               gap: 16px;
               grid-template-columns: repeat(2, minmax(0, 1fr));
             }
             @media (max-width: 640px) {
-              .goal-fields {
+              .goal-fields, .discussion-options {
                 grid-template-columns: 1fr;
               }
             }
@@ -292,6 +333,7 @@ function SelectField({
   disabled: boolean;
 }) {
   const id = useId();
+  const selectedLabel = options.find(option => option.value === value)?.label;
   return (
     <div style={{ display: "grid", gap: "6px" }}>
       <label htmlFor={id} style={{ color: "var(--navy-950)", fontSize: "0.85rem", fontWeight: 800 }}>{label}</label>
@@ -309,6 +351,7 @@ function SelectField({
           <option key={option.value} value={option.value}>{option.label}</option>
         ))}
       </select>
+      {selectedLabel && selectedLabel.length > 55 ? <small className="muted" style={{ lineHeight: 1.5 }}>{selectedLabel}</small> : null}
     </div>
   );
 }
@@ -320,6 +363,7 @@ function goalToForm(goal: Goal, catalog: GoalCatalog) {
     topic,
     goal_tag: goalTag,
     capital_goal: goal.capital_goal || goal.amount_range || "",
-    risk: goal.risk || ""
+    risk: goal.risk || "",
+    discussion_types: goal.discussion_types || []
   };
 }

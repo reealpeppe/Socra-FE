@@ -5,65 +5,65 @@ import { PublicNavbar, PublicFooter } from "@/components/PublicLayout";
 import publicStyles from "@/components/PublicLayout.module.css";
 
 export const metadata: Metadata = {
-  title: "Socra — Impara con un percorso peer-to-peer",
-  description: "Percorsi di apprendimento sugli investimenti tra mentee e mentor, con matching, crediti interni e feedback reciproco.",
+  title: "Socra — Se lo sai insegnalo, se non lo sai imparalo",
+  description: "La community dove la conoscenza finanziaria passa da persona a persona. Impara, approfondisci e condividi la tua esperienza.",
 };
 
 const steps = [
   {
     icon: GraduationCap,
-    title: "Racconta da dove parti",
-    body: "Completa la survey guidata e trova un punto di partenza coerente con la tua esperienza",
+    title: "Parti dalla tua esperienza",
+    body: "Completa la survey guidata per raccontare cosa conosci, cosa hai messo in pratica e cosa puoi condividere.",
   },
   {
     icon: Target,
-    title: "Definisci il tuo obiettivo",
-    body: "Scegli l'area e il risultato di apprendimento su cui vuoi lavorare come mentee",
+    title: "Definisci obiettivi e competenze",
+    body: "Indica dove vuoi crescere come apprendista e gli ambiti in cui puoi mettere la tua esperienza a disposizione come mentor.",
   },
   {
     icon: Users,
-    title: "Valuta i mentor suggeriti",
-    body: "Socra propone profili compatibili e una motivazione sintetica. La scelta resta tua",
+    title: "Crea le connessioni giuste",
+    body: "Socra ti suggerisce mentor adatti al tuo obiettivo e ti rende disponibile, sugli argomenti idonei, a chi può imparare da te.",
   },
   {
     icon: BookOpen,
-    title: "Apri il percorso",
-    body: "Dopo l'accettazione del mentor, organizzate la prima call e portate avanti l'obiettivo",
+    title: "Inizia il percorso",
+    body: "Accetta o invia una richiesta, organizzate i vostri incontri e lavorate insieme verso un obiettivo concreto e condiviso.",
   },
   {
     icon: TrendingUp,
-    title: "Chiudi con il feedback",
-    body: "Entrambe le persone chiudono il proprio lato e lasciano il feedback previsto",
+    title: "Concludi, valuta e cresci",
+    body: "Al termine, entrambi chiudete il percorso e lasciate un feedback. I risultati contribuiscono alla fiducia nella community.",
   },
 ];
 
 const operatingPillars = [
   {
-    title: "Matching spiegabile",
-    body: "Ogni proposta è accompagnata da una compatibilità orientativa e da una motivazione facile da capire.",
+    title: "01 — Raccontaci cosa sai e dove vuoi arrivare",
+    body: "Con la survey racconti la tua esperienza e le tue competenze; con l’obiettivo scegli ciò che vuoi imparare o approfondire.",
   },
   {
-    title: "Unità interne non monetizzabili",
-    body: "Le unità di partecipazione bilanciano il dare e il ricevere: non si acquistano e non si convertono in denaro.",
+    title: "02 — Incontra le persone giuste",
+    body: "Scopri chi può aiutarti a crescere e chi può beneficiare della tua esperienza. Valutate insieme se iniziare.",
   },
   {
-    title: "Reputazione aggregata",
-    body: "I feedback alimentano badge e metriche sintetiche, senza pubblicare singoli voti.",
+    title: "03 — Impara e condividi",
+    body: "Segui i tuoi percorsi, approfondisci nuovi argomenti e restituisci valore alla community condividendo quello che sai.",
   },
 ];
 
 const pathRules = [
   {
-    title: "Accettazione esplicita",
-    body: "Mentee e mentor possono proporre un percorso. Si apre solo quando l'altra persona accetta.",
+    title: "Si parte insieme",
+    body: "Mentor e apprendista possono proporre un percorso. Si comincia solo quando entrambi scelgono di partecipare.",
   },
   {
-    title: "Prima call collegata",
-    body: "Socra prepara il link della prima call e collega al percorso soltanto presenza e durata quando disponibili.",
+    title: "Ci si incontra davvero",
+    body: "Il percorso prende forma nel confronto tra mentor e apprendista, organizzato intorno a un obiettivo chiaro e condiviso.",
   },
   {
-    title: "Chiusura da entrambi i lati",
-    body: "Il completamento richiede la chiusura e il feedback obbligatorio di mentee e mentor.",
+    title: "Si cresce da entrambe le parti",
+    body: "Alla fine, mentor e apprendista chiudono il percorso e lasciano il proprio feedback, contribuendo alla fiducia nella community.",
   },
 ];
 
@@ -99,7 +99,7 @@ export default function HomePage() {
                 textTransform: "uppercase",
                 margin: "0 0 20px",
               }}>
-                Apprendimento peer-to-peer
+                Finanza e investimenti da persona a persona
               </p>
               <h1 style={{
                 color: "#ffffff",
@@ -110,7 +110,7 @@ export default function HomePage() {
                 letterSpacing: "-0.02em",
                 textWrap: "balance",
               }}>
-                Impara con chi<br />ha esperienza.
+                Se lo sai insegnalo,<br />se non lo sai imparalo.
               </h1>
               <p style={{
                 color: "rgba(255,255,255,0.7)",
@@ -119,7 +119,7 @@ export default function HomePage() {
                 maxWidth: "52ch",
                 margin: "0 0 36px",
               }}>
-                SOCRA mette in contatto persone che vogliono imparare e persone disponibili a condividere esperienza sugli investimenti. Un obiettivo alla volta, dentro un percorso tracciabile.
+                Socra è la community dove la conoscenza finanziaria passa da persona a persona. Trova chi ha esperienza in ciò che vuoi imparare e metti la tua esperienza a disposizione di chi può imparare da te.
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "16px", alignItems: "center" }}>
                 <Link className={publicStyles.actionGold} href="/register">
@@ -278,10 +278,10 @@ export default function HomePage() {
               margin: "0 0 10px",
               textTransform: "uppercase",
             }}>
-              Regole essenziali
+              Come funziona lo scambio
             </p>
             <h2 style={{ color: "var(--ink)", fontSize: "clamp(1.6rem,3vw,2.2rem)", margin: 0 }}>
-              Cosa rende operativo un percorso
+              Ogni percorso è un impegno reciproco
             </h2>
           </div>
           <div style={{
@@ -337,7 +337,7 @@ export default function HomePage() {
               margin: "0 0 16px",
               letterSpacing: "-0.02em",
             }}>
-              Pronto a iniziare il tuo percorso?
+              Quello che sai può aiutare qualcuno.
             </h2>
             <p style={{
               color: "rgba(255,255,255,0.65)",
@@ -345,7 +345,7 @@ export default function HomePage() {
               lineHeight: 1.6,
               margin: "0 0 36px",
             }}>
-              Crea il profilo, completa la survey e definisci il primo obiettivo di apprendimento.
+              E qualcuno può aiutarti a scoprire ciò che ancora non sai. Entra in Socra e inizia a far circolare la conoscenza.
             </p>
             <Link className={publicStyles.actionGold} href="/register">
               Crea il tuo profilo

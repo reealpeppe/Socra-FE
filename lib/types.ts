@@ -46,6 +46,8 @@ export type WalletTransaction = {
 };
 
 export type Goal = {
+  discussion_types?: string[];
+  discussion_type_labels?: string[];
   id: string;
   topic: string;
   goal_tag: string;
@@ -79,6 +81,8 @@ export type MatchCandidate = {
 };
 
 export type MenteeCandidate = {
+  discussion_types?: string[];
+  discussion_type_labels?: string[];
   discovery_offer_id?: string;
   discovery_label?: string | null;
   mentee_id: string;

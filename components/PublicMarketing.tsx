@@ -8,9 +8,9 @@ export function PublicNav() {
         <Brand />
       </Link>
       <nav aria-label="Sezioni pubbliche">
-        <Link href="/#come-funziona">Come funziona</Link>
-        <Link href="/#community">Community</Link>
-        <Link href="/#sicurezza">Sicurezza</Link>
+        <Link href="/come-funziona">Come funziona</Link>
+        <Link href="/community">Community</Link>
+        <Link href="/sicurezza">Sicurezza</Link>
       </nav>
       <div className="premium-nav-actions">
         <Link className="premium-link-button" href="/login">Accedi</Link>
@@ -43,15 +43,15 @@ export function PublicAuthShell({
             <span>Feedback reciproco</span>
             <span>Crediti interni</span>
           </div>
-          <div className="premium-auth-panel" aria-label="Flusso protetto">
+          <div className="premium-auth-panel" aria-label="I primi passi su Socra">
             <div>
               <span>01</span>
-              <strong>Account V1</strong>
-              <p>Username/email e password, senza OTP temporaneamente.</p>
+              <strong>Il tuo account</strong>
+              <p>Scegli un nickname e accedi con email o username e password.</p>
             </div>
             <div>
               <span>02</span>
-              <strong>Onboarding</strong>
+              <strong>La tua esperienza</strong>
               <p>Conoscenze, esperienza pratica e feedback rendono i confronti più pertinenti.</p>
             </div>
             <div>

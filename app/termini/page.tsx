@@ -19,7 +19,7 @@ export default function TermsPage() {
             <p className={styles.eyebrow}>Regole della community</p>
             <h1>Un patto chiaro tra persone.</h1>
             <p className={styles.lead}>
-              Socra facilita l’incontro. Mentee e mentor restano responsabili delle proprie
+              Socra facilita l’incontro. Apprendista e mentor restano responsabili delle proprie
               parole, delle informazioni condivise e delle decisioni prese in autonomia.
             </p>
           </div>
@@ -40,7 +40,7 @@ export default function TermsPage() {
             <p>
               Socra è una community peer-to-peer e uno strumento tecnico di incontro tra
               persone maggiorenni. Permette di indicare un obiettivo generale, incontrare
-              possibili mentor o mentee, proporre un percorso e scambiarsi feedback.
+              possibili mentor o apprendisti, proporre un percorso e scambiarsi feedback.
             </p>
             <p className={styles.callout}>
               Socra non presta consulenza finanziaria, non approva ciò che un utente dice,
@@ -74,7 +74,7 @@ export default function TermsPage() {
           <section className={styles.section}>
             <h2>4. Matching, percorsi e crediti</h2>
             <p>
-              Livello, matching e compatibilità aiutano a trovare un incontro pertinente:
+              Esperienza dichiarata, risultati dei percorsi e compatibilità aiutano a trovare un incontro pertinente:
               non certificano una persona e non indicano che un investimento sia adatto.
               Ogni percorso si apre solo dopo l’accettazione di chi riceve la proposta.
             </p>

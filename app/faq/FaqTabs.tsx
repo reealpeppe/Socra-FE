@@ -8,20 +8,20 @@ const sections = [
     label: "Percorso",
     faqs: [
       {
-        q: "Cos'è SOCRA?",
-        a: "SOCRA è una community di mentorship peer-to-peer per apprendere e confrontarsi su temi legati agli investimenti. Non sostituisce una consulenza professionale e non garantisce risultati finanziari.",
+        q: "Cos'è Socra?",
+        a: "Socra è una community di finanza personale dove puoi imparare dagli altri e condividere ciò che già sai. Dalle basi a un approfondimento tra persone esperte, ci si incontra attraverso percorsi con obiettivi concreti. Non offre consulenza finanziaria, non indica dove investire e non garantisce rendimenti.",
       },
       {
         q: "Come funziona un percorso?",
-        a: "Dopo survey e obiettivo, Socra suggerisce mentor compatibili. Il mentee può contattare un mentor e un mentor disponibile può proporre un percorso a un mentee. Si apre soltanto quando chi riceve accetta.",
+        a: "Dopo la survey, indichi l’argomento, il risultato che vuoi raggiungere e il tipo di confronto. Socra suggerisce mentor compatibili e spiega perché. Sia mentor sia apprendista possono proporre un percorso con un messaggio iniziale: si parte solo quando l’altra persona accetta. Poi chiarite l’obiettivo e organizzate gli incontri.",
       },
       {
         q: "Quante sessioni ci sono?",
-        a: "Non esiste un numero fisso e il percorso non ha una scadenza automatica. Mentee e mentor concordano il lavoro necessario e mantengono il percorso aperto finché non completano la chiusura prevista.",
+        a: "Non c’è un numero prestabilito di sessioni né una scadenza automatica del percorso. Mentor e apprendista concordano gli incontri necessari in base all’obiettivo. Il percorso resta attivo fino alla chiusura e al feedback di entrambi.",
       },
       {
         q: "Come si chiude un percorso?",
-        a: "Mentee e mentor chiudono in modo indipendente il proprio lato. La chiusura formale richiede l'azione e il feedback obbligatorio di entrambe le persone.",
+        a: "Dopo la verifica della prima call, mentor e apprendista possono concludere il proprio lato in modo indipendente. Il percorso è completato quando entrambi hanno confermato la chiusura e lasciato il feedback previsto. Se la verifica della call non è disponibile, segnala il problema: non basta uscire dalla pagina per chiudere il percorso.",
       },
     ],
   },
@@ -30,15 +30,15 @@ const sections = [
     faqs: [
       {
         q: "I crediti Socra si possono acquistare?",
-        a: "No. Le unità interne di partecipazione non sono monetizzabili, acquistabili, convertibili o trasferibili fuori da Socra.",
+        a: "No. I crediti servono a mantenere in equilibrio lo scambio tra ciò che ricevi e ciò che condividi. Non possono essere acquistati, venduti, convertiti in denaro o trasferiti al di fuori di Socra.",
       },
       {
         q: "Quando vengono spostati i crediti?",
-        a: "Il costo del percorso viene addebitato al mentee quando il destinatario accetta la proposta. Il mentor riceve l'accredito solo al completamento formale del percorso.",
+        a: "All’accettazione di una proposta viene scalato un credito dal saldo dell’apprendista. Il mentor riceve un credito solo quando entrambi hanno chiuso il percorso e lasciato il feedback. Rifiutare una proposta non comporta un addebito.",
       },
       {
         q: "Cosa succede se il saldo non basta?",
-        a: "Prima di aprire un percorso Socra verifica il saldo disponibile. Se non è sufficiente, lo segnala prima della conferma e impedisce operazioni non consentite per il tuo profilo.",
+        a: "Socra verifica il saldo prima dell’invio e di nuovo all’accettazione. Se non basta, il percorso non può partire e non si crea debito. Il saldo iniziale è di due crediti; completando percorsi come mentor, quando hai esperienza adatta da condividere, puoi ottenerne altri.",
       },
     ],
   },
@@ -55,7 +55,7 @@ const sections = [
       },
       {
         q: "Posso cambiare mentor?",
-        a: "Se il percorso non funziona, puoi segnalarlo e chiuderlo. Il feedback resta obbligatorio anche in caso di chiusura anticipata; un nuovo percorso da mentee può aprirsi dopo il completamento formale del precedente.",
+        a: "Puoi concordare una conclusione anticipata e segnalare eventuali problemi. Per iniziare un altro percorso come apprendista occorrono la verifica della prima call, la chiusura e i feedback di entrambi, poi la revisione del tuo obiettivo. Non è un cambio immediato né un rimborso automatico. Se non riuscite a completare questi passaggi, usa “Segnala problema”.",
       },
     ],
   },
@@ -64,11 +64,11 @@ const sections = [
     faqs: [
       {
         q: "Come viene costruita la reputazione?",
-        a: "Nasce dall’esperienza maturata nei percorsi e dai feedback reciproci. Socra mostra soltanto segnali aggregati e badge, mai il voto della singola persona.",
+        a: "Si costruisce con i percorsi completati e i feedback ricevuti nel tempo. Il profilo mostra risultati aggregati e badge, non il voto della singola persona. Nel matching contano soprattutto i risultati sullo stesso argomento con persone che avevano un bisogno simile: tante recensioni non rendono esperti di qualsiasi strumento.",
       },
       {
         q: "Quali informazioni mostra il profilo mentor?",
-        a: "Il profilo può mostrare argomenti, percorsi completati e badge ricevuti. Quando lo storico è ancora limitato, il profilo viene presentato come “Nuovo utente”.",
+        a: "Il profilo mostra gli argomenti su cui la persona può condividere esperienza, percorsi completati, risultati aggregati e badge. Non mostra livelli o risposte dettagliate della survey. Quando lo storico è limitato compare “Nuovo utente”: significa nuovo nella community, non necessariamente inesperto nell’argomento.",
       },
       {
         q: "Cosa succede dopo una segnalazione?",
@@ -81,7 +81,7 @@ const sections = [
     faqs: [
       {
         q: "Le call vengono registrate?",
-        a: "No. Socra non registra audio o video e oggi non acquisisce trascrizioni. Per la prima call conserva soltanto presenza e durata quando questi dati sono disponibili dal provider.",
+        a: "No. Socra non registra audio o video e oggi non acquisisce trascrizioni. Quando l’integrazione Meet è attiva, per la prima call conserva soltanto i metadati disponibili di presenza e durata, senza accedere al contenuto della conversazione.",
       },
       {
         q: "Socra può garantire l'affidabilità di un mentor?",
@@ -98,7 +98,7 @@ const sections = [
     faqs: [
       {
         q: "Come mi registro?",
-        a: "Crei un account con username, email e password, poi completi la survey iniziale e definisci il tuo obiettivo di apprendimento.",
+        a: "Crea il tuo account con username, email e password. Completa la survey raccontando cosa conosci e quali esperienze puoi condividere; poi scegli ciò che vuoi imparare o approfondire. La community è pensata sia per chi comincia sia per chi ha già esperienza.",
       },
       {
         q: "Posso disattivare la disponibilità come mentor?",
@@ -106,11 +106,19 @@ const sections = [
       },
       {
         q: "Quali dati diventano pubblici?",
-        a: "Il profilo nella community usa argomenti generalizzati, risultati aggregati, badge e testi facoltativi. Le risposte dettagliate della survey e le valutazioni interne non vengono pubblicate.",
+        a: "Le persone nella community vedono il nickname, gli argomenti su cui puoi aiutare, percorsi completati, badge e risultati aggregati quando disponibili. La survey dettagliata, gli importi e le valutazioni interne non sono pubblici. Chi valuta un percorso con te vede anche obiettivo e tipi di confronto; il messaggio iniziale resta tra i partecipanti.",
       },
     ],
   },
 ];
+
+sections[0].faqs.push({
+  q: "Ho già esperienza: Socra fa per me?",
+  a: "Sì. Puoi approfondire un argomento che conosci, confrontare metodi o ragionare su un caso concreto con chi ha esperienza adatta. Puoi anche essere mentor su uno strumento e apprendista su un altro. Apprendista è il ruolo nel singolo percorso, non un giudizio sulla tua preparazione complessiva.",
+}, {
+  q: "A cosa servono i tipi di confronto?",
+  a: "Puoi indicare fino a tre preferenze, per esempio capire il metodo, chiarire dubbi o confrontare approcci. Il mentor le vede prima di accettare, insieme al tuo obiettivo e al messaggio. Descrivono come vuoi lavorare, non attestano competenze e non sostituiscono il risultato di apprendimento scelto.",
+});
 
 const allFaqs = sections.flatMap((section) => section.faqs);
 const tabs = ["Tutte", ...sections.map((section) => section.label)];

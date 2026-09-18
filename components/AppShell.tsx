@@ -55,9 +55,9 @@ function buildNavGroups(userId?: string, isCoach?: boolean): Array<{ label: stri
       ]
     },
     {
-      label: "Mentee",
+      label: "Apprendista",
       items: [
-        { id: "mentee-paths", href: "/paths?tab=mentee", label: "Percorsi da mentee", icon: GraduationCap },
+        { id: "mentee-paths", href: "/paths?tab=mentee", label: "Percorsi da apprendista", icon: GraduationCap },
         { id: "goals", href: "/goal", label: "Modifica obiettivi", icon: Target },
         { id: "matching", href: "/matching", label: "Matching", icon: Search },
       ]
@@ -298,7 +298,7 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
       id: "account-mentees",
       href: user?.is_coach ? "/matching/mentees" : "/settings",
       label: user?.is_coach
-        ? "Trova mentee"
+        ? "Trova apprendisti"
         : "Disponibilità mentor",
       icon: GraduationCap
     }

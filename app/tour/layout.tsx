@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Come iniziare · Socra",
+  title: "Come iniziare",
   description: "Scopri come funzionano matching, richieste e percorsi Socra.",
 };
 

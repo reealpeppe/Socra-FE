@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Cosa vuoi imparare · Socra",
+  title: "Cosa vuoi imparare",
   description: "Scegli il tema su cui vuoi confrontarti con la community Socra.",
 };
 

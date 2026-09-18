@@ -7,23 +7,23 @@ import styles from "./page.module.css";
 
 export const metadata: Metadata = {
   title: "Community Socra — Incontri che diventano percorsi",
-  description: "La community Socra prende forma nei percorsi uno-a-uno tra mentee e mentor.",
+  description: "Impara e condividi la tua esperienza in percorsi tra persone, dalle basi agli approfondimenti avanzati.",
 };
 
 const principles = [
   {
     icon: Target,
     title: "Un obiettivo alla volta",
-    body: "Ogni incontro parte da qualcosa che vuoi capire o imparare. Un confine chiaro rende il confronto più utile per entrambi.",
+    body: "Ogni percorso nasce da qualcosa di concreto che vuoi imparare o approfondire. Un obiettivo chiaro rende lo scambio più semplice e utile per entrambi.",
   },
   {
     icon: MessageCircle,
-    title: "Confronto, non palcoscenico",
-    body: "Non servono guru né classifiche. Contano la capacità di ascoltare, spiegare con chiarezza e dichiarare i propri limiti.",
+    title: "Persone, non guru",
+    body: "In Socra nessuno sale in cattedra. Conta ciò che puoi condividere, la capacità di ascoltare e la disponibilità a mettere la tua esperienza al servizio degli altri.",
   },
   {
     icon: Handshake,
-    title: "Responsabilità reciproca",
+    title: "Un impegno reciproco",
     body: "Il percorso si apre solo dopo un’accettazione esplicita e si chiude con il contributo e il feedback di entrambe le persone.",
   },
 ];
@@ -58,12 +58,12 @@ export default function CommunityPage() {
               <p className={styles.eyebrow}>Una relazione alla volta</p>
               <h1>
                 La community nasce
-                <span>nei percorsi.</span>
+                <span>dallo scambio.</span>
               </h1>
               <p className={styles.lead}>
-                Socra mette in relazione persone che vogliono imparare e persone
-                disponibili a condividere esperienza. Il valore nasce da obiettivi chiari,
-                ascolto e responsabilità reciproca.
+                In Socra ognuno può avere qualcosa da imparare e qualcosa da condividere.
+                Le persone si incontrano attraverso percorsi costruiti su obiettivi concreti,
+                trasformando l’esperienza di ciascuno in valore per la community.
               </p>
               <div className={styles.heroActions}>
                 <Link className={publicStyles.actionGold} href="/register">Crea il tuo profilo</Link>
@@ -75,22 +75,22 @@ export default function CommunityPage() {
               <article className={styles.voiceCard}>
                 <span className={styles.voiceIcon}><Compass aria-hidden="true" size={20} /></span>
                 <div>
-                  <strong>“Voglio fare chiarezza.”</strong>
-                  <p>Una persona definisce ciò che vuole comprendere, senza dover esporre dettagli inutili.</p>
+                  <strong>“C’è qualcosa che voglio imparare.”</strong>
+                  <p>Definisci ciò che vuoi approfondire e Socra ti aiuta a incontrare chi ha esperienza in quell’ambito.</p>
                 </div>
               </article>
               <article className={styles.voiceCard}>
                 <span className={styles.voiceIcon}><UsersRound aria-hidden="true" size={20} /></span>
                 <div>
-                  <strong>“Posso condividere la mia esperienza.”</strong>
-                  <p>Socra propone incontri coerenti; entrambe le persone restano libere di scegliere.</p>
+                  <strong>“C’è qualcosa che posso condividere.”</strong>
+                  <p>Metti a disposizione ciò che sai e incontra chi può trarre valore dalla tua esperienza.</p>
                 </div>
               </article>
               <article className={styles.voiceCard}>
                 <span className={styles.voiceIcon}><Handshake aria-hidden="true" size={20} /></span>
                 <div>
-                  <strong>“Costruiamo un percorso.”</strong>
-                  <p>Dopo l’accettazione nasce uno spazio con un obiettivo condiviso e un feedback reciproco.</p>
+                  <strong>“Possiamo crescere insieme.”</strong>
+                  <p>Quando entrambi accettate, inizia un percorso con un obiettivo condiviso, fatto di confronto, esperienza e feedback reciproco.</p>
                 </div>
               </article>
             </div>
@@ -105,9 +105,9 @@ export default function CommunityPage() {
                 <h2>Una community utile, non rumorosa.</h2>
               </div>
               <p>
-                La qualità non dipende da quante persone parlano, ma da come si
-                incontrano. Socra struttura il minimo necessario e lascia spazio alla
-                relazione.
+                In Socra non conta parlare a tutti, ma incontrare la persona giusta.
+                La piattaforma facilita connessioni utili e lascia alle persone ciò che
+                conta davvero: confrontarsi, condividere esperienza e crescere insieme.
               </p>
             </header>
             <div className={styles.principleGrid}>
@@ -129,16 +129,16 @@ export default function CommunityPage() {
           <div className={styles.inner}>
             <header className={styles.rolesHeader}>
               <p className={styles.eyebrowDark}>Due modi di partecipare</p>
-              <h2>Puoi imparare. Puoi restituire.</h2>
+              <h2>Oggi impari. Domani condividi. O entrambe le cose.</h2>
               <p>
-                Mentee e mentor non sono categorie rigide. In momenti diversi puoi avere
-                una domanda da approfondire o un’esperienza utile da mettere a disposizione.
+                Non sei solo mentor o apprendista. Puoi imparare da chi ha più esperienza
+                in un ambito e condividere la tua in un altro, anche se investi già da anni.
               </p>
             </header>
             <div className={styles.roleGrid}>
               <article className={styles.roleCard}>
-                <span className={styles.roleLabel}>Come mentee</span>
-                <h3>Parti da un obiettivo concreto.</h3>
+                <span className={styles.roleLabel}>Come apprendista</span>
+                <h3>Impara con un obiettivo concreto.</h3>
                 <p>
                   Descrivi ciò che vuoi imparare, valuta le persone proposte e scegli chi
                   contattare. La decisione resta sempre tua.
@@ -146,10 +146,10 @@ export default function CommunityPage() {
               </article>
               <article className={styles.roleCard}>
                 <span className={styles.roleLabel}>Come mentor</span>
-                <h3>Condividi esperienza, non certezze.</h3>
+                <h3>Metti la tua esperienza a disposizione.</h3>
                 <p>
-                  Ascolta il contesto, esplicita i limiti e aiuta l’altra persona a costruire
-                  un metodo. Nessun profilo è una certificazione professionale.
+                  Condividi ciò che hai imparato, ascolta chi hai davanti e aiutalo a comprendere
+                  meglio un argomento. Non servono certezze assolute, ma trasparenza sui propri limiti.
                 </p>
               </article>
             </div>
@@ -160,7 +160,7 @@ export default function CommunityPage() {
           <div className={`${styles.inner} ${styles.pactGrid}`}>
             <div className={styles.pactCopy}>
               <p className={styles.eyebrowDark}>Il patto della community</p>
-              <h2>Poche regole, molto chiare.</h2>
+              <h2>Poche regole, per crescere insieme.</h2>
               <p>
                 Entrare in Socra significa proteggere il confronto e la libertà di scelta
                 dell’altra persona.

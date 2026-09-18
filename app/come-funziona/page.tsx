@@ -13,55 +13,55 @@ const steps = [
   {
     num: 1,
     icon: GraduationCap,
-    title: "Racconta da dove parti",
-    body: "Completa la survey iniziale e lascia che Socra adatti l’esperienza al tuo punto di partenza",
+    title: "Parti da ciò che sai",
+    body: "Completa la survey iniziale: raccontaci le tue esperienze, cosa conosci già e cosa puoi condividere.",
   },
   {
     num: 2,
     icon: Target,
-    title: "Definisci il tuo obiettivo",
-    body: "Scegli l’argomento e il risultato di apprendimento su cui vuoi lavorare",
+    title: "Definisci i tuoi obiettivi",
+    body: "Scegli l’argomento, il risultato che vuoi raggiungere e il tipo di confronto: dalle basi al metodo, fino a un approfondimento avanzato.",
   },
   {
     num: 3,
     icon: Users,
-    title: "Valuta i mentor",
-    body: "Socra suggerisce persone con esperienza pertinente all’argomento e al tuo punto di partenza. I risultati dei percorsi aiutano a migliorare i suggerimenti nel tempo",
+    title: "Incontra le persone giuste",
+    body: "Socra ti propone chi può aiutarti nel tuo obiettivo e ti mette in contatto con chi può beneficiare della tua esperienza. I risultati dei percorsi migliorano i suggerimenti nel tempo.",
   },
   {
     num: 4,
     icon: BookOpen,
-    title: "Apri il percorso",
-    body: "Mentee e mentor possono proporre un percorso. Quando l'altra persona accetta, si apre e potete organizzare la prima call",
+    title: "Inizia un percorso",
+    body: "Mentor e apprendista si scelgono reciprocamente. Dopo l’accettazione, chiarite insieme l’obiettivo e organizzate i vostri incontri.",
   },
   {
     num: 5,
     icon: TrendingUp,
-    title: "Chiudi e lascia feedback",
-    body: "Mentee e mentor chiudono il proprio lato e completano il feedback reciproco obbligatorio",
+    title: "Condividi il feedback e continua a crescere",
+    body: "Al termine, entrambi chiudete il percorso e lasciate il feedback. Ciò che avete imparato e condiviso contribuisce alla qualità della community.",
   },
 ];
 
 const differences = [
   {
-    title: "Apprendimento, non consulenza",
-    body: "Il percorso serve a imparare e confrontarsi. Non è una raccomandazione finanziaria né una promessa di rendimento",
+    title: "Impari, non ricevi consigli finanziari",
+    body: "In Socra si condividono conoscenze ed esperienze per capire e crescere. Il confronto non serve a indicare dove investire e non promette risultati finanziari.",
   },
   {
-    title: "Matching che suggerisce",
-    body: "La piattaforma ordina i profili compatibili e spiega il suggerimento. Sei sempre tu a scegliere chi contattare",
+    title: "Le persone giuste, per te",
+    body: "Socra suggerisce persone compatibili con ciò che vuoi approfondire, ti spiega perché e lascia a te la scelta. Non sempre esiste un profilo adatto disponibile.",
   },
   {
-    title: "Crediti interni",
-    body: "I crediti bilanciano i percorsi ricevuti e offerti. Non si acquistano, non si vendono e non si convertono in denaro",
+    title: "Dai valore, ricevi valore",
+    body: "I crediti mantengono vivo lo scambio: condividendo ciò che sai puoi accedere all’esperienza degli altri. Non si comprano, non si vendono e non hanno valore economico.",
   },
   {
-    title: "Feedback reciproco",
-    body: "Ogni persona valuta il percorso dal proprio ruolo. Il profilo pubblico mostra solo risultati aggregati",
+    title: "La fiducia si costruisce insieme",
+    body: "Al termine di ogni percorso mentor e apprendista si valutano reciprocamente. I feedback contribuiscono alla reputazione, senza rendere pubblici i singoli voti.",
   },
   {
-    title: "Visibilità controllata",
-    body: "Argomenti, risultati aggregati e badge possono essere visibili nella community; le risposte dettagliate della survey e le valutazioni interne restano private",
+    title: "Tu controlli ciò che condividi",
+    body: "La community vede le informazioni utili a creare fiducia e connessioni. Le risposte dettagliate della survey, gli importi e le valutazioni interne restano privati.",
   },
 ];
 
@@ -86,7 +86,7 @@ export default function ComeFunzionaPage() {
               letterSpacing: "-0.02em",
             }}>
               Come funziona{" "}
-              <span style={{ color: "var(--navy-950)" }}>SOCRA</span>
+              <span style={{ color: "var(--navy-950)" }}>Socra</span>
             </h1>
             <p style={{
               color: "var(--muted)",
@@ -94,7 +94,7 @@ export default function ComeFunzionaPage() {
               lineHeight: 1.7,
               margin: 0,
             }}>
-              Un flusso chiaro: profilo, obiettivo, proposta di matching, percorso e feedback.
+              Entra nella community, racconta cosa vuoi imparare e cosa puoi condividere. Socra favorisce connessioni che trasformano l’esperienza di ognuno in valore per gli altri.
             </p>
           </div>
         </section>
@@ -201,7 +201,7 @@ export default function ComeFunzionaPage() {
               margin: "0 0 40px",
               letterSpacing: "-0.02em",
             }}>
-              Perché SOCRA è diverso
+              Perché Socra è diverso
             </h2>
 
             <div style={{
@@ -260,7 +260,7 @@ export default function ComeFunzionaPage() {
               margin: "0 0 16px",
               letterSpacing: "-0.02em",
             }}>
-              Pronto a iniziare il tuo percorso?
+              Pronto a entrare in Socra?
             </h2>
             <p style={{
               color: "rgba(255,255,255,0.65)",
@@ -268,7 +268,7 @@ export default function ComeFunzionaPage() {
               lineHeight: 1.6,
               margin: "0 0 32px",
             }}>
-              Crea il profilo e completa la survey per definire il primo obiettivo di apprendimento.
+              Crea il tuo profilo e raccontaci cosa vuoi imparare e cosa puoi condividere. Socra ti aiuta a trovare con chi confrontarti.
             </p>
             <Link className={publicStyles.actionGold} href="/register">
               Crea il tuo profilo

@@ -112,7 +112,7 @@ export default function MenteeFeedbackPage() {
     ])
       .then(([me, path]) => {
         if (!active) return;
-        if (path.mentee_id !== me.id) throw new Error("Questo feedback è riservato al mentee del percorso.");
+        if (path.mentee_id !== me.id) throw new Error("Questo feedback è riservato all’apprendista del percorso.");
         if (!path.mentee_closed_at && path.status !== "completed") {
           throw new Error("Chiudi prima il tuo lato del percorso.");
         }
@@ -302,7 +302,7 @@ export default function MenteeFeedbackPage() {
                     <MessageSquareText size={15} aria-hidden /> Nota condivisa opzionale
                   </label>
                   <p id="mentee-feedback-note-hint" className="muted" style={{ fontSize: "0.8rem", margin: 0 }}>
-                    Diventa visibile soltanto a mentor, mentee e admin dopo entrambi i feedback. Non comparirà sul profilo pubblico.
+                    Diventa visibile soltanto a mentor, apprendista e admin dopo entrambi i feedback. Non comparirà sul profilo pubblico.
                   </p>
                   <textarea
                     id="mentee-feedback-note"

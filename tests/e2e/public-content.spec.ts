@@ -3,8 +3,8 @@ import { expect, test } from "@playwright/test";
 test("homepage presents the community without release jargon or fabricated metrics", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: /Impara con chi ha esperienza/i })).toBeVisible();
-  await expect(page.getByText("Matching spiegabile").first()).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Se lo sai insegnalo.*se non lo sai imparalo/i })).toBeVisible();
+  await expect(page.getByText("02 — Incontra le persone giuste").first()).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/10\.000|2\.500|18\.547|4\.8\/5|78%|92%/);
   await expect(page.locator("body")).not.toContainText(/\bMVP\b|private beta|soglia consigliata/i);
   await expect(page.getByRole("link", { name: /Guarda il video/i })).toHaveCount(0);
@@ -20,19 +20,19 @@ test("levels and community keep internal product mechanics out of the user exper
   );
 
   await page.goto("/community");
-  await expect(page.getByRole("heading", { name: /La community nasce nei percorsi/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /La community nasce dallo scambio/i })).toBeVisible();
   await expect(page.getByRole("heading", { name: /Una community utile, non rumorosa/i })).toBeVisible();
-  await expect(page.getByRole("heading", { name: /Puoi imparare. Puoi restituire/i })).toBeVisible();
-  await expect(page.getByRole("heading", { name: /Poche regole, molto chiare/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Oggi impari. Domani condividi/i })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Poche regole, per crescere insieme/i })).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/\bMVP\b|private beta|presto disponibile/i);
 });
 
 test("safety and FAQ do not promise recordings, instant moderation, chat or an SLA", async ({ page }) => {
   await page.goto("/sicurezza");
 
-  await expect(page.getByText("Nessuna registrazione o trascrizione")).toBeVisible();
+  await expect(page.getByText("Le tue conversazioni restano vostre")).toBeVisible();
   await expect(page.getByText(/oggi non acquisisce trascrizioni/i).first()).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Revisione manuale" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Le decisioni importanti non sono automatiche" })).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/senza consenso esplicito|rimossi immediatamente|sempre disponibile/i);
 
   await page.goto("/faq");

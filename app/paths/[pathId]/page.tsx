@@ -1,4 +1,6 @@
 "use client";
+import { DiscussionPreferences } from "@/components/DiscussionPreferences";
+import { useConfirmation } from "@/components/ConfirmationDialog";
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -42,8 +44,10 @@ export default function PathDetailPage() {
 }
 
 function PathDetailContent({ pathId }: { pathId: string }) {
+  const { confirm, confirmationDialog } = useConfirmation();
   const [path, setPath] = useState<PathItem | null>(null);
   const [callRoom, setCallRoom] = useState<CallRoom | null>(null);
+  const [meetAvailable, setMeetAvailable] = useState(false);
   const [user, setUser] = useState<UserMe | null>(null);
   const [notes, setNotes] = useState("");
   const [report, setReport] = useState("");
@@ -56,12 +60,14 @@ function PathDetailContent({ pathId }: { pathId: string }) {
     setLoading(true);
     setError(null);
     try {
-      const [userResponse, pathResponse] = await Promise.all([
+      const [userResponse, pathResponse, capabilities] = await Promise.all([
         clientGet<UserMe>("/auth/me"),
-        clientGet<PathItem>(`/paths/${pathId}`)
+        clientGet<PathItem>(`/paths/${pathId}`),
+        clientGet<{ google_meet_available: boolean }>("/calls/capabilities").catch(() => null)
       ]);
       setUser(userResponse);
       setPath(pathResponse);
+      setMeetAvailable(capabilities?.google_meet_available === true);
       try {
         const room = await clientGet<CallRoom>(`/calls/first-session/room?path_id=${encodeURIComponent(pathId)}`);
         setCallRoom(room);
@@ -106,7 +112,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
   }, []);
 
   async function closeSide() {
-    if (!window.confirm("Confermi di aver concluso il percorso e di voler chiudere il tuo lato?")) return;
+    if (!await confirm("Confermi di aver concluso il percorso e di voler chiudere il tuo lato?")) return;
     setError(null);
     setMessage(null);
     setPendingAction("close");
@@ -164,7 +170,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
   }
 
   async function replaceMeet() {
-    if (!window.confirm("Il link attuale non sarà più utilizzabile. Vuoi crearne uno nuovo?")) return;
+    if (!await confirm("Il link attuale non sarà più utilizzabile. Vuoi crearne uno nuovo?")) return;
     setError(null);
     setMessage(null);
     setPendingAction("replace-meet");
@@ -214,7 +220,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
 
   const role = path && user ? (path.mentor_id === user.id ? "mentor" : path.mentee_id === user.id ? "mentee" : null) : null;
   const feedbackHref = role ? `/feedback/${pathId}/${role}` : null;
-  const feedbackLabel = role === "mentor" ? "Lascia feedback sul mentee" : "Lascia feedback sul mentor";
+  const feedbackLabel = role === "mentor" ? "Lascia feedback sull’apprendista" : "Lascia feedback sul mentor";
   const isCompleted = path?.status === "completed";
   const ownClosed = role === "mentor" ? !!path?.mentor_closed_at : role === "mentee" ? !!path?.mentee_closed_at : false;
   const ownFeedbackSubmitted = role === "mentor"
@@ -228,6 +234,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
 
   return (
     <div style={{ display: "grid", gap: "24px", margin: "0 auto", maxWidth: "1100px", width: "100%" }}>
+      {confirmationDialog}
       <div>
         <Link
           href={pathsHref}
@@ -284,11 +291,12 @@ function PathDetailContent({ pathId }: { pathId: string }) {
 
               <div className="path-people-grid">
                 <PersonCard role="Mentor" name={path.mentor?.nickname || "Mentor Socra"} />
-                <PersonCard role="Mentee" name={path.mentee?.nickname || "Mentee Socra"} />
+                <PersonCard role="Apprendista" name={path.mentee?.nickname || "Apprendista Socra"} />
               </div>
+              <DiscussionPreferences labels={path.goal?.discussion_type_labels} />
 
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                <ClosePill label="Mentee" closed={!!path.mentee_closed_at} />
+                <ClosePill label="Apprendista" closed={!!path.mentee_closed_at} />
                 <ClosePill label="Mentor" closed={!!path.mentor_closed_at} />
               </div>
             </div>
@@ -308,7 +316,11 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                   <h2 style={{ fontSize: "1rem", fontWeight: 800, margin: 0 }}>Prima sessione</h2>
                 </div>
                 <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0 }}>
-                  Google Meet gestito da Socra. Il link resta disponibile finché il percorso non viene completato.
+                  {firstCallCompleted
+                    ? "La partecipazione al primo incontro è stata verificata. Non sono necessarie altre azioni per questa verifica."
+                    : meetAvailable
+                    ? "Organizza il primo incontro con Google Meet. Il link resta disponibile finché il percorso non viene completato."
+                    : "Google Meet integrato non è disponibile in questo momento. Per la verifica del primo incontro usa “Segnala un problema” e concorda i passaggi con l’amministrazione."}
                 </p>
                 <span style={{
                   alignSelf: "start",
@@ -353,20 +365,20 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                     <button className="button secondary" type="button" onClick={copyMeetLink}>
                       <Copy size={15} /> Copia link
                     </button>
-                    <button className="button secondary" type="button" onClick={replaceMeet} disabled={actionPending}>
+                    <button className="button secondary" type="button" onClick={replaceMeet} disabled={actionPending || !meetAvailable}>
                       <RefreshCcw size={15} /> {pendingAction === "replace-meet" ? "Creazione…" : "Crea nuovo link"}
                     </button>
                     {!firstCallCompleted ? (
-                      <button className="button secondary" type="button" onClick={syncMetadata} disabled={actionPending}>
+                      <button className="button secondary" type="button" onClick={syncMetadata} disabled={actionPending || !meetAvailable}>
                         <RefreshCcw size={15} /> {pendingAction === "sync" ? "Verifica…" : "Verifica prima sessione"}
                       </button>
                     ) : null}
                   </div>
-                ) : (
+                ) : meetAvailable ? (
                   <button className="button dark" type="button" onClick={prepareMeet} disabled={actionPending}>
                     {pendingAction === "prepare-meet" ? "Preparazione…" : "Prepara Google Meet"}
                   </button>
-                )}
+                ) : null}
               </div>
             </div>
 
@@ -429,11 +441,11 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                   <h2 style={{ fontSize: "1rem", fontWeight: 800, margin: 0 }}>Note del percorso</h2>
                 </div>
                 <p style={{ color: "var(--muted)", fontSize: "0.84rem", margin: 0 }}>
-                  Questi testi sono visibili soltanto a mentor, mentee e admin. Non compaiono nei profili o nei matching futuri.
+                  Questi testi sono visibili soltanto a mentor, apprendista e admin. Non compaiono nei profili o nei matching futuri.
                 </p>
                 {path.mentee_feedback_note ? (
                   <div style={{ background: "var(--paper)", borderRadius: "var(--radius-sm)", padding: "12px 14px" }}>
-                    <strong style={{ display: "block", fontSize: "0.78rem", marginBottom: "5px" }}>Nota del mentee</strong>
+                    <strong style={{ display: "block", fontSize: "0.78rem", marginBottom: "5px" }}>Nota dell’apprendista</strong>
                     <p style={{ color: "var(--muted)", fontSize: "0.86rem", lineHeight: 1.55, margin: 0, overflowWrap: "anywhere", whiteSpace: "pre-wrap" }}>{path.mentee_feedback_note}</p>
                   </div>
                 ) : null}
@@ -536,7 +548,7 @@ function ClosePill({ label, closed }: { label: string; closed: boolean }) {
       padding: "5px 12px"
     }}>
       {closed ? <CheckCircle2 size={13} aria-hidden /> : null}
-      {label} {closed ? "chiuso" : "aperto"}
+      {label}: {closed ? "ha concluso" : "non ha ancora concluso"}
     </span>
   );
 }

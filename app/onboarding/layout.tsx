@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Survey iniziale · Socra",
+  title: "La tua esperienza",
   description: "Completa la survey iniziale e prepara il tuo primo percorso nella community Socra.",
 };
 

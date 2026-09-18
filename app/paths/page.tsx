@@ -115,7 +115,7 @@ function PathsContent() {
             <GraduationCap size={18} aria-hidden />
           </span>
           <div>
-            <p style={{ color: "var(--muted)", fontSize: "0.75rem", fontWeight: 800, letterSpacing: "0.08em", margin: "0 0 2px", textTransform: "uppercase" }}>Come mentee</p>
+            <p style={{ color: "var(--muted)", fontSize: "0.75rem", fontWeight: 800, letterSpacing: "0.08em", margin: "0 0 2px", textTransform: "uppercase" }}>Come apprendista</p>
             <strong style={{ color: "var(--navy-950)", fontSize: "1.5rem", lineHeight: 1 }}>{loading || error ? "—" : menteePaths.length}</strong>
           </div>
         </div>
@@ -149,7 +149,7 @@ function PathsContent() {
         value={tab}
         onValueChange={selectTab}
         items={[
-          { value: "mentee", label: `Come mentee (${loading || error ? "—" : menteePaths.length})` },
+          { value: "mentee", label: `Come apprendista (${loading || error ? "—" : menteePaths.length})` },
           { value: "mentor", label: `Come mentor (${loading || error ? "—" : mentorPaths.length})` },
         ]}
       />
@@ -172,7 +172,7 @@ function PathsContent() {
               : `Nessun percorso come ${tab}.`}
           </p>
           <Link className="button secondary" href={tab === "mentee" ? "/matching" : "/matching/mentees"}>
-            {tab === "mentee" ? "Trova un mentor" : "Cerca mentee"}
+            {tab === "mentee" ? "Trova un mentor" : "Cerca apprendisti"}
           </Link>
         </div>
       ) : (
@@ -180,7 +180,7 @@ function PathsContent() {
           {displayed.map((path) => {
             const counterpart = tab === "mentee"
               ? (path.mentor?.nickname || "Mentor Socra")
-              : (path.mentee?.nickname || "Mentee Socra");
+              : (path.mentee?.nickname || "Apprendista Socra");
             const goalTag = path.goal?.goal_tag || "Percorso";
             const initial = typeof counterpart === "string" ? counterpart.slice(0, 1).toUpperCase() : "?";
 

@@ -92,7 +92,7 @@ export default function MentorFeedbackPage() {
         <form onSubmit={onSubmit} style={{ display: "grid", gap: "24px", margin: "0 auto", maxWidth: "700px", width: "100%" }}>
           <div>
             <h1 style={{ color: "var(--navy-950)", fontSize: "clamp(1.6rem, 3vw, 2.4rem)", margin: "0 0 4px" }}>
-              Feedback sul mentee
+              Feedback sull’apprendista
             </h1>
             <p style={{ color: "var(--muted)", margin: 0 }}>
               Le valutazioni numeriche restano indipendenti. L’eventuale nota testuale sarà visibile solo a voi due e agli admin, dopo che entrambi avrete inviato il feedback.
@@ -147,7 +147,7 @@ export default function MentorFeedbackPage() {
                   />
                   <ScoreField
                     id="mentor-competence"
-                    label={`Conoscenza del mentee su “${topicLabel}” oggi`}
+                    label={`Conoscenza dell’apprendista su “${topicLabel}” oggi`}
                     min={1}
                     max={10}
                     value={competence}
@@ -164,7 +164,7 @@ export default function MentorFeedbackPage() {
                     <MessageSquareText size={15} aria-hidden /> Nota condivisa opzionale
                   </label>
                   <p id="mentor-feedback-note-hint" className="muted" style={{ fontSize: "0.8rem", margin: 0 }}>
-                    Diventa visibile soltanto a mentor, mentee e admin dopo entrambi i feedback. Non comparirà sul profilo pubblico.
+                    Diventa visibile soltanto a mentor, apprendista e admin dopo entrambi i feedback. Non comparirà sul profilo pubblico.
                   </p>
                   <textarea
                     id="mentor-feedback-note"

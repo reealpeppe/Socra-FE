@@ -1,4 +1,5 @@
 "use client";
+import { DiscussionPreferences } from "@/components/DiscussionPreferences";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -206,12 +207,12 @@ export default function DashboardPage() {
                     <>
                       <p className="dash-aside-label">Ruolo mentor attivo</p>
                       <ul className="dash-aside-list">
-                        <li>Ricevi richieste e puoi proporre percorsi a mentee compatibili</li>
+                        <li>Ricevi richieste e puoi proporre percorsi ad apprendisti compatibili</li>
                         <li>Puoi seguire al massimo tre percorsi attivi come mentor</li>
                         <li>I feedback restano aggregati e aiutano a mantenere alta la qualità della community</li>
                       </ul>
                       <div className="stack">
-                        <Link href="/matching/mentees" className="dash-aside-cta">Cerca mentee</Link>
+                        <Link href="/matching/mentees" className="dash-aside-cta">Cerca apprendisti</Link>
                         <Link href="/requests?tab=received" className="dash-aside-cta">Vedi proposte ricevute</Link>
                       </div>
                     </>
@@ -284,7 +285,7 @@ export default function DashboardPage() {
             {/* Card MENTEE */}
             <div className="card dash-identity-card" style={{ marginTop: "16px" }}>
               <div className="dash-identity-header">
-                <span className="dash-identity-label">La tua identità di mentee</span>
+                <span className="dash-identity-label">Il tuo percorso di apprendimento</span>
               </div>
               <div style={{ marginTop: "12px" }}>
                 {errors.goals ? (
@@ -295,6 +296,7 @@ export default function DashboardPage() {
                   <div>
                     <p className="dash-muted-hint" style={{ marginBottom: "4px" }}>Il tuo obiettivo attivo</p>
                     <p style={{ fontWeight: 700, margin: "0 0 6px", color: "var(--ink)" }}>{activeGoal.goal_tag}</p>
+                    <DiscussionPreferences labels={activeGoal.discussion_type_labels} />
                     <p className="dash-muted-hint" style={{ margin: "0 0 16px" }}>{activeGoal.topic || "Topic non definito"}</p>
                     <div className="dash-goal-actions">
                       <Link href="/goal?edit=1" className="button secondary" style={{ fontSize: "0.8rem" }}>
@@ -346,7 +348,7 @@ export default function DashboardPage() {
                 </div>
                 {activeMenteePath ? (
                   <div className="dash-candidate-empty">
-                    <p>Hai già un percorso attivo come mentee.</p>
+                    <p>Hai già un percorso attivo come apprendista.</p>
                     <span>Completa i passaggi richiesti prima di cercare un nuovo mentor.</span>
                   </div>
                 ) : candidatesLoading ? (
@@ -382,7 +384,7 @@ export default function DashboardPage() {
             {/* I tuoi percorsi da mentee */}
             <div className="card" style={{ marginTop: "16px" }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "16px" }}>
-                <span className="dash-identity-label">I tuoi percorsi da mentee</span>
+                <span className="dash-identity-label">I tuoi percorsi da apprendista</span>
                 <Link href="/paths?tab=mentee" className="dash-link-small">Vedi tutti</Link>
               </div>
               {loading ? (

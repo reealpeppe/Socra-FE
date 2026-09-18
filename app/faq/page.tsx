@@ -41,8 +41,8 @@ export default function FaqPage() {
                 letterSpacing: "-0.02em",
                 lineHeight: 1.05,
               }}>
-                Domande sulla<br />
-                <span style={{ color: "var(--gold-500)" }}>community Socra</span>
+                Domande frequenti<br />
+                <span style={{ color: "var(--gold-500)" }}>su Socra</span>
               </h1>
               <p style={{
                 color: "rgba(255,255,255,0.65)",
@@ -51,7 +51,7 @@ export default function FaqPage() {
                 margin: 0,
                 maxWidth: "54ch",
               }}>
-                Tutto ciò che serve per iniziare con aspettative chiare: percorsi, matching, crediti, privacy e sicurezza.
+                Tutto quello che serve per vivere la community con chiarezza: percorsi, connessioni, crediti, privacy e sicurezza, qualunque sia la tua esperienza.
               </p>
             </div>
             <aside className="faq-hero-aside" style={{
@@ -68,13 +68,13 @@ export default function FaqPage() {
                 textTransform: "uppercase",
                 margin: "0 0 12px",
               }}>
-                Una distinzione importante
+                Prima di iniziare, una cosa importante
               </p>
               <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "0.875rem", lineHeight: 1.6, margin: "0 0 16px" }}>
-                SOCRA facilita percorsi di apprendimento tra persone. Non offre consulenza finanziaria e non garantisce rendimenti.
+                Socra è uno spazio dove le persone condividono conoscenze ed esperienze sulla finanza personale. Non offre consulenza finanziaria, non indica dove investire e non promette rendimenti.
               </p>
               <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "0.8rem", lineHeight: 1.5, margin: 0 }}>
-                I crediti della piattaforma sono interni, non acquistabili e non monetizzabili.
+                I crediti mantengono in equilibrio lo scambio nella community: non si acquistano, non si vendono e non possono essere convertiti in denaro.
               </p>
             </aside>
           </div>
