@@ -219,7 +219,7 @@ export const TOPIC_SAFETY_SCENARIOS = {
   },
 } as const;
 
-function SafetyScenario({
+export function SafetyScenario({
   topic,
   answer,
   onChange,

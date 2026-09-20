@@ -1,4 +1,56 @@
 import type { ApiError } from "@/lib/types";
+import { cachedRequest, clearRequestCache, peekRequestCache } from "@/lib/request-cache";
+
+export function cachedClientValue<T>(path: string): T | undefined { return peekRequestCache<T>(path); }
+
+const CACHE_TTL: Record<string, number> = {
+  "/auth/me": 30_000, "/surveys/onboarding/me": 30_000,
+  "/surveys/goal/catalog": 300_000,
+};
+let sessionInvalid = false;
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", event => {
+    if (event.key === "socra-session-change") {
+      clearRequestCache(true);
+      // Another tab can log in as a different person: remount all private UI.
+      window.location.reload();
+    }
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      clearRequestCache();
+      window.dispatchEvent(new Event("socra:session-refresh"));
+    }
+  });
+}
+
+function invalidate(session = false) {
+  clearRequestCache(session);
+  if (typeof window === "undefined") return;
+  if (session) {
+    try { localStorage.setItem("socra-session-change", crypto.randomUUID()); } catch { /* Storage may be disabled. */ }
+  }
+}
+
+async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), init.method && init.method !== "GET" ? 25_000 : 15_000);
+  try {
+    const response = await fetch(url, { ...init, credentials: "include", cache: "no-store", signal: controller.signal });
+    if (response.status === 504 && init.method && init.method !== "GET")
+      throw new ClientApiError(504, "Non abbiamo ricevuto la conferma in tempo. Verifica lo stato prima di ripetere l’operazione.");
+    if (response.status === 401 && !sessionInvalid) {
+      sessionInvalid = true; invalidate(true);
+      if (typeof window !== "undefined") window.dispatchEvent(new Event("socra:session-refresh"));
+    }
+    return await parseResponse<T>(response);
+  } catch (error) {
+    if (controller.signal.aborted) throw new ClientApiError(408, init.method && init.method !== "GET"
+      ? "La conferma sta impiegando troppo tempo. Verifica lo stato prima di ripetere l’operazione."
+      : "Il caricamento sta impiegando troppo tempo. Riprova tra poco.");
+    throw error;
+  } finally { clearTimeout(timer); }
+}
 
 const jsonHeaders = { "Content-Type": "application/json" };
 
@@ -172,51 +224,42 @@ function friendlyErrorMessage(error: ApiError | null, status: number): string {
 }
 
 export async function clientGet<T>(path: string): Promise<T> {
-  const response = await fetch(`/api/backend/${path.replace(/^\//, "")}`, {
-    credentials: "include",
-    cache: "no-store"
-  });
-  return parseResponse<T>(response);
+  return cachedRequest(path, CACHE_TTL[path] || 0, () => request<T>(`/api/backend/${path.replace(/^\//, "")}`));
 }
 
 export async function clientPost<T>(path: string, payload?: unknown): Promise<T> {
-  const response = await fetch(`/api/backend/${path.replace(/^\//, "")}`, {
-    method: "POST",
-    credentials: "include",
-    headers: jsonHeaders,
-    body: payload === undefined ? undefined : JSON.stringify(payload)
-  });
-  return parseResponse<T>(response);
+  return mutate<T>("POST", path, payload);
 }
 
 export async function clientPut<T>(path: string, payload?: unknown): Promise<T> {
-  const response = await fetch(`/api/backend/${path.replace(/^\//, "")}`, {
-    method: "PUT",
-    credentials: "include",
-    headers: jsonHeaders,
-    body: payload === undefined ? undefined : JSON.stringify(payload)
-  });
-  return parseResponse<T>(response);
+  return mutate<T>("PUT", path, payload);
 }
 
 export async function clientPatch<T>(path: string, payload?: unknown): Promise<T> {
-  const response = await fetch(`/api/backend/${path.replace(/^\//, "")}`, {
-    method: "PATCH",
-    credentials: "include",
-    headers: jsonHeaders,
-    body: payload === undefined ? undefined : JSON.stringify(payload)
-  });
-  return parseResponse<T>(response);
+  return mutate<T>("PATCH", path, payload);
+}
+
+async function mutate<T>(method: string, path: string, payload?: unknown): Promise<T> {
+  const affectsCachedData = !["/matching/candidates", "/matching/mentees/candidates", "/matching/discovery/impressions", "/surveys/onboarding/me/draft"].includes(path);
+  if (affectsCachedData) invalidate();
+  try {
+    return await request<T>(`/api/backend/${path.replace(/^\//, "")}`, { method, headers: jsonHeaders,
+      body: payload === undefined ? undefined : JSON.stringify(payload) });
+  } finally {
+    if (affectsCachedData) invalidate();
+    if (typeof window !== "undefined" && (path.includes("/reassessment") || path.includes("/onboarding/me/answers") || path.includes("/mentor") || path.includes("/profile")))
+      window.dispatchEvent(new Event("socra:session-refresh"));
+  }
 }
 
 export async function authPost<T>(path: "login" | "register" | "logout", payload?: unknown): Promise<T> {
-  const response = await fetch(`/api/auth/${path}`, {
-    method: "POST",
-    credentials: "include",
-    headers: jsonHeaders,
-    body: payload === undefined ? undefined : JSON.stringify(payload)
-  });
-  return parseResponse<T>(response);
+  invalidate(true);
+  try {
+    const value = await request<T>(`/api/auth/${path}`, { method: "POST", headers: jsonHeaders,
+      body: payload === undefined ? undefined : JSON.stringify(payload) });
+    sessionInvalid = false;
+    return value;
+  } finally { invalidate(true); }
 }
 
 export function formatCredits(label: string | undefined): string {

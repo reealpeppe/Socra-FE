@@ -7,7 +7,8 @@ export async function POST(request: NextRequest) {
     await fetch(getBackendUrl("/auth/logout"), {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store"
+      cache: "no-store",
+      signal: AbortSignal.timeout(8_000)
     }).catch(() => undefined);
   }
   const response = NextResponse.json({ status: "ok" });

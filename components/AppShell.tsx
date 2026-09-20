@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BarChart2,
   Bell,
@@ -98,7 +98,26 @@ function SearchAwareAppShell({ children, primaryAction }: AppShellProps) {
   );
 }
 
+const ShellActionContext = createContext<((action: AppShellProps["primaryAction"]) => void) | null>(null);
+
+export function PersistentAppShell({ children }: { children: React.ReactNode }) {
+  const [action, setAction] = useState<AppShellProps["primaryAction"]>();
+  return <ShellActionContext.Provider value={setAction}><ShellFrame primaryAction={action}>{children}</ShellFrame></ShellActionContext.Provider>;
+}
+
 export function AppShell({ children, primaryAction }: AppShellProps) {
+  const setAction = useContext(ShellActionContext);
+  const href = primaryAction?.href;
+  const label = primaryAction?.label;
+  useEffect(() => {
+    if (!setAction) return;
+    setAction(href && label ? { href, label } : undefined);
+    return () => setAction(undefined);
+  }, [setAction, href, label]);
+  return setAction ? <>{children}</> : <ShellFrame primaryAction={primaryAction}>{children}</ShellFrame>;
+}
+
+function ShellFrame({ children, primaryAction }: AppShellProps) {
   return (
     <Suspense fallback={<AppShellContent currentTab={null} primaryAction={primaryAction}>{children}</AppShellContent>}>
       <SearchAwareAppShell primaryAction={primaryAction}>{children}</SearchAwareAppShell>
@@ -153,14 +172,17 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
 
   useEffect(() => {
     let active = true;
-    clientGet<UserMe>("/auth/me")
+    let generation = 0;
+    function refreshSession() {
+      const requestGeneration = ++generation;
+      clientGet<UserMe>("/auth/me")
       .then((currentUser) => {
-        if (!active) return;
+        if (!active || requestGeneration !== generation) return;
         setUser(currentUser);
         setSessionState("authenticated");
       })
       .catch((error: unknown) => {
-        if (!active) return;
+        if (!active || requestGeneration !== generation) return;
         setUser(null);
         setSessionState(
           error instanceof ClientApiError && error.status === 401
@@ -168,11 +190,20 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
             : "error"
         );
       });
+    }
+    refreshSession();
+    window.addEventListener("socra:session-refresh", refreshSession);
     window.queueMicrotask(() => void refreshNotifications());
     return () => {
       active = false;
+      window.removeEventListener("socra:session-refresh", refreshSession);
     };
   }, [refreshNotifications]);
+
+  useEffect(() => {
+    // The frame persists while pages change, but transient menus should not.
+    queueMicrotask(() => { setNotificationsOpen(false); setAccountOpen(false); });
+  }, [pathname]);
 
   useEffect(() => {
     function handlePointerDown(event: PointerEvent) {

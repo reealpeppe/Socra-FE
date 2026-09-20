@@ -40,7 +40,10 @@ export async function proxyBackend(request: NextRequest, path: string[]): Promis
   }
 
   const search = request.nextUrl.search || "";
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), request.method === "GET" ? 12_000 : 22_000);
   let response: Response;
+  let text: string;
   try {
     response = await fetch(getBackendUrl(`${path.join("/")}${search}`), {
       method: request.method,
@@ -49,17 +52,18 @@ export async function proxyBackend(request: NextRequest, path: string[]): Promis
         Authorization: `Bearer ${token}`
       },
       body: ["GET", "HEAD"].includes(request.method) ? undefined : await request.text(),
-      cache: "no-store"
+      cache: "no-store",
+      signal: controller.signal
     });
+    text = await response.text();
   } catch {
-    return NextResponse.json({ detail: "Backend unavailable" }, { status: 503 });
-  }
-
-  const text = await response.text();
+    return NextResponse.json({ detail: controller.signal.aborted ? "Backend timeout" : "Backend unavailable" }, { status: controller.signal.aborted ? 504 : 503 });
+  } finally { clearTimeout(timer); }
   const proxiedResponse = new NextResponse(text, {
     status: response.status,
     headers: {
-      "Content-Type": response.headers.get("Content-Type") || "application/json"
+      "Content-Type": response.headers.get("Content-Type") || "application/json",
+      "Cache-Control": "private, no-store"
     }
   });
   if (response.status === 401) clearSessionCookie(proxiedResponse);

@@ -1,814 +1,748 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, ChevronLeft, LockKeyhole, ShieldCheck } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ArrowRight, Check, ChevronLeft, LockKeyhole } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { ButtonLink } from "@/components/Ui";
 import {
-  TopicCompetenceStyles,
-  TopicInvestmentStep,
-  TopicKnowledgeStep,
-  TopicMentoringStep,
-  TopicReview,
+  SafetyScenario,
   isMentorEligible,
-  mentorChoiceIsComplete,
 } from "@/components/TopicCompetenceMatrix";
-import { ButtonLink, Card, ProgressSteps } from "@/components/Ui";
-import { ClientApiError, clientGet, clientPost } from "@/lib/api";
-import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes-guard";
+import { clientGet, clientPost } from "@/lib/api";
 import {
   autonomyOptions,
   instrumentOptions,
-  knowledgeConcepts,
-  knowledgeOptions,
-  sectionDQuestions,
-  situationalQuestions,
-  type SelectOption,
+  topicInvestmentOptions,
+  topicKnowledgeOptions,
 } from "@/lib/options";
+import {
+  emptyAnswers,
+  hasInvestment,
+  ONBOARDING_POLICY,
+  restoreAnswers,
+  submittedAnswers,
+  surveyComplete,
+  topicComplete,
+  type EssentialAnswers,
+} from "@/lib/onboarding";
+import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes-guard";
 import type {
   TopicCompetenceDraft,
-  TopicCompetencePayload,
   TopicInvestmentBand,
   TopicKnowledgeLevel,
 } from "@/lib/types";
-
-const legacyDraftKey = "socra_onboarding_draft";
-const draftKeyFor = (userId: string) => `${legacyDraftKey}:${userId}`;
-
-type Answers = Record<string, unknown> & {
-  D4?: Record<string, number>;
-  D5?: string;
-  D7?: string;
-  D8?: string;
-  D9?: string;
-  section_d?: Record<string, string>;
-  topic_competences_v2?: Record<string, TopicCompetenceDraft>;
-};
-
-type SubmittedAnswers = Omit<Answers, "topic_competences_v2"> & {
-  topic_competences_v2: TopicCompetencePayload;
-};
+import styles from "./OnboardingSurvey.module.css";
 
 type OnboardingState = {
-  user_id?: string;
-  level: string;
-  is_coach: boolean;
+  user_id: string;
   latest_answer_id: string | null;
-};
-
-type SurveyResult = {
-  total_score: number;
-  derived_level: string;
   is_coach: boolean;
 };
+type SavedDraft = { answers: Record<string, unknown>; updated_at?: string };
+type LocalDraft = { answers: Record<string, unknown>; savedAt: number };
+const label = (topic: string) =>
+  instrumentOptions.find((row) => row.value === topic)?.label || topic;
 
-type SurveyDraft = {
-  step: number;
-  scores: { A: number; B: number; C: number };
-  answers: Answers;
-  dNeverInvested: boolean;
-};
-
-type SurveyDraftResponse = {
-  current_step: number;
-  scores: { A?: number; B?: number; C?: number };
-  answers: Answers;
-  include_section_d: boolean;
-  d_never_invested: boolean;
-};
-
-type StepKind =
-  | "topicKnowledge"
-  | "topicInvestment"
-  | "topicMentoring"
-  | "knowledge"
-  | "situations"
-  | "context"
-  | "review";
-
-const STEPS: StepKind[] = [
-  "topicKnowledge",
-  "topicInvestment",
-  "topicMentoring",
-  "knowledge",
-  "situations",
-  "context",
-  "review",
-];
-
-const STEP_META: Record<StepKind, { title: string; progressTitle: string; section: string }> = {
-  topicKnowledge: { title: "Conoscenza degli strumenti", progressTitle: "Conoscenza", section: "1" },
-  topicInvestment: { title: "Esperienza diretta e importi", progressTitle: "Esperienza", section: "2" },
-  topicMentoring: { title: "Disponibilità a condividere", progressTitle: "Mentorship", section: "3" },
-  knowledge: { title: "Conoscenze di base", progressTitle: "Basi", section: "4" },
-  situations: { title: "Scelte in situazioni concrete", progressTitle: "Scenari", section: "5" },
-  context: { title: "Contesto personale", progressTitle: "Contesto", section: "6" },
-  review: { title: "Rivedi e conferma", progressTitle: "Conferma", section: "Fine" },
-};
-
-export default function OnboardingSurvey({ reassessment = false }: { reassessment?: boolean }) {
-  const [step, setStep] = useState(0);
-  const [answers, setAnswers] = useState<Answers>({});
-  const [completed, setCompleted] = useState<OnboardingState | null>(null);
-  const [result, setResult] = useState<SurveyResult | null>(null);
+export default function OnboardingSurvey({
+  reassessment = false,
+}: {
+  reassessment?: boolean;
+}) {
+  const [answers, setAnswers] = useState<EssentialAnswers>(emptyAnswers);
+  const [screen, setScreen] = useState("welcome");
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [draftWarning, setDraftWarning] = useState<string | null>(null);
-  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
-  const [loadedDraft, setLoadedDraft] = useState(false);
-  const [draftStorageKey, setDraftStorageKey] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const saveQueue = useRef<Promise<unknown>>(Promise.resolve());
-  const stepHeadingRef = useRef<HTMLHeadingElement>(null);
-  const errorRef = useRef<HTMLParagraphElement>(null);
-  const reassessmentKey = useRef("");
-  const [loadFailed, setLoadFailed] = useState(false);
-  const [initialAnswers, setInitialAnswers] = useState("");
-  useUnsavedChangesGuard(reassessment && loadedDraft && !result && JSON.stringify(answers) !== initialAnswers);
-
-  const scores = useMemo(() => estimateDraftScores(answers), [answers]);
-  const safeStep = Math.min(step, STEPS.length - 1);
-  const current = STEPS[safeStep];
-  const topics = answers.topic_competences_v2 || {};
+  const heading = useRef<HTMLHeadingElement>(null);
+  const draftKey = useRef<string | null>(null);
+  const [initial, setInitial] = useState("");
+  const idempotencyKey = useRef("");
+  const finalizing = useRef(false);
+  const pendingSave = useRef<Record<string, unknown> | null>(null);
+  const savingPromise = useRef<Promise<void> | null>(null);
+  const mounted = useRef(true);
+  useUnsavedChangesGuard(
+    reassessment && loaded && !done && initial !== JSON.stringify(answers),
+  );
 
   useEffect(() => {
+    mounted.current = true;
     let active = true;
-
     async function load() {
-      if (reassessment) {
-        try {
-          const snapshot = await clientGet<{ answers: Record<string, unknown> | null }>("/competences-v3/me");
+      try {
+        idempotencyKey.current = crypto.randomUUID();
+        if (reassessment) {
+          const snapshot = await clientGet<{
+            answers: Record<string, unknown> | null;
+          }>("/competences-v3/me");
           if (!active) return;
-          if (!snapshot.answers) throw new Error("Completa prima la survey iniziale.");
-          const raw = snapshot.answers.topic_competences_v2 as TopicCompetencePayload | undefined;
-          const restored = { ...snapshot.answers, topic_competences_v2: Object.fromEntries((raw?.instruments || []).map((row) => [row.topic, row])) };
-          setAnswers(restored);
-          setInitialAnswers(JSON.stringify(restored));
-          reassessmentKey.current = crypto.randomUUID();
-          setLoadedDraft(true);
-        } catch (err) {
-          if (active) { setError(err instanceof Error ? err.message : "Risposte non disponibili."); setLoadFailed(true); }
-        }
-        return;
-      }
-      let resolvedDraftStorageKey: string | null = null;
-      try {
-        const state = await clientGet<OnboardingState>("/surveys/onboarding/me");
-        if (!active) return;
-        const userDraftKey = state.user_id ? draftKeyFor(state.user_id) : null;
-        resolvedDraftStorageKey = userDraftKey;
-        setDraftStorageKey(userDraftKey);
-        window.sessionStorage.removeItem(legacyDraftKey);
-        if (state.latest_answer_id) {
-          setCompleted(state);
-          if (userDraftKey) window.sessionStorage.removeItem(userDraftKey);
-          setLoadedDraft(true);
-          return;
-        }
-      } catch (err) {
-        if (err instanceof ClientApiError && err.status === 401) {
-          if (active) {
-            setError("Sessione scaduta. Accedi di nuovo per compilare la survey.");
-            setLoadedDraft(true);
+          const restored = restoreAnswers(snapshot.answers || {});
+          setAnswers(restored.answers);
+          setInitial(JSON.stringify(restored.answers));
+          setScreen("welcome");
+        } else {
+          const [stateResult, draftResult] = await Promise.allSettled([
+            clientGet<OnboardingState>("/surveys/onboarding/me"),
+            clientGet<SavedDraft | null>("/surveys/onboarding/me/draft"),
+          ]);
+          if (!active) return;
+          if (stateResult.status === "rejected") throw stateResult.reason;
+          const state = stateResult.value;
+          draftKey.current = `socra_onboarding_draft:${state.user_id}`;
+          if (state.latest_answer_id) {
+            setDone(true);
+            try {
+              sessionStorage.removeItem(draftKey.current);
+            } catch {
+              /* Storage can be unavailable. */
+            }
+          } else {
+            let local: LocalDraft | null = null;
+            try {
+              local = JSON.parse(
+                sessionStorage.getItem(draftKey.current) || "null",
+              );
+            } catch {
+              /* Recover from the server. */
+            }
+            const online =
+              draftResult.status === "fulfilled" ? draftResult.value : null;
+            const raw =
+              local &&
+              (!online || local.savedAt > Date.parse(online.updated_at || ""))
+                ? local.answers
+                : online?.answers;
+            if (raw && Object.keys(raw).length) {
+              const restored = restoreAnswers(raw);
+              setAnswers(restored.answers);
+              setScreen(restored.screen);
+              setSaveMessage(
+                "Abbiamo recuperato le tue risposte. Puoi modificarle prima di confermare.",
+              );
+            }
+            if (draftResult.status === "rejected")
+              setSaveMessage(
+                "Bozza online non disponibile. Le nuove risposte verranno salvate anche su questo dispositivo.",
+              );
           }
-          return;
+        }
+        setLoaded(true);
+      } catch (err) {
+        if (active) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Non riusciamo a caricare le risposte.",
+          );
+          setLoadError(true);
         }
       }
-
-      try {
-        const dbDraft = await clientGet<SurveyDraftResponse | null>("/surveys/onboarding/me/draft");
-        if (!active) return;
-        if (dbDraft) {
-          setAnswers(normalizeDraftAnswers(dbDraft.answers || {}));
-          setStep(clampStep(dbDraft.current_step));
-          setLoadedDraft(true);
-          return;
-        }
-      } catch {
-        if (active) setDraftWarning("Bozza online non disponibile: continuiamo a salvare su questo dispositivo.");
-      }
-
-      const rawDraft = resolvedDraftStorageKey ? window.sessionStorage.getItem(resolvedDraftStorageKey) : null;
-      if (rawDraft) {
-        try {
-          const draft = JSON.parse(rawDraft) as SurveyDraft;
-          setStep(clampStep(draft.step || 0));
-          setAnswers(normalizeDraftAnswers(draft.answers || {}));
-        } catch {
-          if (resolvedDraftStorageKey) window.sessionStorage.removeItem(resolvedDraftStorageKey);
-        }
-      }
-      if (active) setLoadedDraft(true);
     }
-
-    load();
-    return () => { active = false; };
+    void load();
+    return () => {
+      active = false;
+      mounted.current = false;
+    };
   }, [reassessment]);
 
-  useEffect(() => {
-    if (reassessment || !loadedDraft || result || completed) return;
-    const draft: SurveyDraft = {
-      step: safeStep,
-      scores,
-      answers,
-      dNeverInvested: allInvestmentBandsAreZero(answers),
-    };
-    if (draftStorageKey) window.sessionStorage.setItem(draftStorageKey, JSON.stringify(draft));
-    const timer = window.setTimeout(() => {
-      saveQueue.current = saveQueue.current
-        .catch(() => undefined)
-        .then(() => clientPost("/surveys/onboarding/me/draft", {
-          current_step: draft.step,
-          scores: draft.scores,
-          answers: draft.answers,
-          include_section_d: true,
-          d_never_invested: draft.dNeverInvested,
-        }))
-        .then(() => {
-          setDraftWarning(null);
-          setLastSavedAt(new Date());
-        })
-        .catch(() => setDraftWarning("Salvataggio online temporaneamente non disponibile; la bozza resta su questo dispositivo."));
-    }, 500);
-    return () => window.clearTimeout(timer);
-  }, [answers, completed, draftStorageKey, loadedDraft, result, safeStep, scores, reassessment]);
-
-  useEffect(() => {
-    if (!loadedDraft || result || completed) return;
-    const frame = window.requestAnimationFrame(() => stepHeadingRef.current?.focus());
-    return () => window.cancelAnimationFrame(frame);
-  }, [completed, loadedDraft, result, safeStep]);
-
-  function updateTopic(topic: string, patch: Partial<TopicCompetenceDraft>) {
-    if (reassessment) reassessmentKey.current = crypto.randomUUID();
-    setError(null);
-    setAnswers((currentAnswers) => {
-      const currentTopics = currentAnswers.topic_competences_v2 || {};
-      const currentTopic = currentTopics[topic] || {};
-      const wasMentorEligible = isMentorEligible(currentTopic);
-      const nextTopic = { ...currentTopic, ...patch };
-      if (wasMentorEligible && !isMentorEligible(nextTopic)) {
-        nextTopic.wants_to_mentor = false;
-        delete nextTopic.safety_scenario_answer;
+  function drainSaves(): Promise<void> {
+    if (savingPromise.current) return savingPromise.current;
+    const run = async () => {
+      if (mounted.current) setSaving(true);
+      try {
+        while (pendingSave.current && !finalizing.current) {
+          const payload = pendingSave.current;
+          pendingSave.current = null;
+          try {
+            await clientPost("/surveys/onboarding/me/draft", payload);
+            if (mounted.current) setSaveMessage("Bozza salvata");
+          } catch {
+            if (mounted.current)
+              setSaveMessage(
+                "Salvataggio online non riuscito. Riproveremo alla prossima modifica; non chiudere questa pagina se il dispositivo non consente il salvataggio locale.",
+              );
+          }
+        }
+      } finally {
+        if (mounted.current) setSaving(false);
       }
-      if (patch.wants_to_mentor === false) delete nextTopic.safety_scenario_answer;
-      const nextAnswers: Answers = {
-        ...currentAnswers,
-        topic_competences_v2: { ...currentTopics, [topic]: nextTopic },
-      };
-      if (allInvestmentBandsAreZero(nextAnswers)) delete nextAnswers.D5;
-      return nextAnswers;
+    };
+    savingPromise.current = run().finally(() => {
+      savingPromise.current = null;
     });
+    return savingPromise.current;
   }
 
-  function setKnowledge(concept: string, value: string) {
-    if (reassessment) reassessmentKey.current = crypto.randomUUID();
-    setError(null);
-    setAnswers((currentAnswers) => ({
-      ...currentAnswers,
-      D4: { ...(currentAnswers.D4 || {}), [concept]: Number(value) },
-    }));
-  }
-
-  function setSituation(key: string, value: string) {
-    if (reassessment) reassessmentKey.current = crypto.randomUUID();
-    setError(null);
-    setAnswers((currentAnswers) => ({ ...currentAnswers, [key]: value }));
-  }
-
-  function setContextAnswer(key: string, value: string) {
-    if (reassessment) reassessmentKey.current = crypto.randomUUID();
-    setError(null);
-    setAnswers((currentAnswers) => ({
-      ...currentAnswers,
-      section_d: { ...(currentAnswers.section_d || {}), [key]: value },
-    }));
-  }
-
-  function showValidationError(message: string) {
-    setError(message);
-    window.requestAnimationFrame(() => {
-      errorRef.current?.focus();
-      document.querySelector<HTMLElement>('[data-incomplete="true"] input:not(:disabled), [data-incomplete="true"] select')?.focus();
-    });
-  }
-
-  function next() {
-    if (!isStepComplete(current, answers)) {
-      showValidationError(current === "topicMentoring"
-        ? "Indica Sì o No per ogni strumento disponibile e completa gli eventuali scenari di sicurezza."
-        : "Completa ogni risposta della sezione prima di continuare.");
+  useEffect(() => {
+    if (
+      reassessment ||
+      !loaded ||
+      done ||
+      finalizing.current ||
+      screen === "welcome"
+    )
       return;
-    }
-    setError(null);
-    setStep((value) => Math.min(value + 1, STEPS.length - 1));
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  function back() {
-    setError(null);
-    setStep((value) => Math.max(value - 1, 0));
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  async function submit() {
-    if (!isStepComplete("review", answers)) {
-      showValidationError("La survey non è completa: rivedi le sezioni indicate.");
-      return;
-    }
-    setError(null);
-    setSubmitting(true);
+    const raw = {
+      onboarding_policy: ONBOARDING_POLICY,
+      essential_flow: { answers, screen },
+    };
     try {
-      if (reassessment) {
-        await clientPost("/competences-v3/me/reassessment", {
-          answers: buildSubmittedAnswers(answers), idempotency_key: reassessmentKey.current,
-        });
-        setResult({ total_score: 0, derived_level: "", is_coach: false });
+      if (draftKey.current)
+        sessionStorage.setItem(
+          draftKey.current,
+          JSON.stringify({ answers: raw, savedAt: Date.now() }),
+        );
+    } catch {
+      queueMicrotask(() =>
+        setSaveMessage(
+          "Il dispositivo non consente il salvataggio locale. Attendi la conferma della bozza online prima di uscire.",
+        ),
+      );
+    }
+    const timer = window.setTimeout(() => {
+      if (finalizing.current) return;
+      pendingSave.current = {
+        current_step: 0,
+        scores: {},
+        answers: raw,
+        include_section_d: false,
+        d_never_invested: !hasInvestment(answers),
+      };
+      void drainSaves();
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [answers, screen, loaded, done, reassessment]);
+
+  useEffect(() => {
+    if (loaded) heading.current?.focus({ preventScroll: true });
+  }, [screen, loaded, done]);
+  const activeTopic = screen.startsWith("topic:") ? screen.slice(6) : null;
+  const row = activeTopic ? answers.topics[activeTopic] || {} : {};
+  const route = [
+    "welcome",
+    "selection",
+    ...answers.selected.map((topic) => `topic:${topic}`),
+    ...(hasInvestment(answers) ? ["autonomy"] : []),
+    "review",
+  ];
+  const currentIndex = route.indexOf(screen);
+  function go(next: string) {
+    setError(null);
+    setScreen(next);
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+  function change(next: EssentialAnswers) {
+    idempotencyKey.current = crypto.randomUUID();
+    setError(null);
+    setAnswers(next);
+  }
+  function updateTopic(patch: Partial<TopicCompetenceDraft>) {
+    if (!activeTopic) return;
+    const nextRow = { ...row, ...patch };
+    if (!isMentorEligible(nextRow)) {
+      delete nextRow.wants_to_mentor;
+      delete nextRow.safety_scenario_answer;
+    }
+    if (patch.wants_to_mentor === false) delete nextRow.safety_scenario_answer;
+    const next = {
+      ...answers,
+      topics: { ...answers.topics, [activeTopic]: nextRow },
+    };
+    if (!hasInvestment(next)) delete next.autonomy;
+    change(next);
+  }
+  function next() {
+    if (screen === "selection") {
+      if (!answers.selected.length && !answers.none) {
+        setError(
+          "Scegli almeno uno strumento oppure indica che non li conosci e non li hai mai usati.",
+        );
         return;
       }
-      const response = await clientPost<SurveyResult>("/surveys/onboarding/me/answers", {
-        section: "onboarding",
-        answers: buildSubmittedAnswers(answers),
-      });
-      if (draftStorageKey) window.sessionStorage.removeItem(draftStorageKey);
-      window.sessionStorage.removeItem(legacyDraftKey);
-      setResult(response);
+      change({ ...answers, selectionConfirmed: true });
+    }
+    if (activeTopic && !topicComplete(activeTopic, row)) {
+      setError("Completa le risposte su questo strumento prima di continuare.");
+      return;
+    }
+    if (screen === "autonomy" && !answers.autonomy) {
+      setError("Scegli la risposta che descrive meglio la tua esperienza.");
+      return;
+    }
+    go(route[currentIndex + 1] || "review");
+  }
+  async function submit() {
+    if (!surveyComplete(answers)) {
+      setError(
+        "Manca qualche risposta. Rivedi gli strumenti selezionati prima di confermare.",
+      );
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    finalizing.current = true;
+    pendingSave.current = null;
+    try {
+      await savingPromise.current;
+      await clientPost(
+        reassessment
+          ? "/competences-v3/me/reassessment"
+          : "/surveys/onboarding/me/answers",
+        reassessment
+          ? {
+              answers: submittedAnswers(answers),
+              idempotency_key: idempotencyKey.current,
+            }
+          : { section: "onboarding", answers: submittedAnswers(answers) },
+      );
+      try {
+        if (draftKey.current) sessionStorage.removeItem(draftKey.current);
+      } catch {
+        /* Server is authoritative. */
+      }
+      setDone(true);
     } catch (err) {
-      setError(err instanceof ClientApiError ? err.message : "Survey non salvata");
+      finalizing.current = false;
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Le risposte non sono state salvate. Riprova.",
+      );
     } finally {
       setSubmitting(false);
     }
   }
+  const title = done
+    ? "Il tuo punto di partenza è pronto"
+    : screen === "welcome"
+      ? reassessment
+        ? "La tua esperienza, oggi"
+        : "Partiamo da te"
+      : screen === "selection"
+        ? "Quali strumenti conosci o hai già usato?"
+        : activeTopic
+          ? label(activeTopic)
+          : screen === "autonomy"
+            ? "Come prendi le tue decisioni?"
+            : "Ti riconosci in queste risposte?";
 
   return (
     <AppShell>
-      <div className="survey-page">
-        {!completed && !result ? (
-          <ProgressSteps steps={STEPS.map((kind) => STEP_META[kind].progressTitle)} current={safeStep} />
-        ) : null}
-
-        {error ? <p ref={errorRef} className="error" role="alert" tabIndex={-1}>{error}</p> : null}
-        {!completed && !result && loadedDraft ? (
-          <p className="survey-save-status" role="status">
-            {draftWarning
-              ? draftWarning
-              : lastSavedAt
-                ? `Bozza salvata alle ${lastSavedAt.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })}`
-                : reassessment ? "Le modifiche saranno salvate solo alla conferma finale. Non chiudere la pagina." : "Salvataggio automatico attivo"}
-          </p>
-        ) : null}
-
-        {loadFailed ? <Card><ButtonLink href="/onboarding">Apri la survey iniziale</ButtonLink><button type="button" className="button secondary" onClick={() => window.location.reload()}>Riprova</button></Card> : !loadedDraft ? (
-          <Card><p className="muted" role="status">Caricamento della survey…</p></Card>
-        ) : completed ? (
-          <ResultCard isCoach={completed.is_coach} alreadyCompleted />
-        ) : result ? (
-          <ResultCard isCoach={result.is_coach} alreadyCompleted={reassessment} />
-        ) : (
-          <div className="survey-layout">
-            <div className="survey-main">
-              <Card className="workflow-panel workflow-question">
-                <div className="stack">
-                  <div>
-                    <h1 className="survey-heading">{reassessment ? "Aggiorna la tua esperienza" : "Conosciamoci meglio"}</h1>
-                    <p className="muted survey-subheading">
-                      Distinguiamo ciò che conosci dall’esperienza maturata con denaro reale, strumento per strumento.
-                    </p>
-                  </div>
-
-                  <div className="workflow-panel-head">
-                    <div>
-                      <p className="eyebrow">Sezione {safeStep + 1} di {STEPS.length}</p>
-                      <h2 ref={stepHeadingRef} tabIndex={-1}>{STEP_META[current].title}</h2>
-                    </div>
-                    <span className="pill">{STEP_META[current].section}</span>
-                  </div>
-
-                  {current === "topicKnowledge" ? (
-                    <TopicKnowledgeStep answers={topics} onChange={(topic, value: TopicKnowledgeLevel) => updateTopic(topic, { knowledge_level: value })} />
-                  ) : current === "topicInvestment" ? (
-                    <TopicInvestmentStep answers={topics} onChange={(topic, value: TopicInvestmentBand) => updateTopic(topic, { invested_amount_band: value })} />
-                  ) : current === "topicMentoring" ? (
-                    <TopicMentoringStep
-                      answers={topics}
-                      onChange={(topic, value) => updateTopic(topic, { wants_to_mentor: value })}
-                      onSafetyChange={(topic, value) => updateTopic(topic, { safety_scenario_answer: value })}
-                    />
-                  ) : current === "knowledge" ? (
-                    <GeneralKnowledgeStep answers={answers} onChange={setKnowledge} />
-                  ) : current === "situations" ? (
-                    <SituationsStep
-                      answers={answers}
-                      skipAutonomy={allInvestmentBandsAreZero(answers)}
-                      onChange={setSituation}
-                    />
-                  ) : current === "context" ? (
-                    <ContextStep answers={answers.section_d || {}} onChange={setContextAnswer} />
-                  ) : (
-                    <ReviewStep answers={answers} onEdit={(kind) => setStep(STEPS.indexOf(kind))} />
-                  )}
-
-                  <div className="survey-navigation">
-                    <button className="button secondary" type="button" onClick={back} disabled={safeStep === 0 || submitting}>
-                      <ChevronLeft size={16} aria-hidden /> Indietro
-                    </button>
-                    {current === "review" ? (
-                      <button className="button primary" type="button" onClick={submit} disabled={submitting}>
-                        {submitting ? "Salvataggio…" : "Conferma le risposte"}
-                      </button>
-                    ) : (
-                      <button className="button primary" type="button" onClick={next}>Continua</button>
-                    )}
+      <div className={styles.page}>
+        <section className={styles.panel} aria-busy={submitting}>
+          <div className={styles.topline}>
+            <span className="eyebrow">
+              {reassessment ? "La mia esperienza" : "Benvenuto su Socra"}
+            </span>
+            <span className={styles.private}>
+              <LockKeyhole size={14} aria-hidden /> Risposte private
+            </span>
+          </div>
+          {!loaded && !loadError ? (
+            <p role="status">Recuperiamo le tue risposte…</p>
+          ) : (
+            <>
+              <h1 ref={heading} tabIndex={-1}>
+                {title}
+              </h1>
+              {error ? (
+                <p className="error" role="alert">
+                  {error}
+                </p>
+              ) : null}
+              {loadError ? (
+                <button
+                  className="button primary"
+                  onClick={() => window.location.reload()}
+                >
+                  Riprova
+                </button>
+              ) : done ? (
+                <div className={styles.body}>
+                  <p>
+                    Ora possiamo proporti confronti più adatti a ciò che conosci
+                    e a ciò che vuoi imparare. Potrai aggiornare queste risposte
+                    in qualsiasi momento.
+                  </p>
+                  <div className={styles.actions}>
+                    <ButtonLink href={reassessment ? "/competenze" : "/goal"}>
+                      {reassessment
+                        ? "Torna alla mia esperienza"
+                        : "Scegli cosa vuoi imparare"}
+                    </ButtonLink>
+                    <ButtonLink href="/settings" variant="secondary">
+                      Gestisci la disponibilità come mentor
+                    </ButtonLink>
                   </div>
                 </div>
-              </Card>
-
-              <div className="survey-privacy-note">
-                <ShieldCheck size={15} aria-hidden />
-                <span>Le fasce investite e il contesto personale restano privati e non vengono mostrati ad altri utenti.</span>
-              </div>
-            </div>
-
-            <aside className="survey-sidebar">
-              <Card className="workflow-panel">
-                <p className="survey-sidebar-label">Perché questa survey?</p>
-                <p className="muted">
-                  Conoscere uno strumento e averlo usato sono esperienze diverse. Considerarle separatamente rende i confronti più coerenti.
-                </p>
-              </Card>
-              <Card className="workflow-panel workflow-note">
-                <LockKeyhole size={18} aria-hidden />
-                <p>{reassessment ? "Ritrovi le risposte già salvate: modifica solo ciò che è cambiato." : "Nessuna risposta è preselezionata."} Puoi tornare indietro prima dell’invio finale.</p>
-              </Card>
-            </aside>
-          </div>
-        )}
-        <TopicCompetenceStyles />
-        <SurveyStyles />
+              ) : (
+                <>
+                  {activeTopic ? (
+                    <p className={styles.caption}>
+                      Strumento {answers.selected.indexOf(activeTopic) + 1} di{" "}
+                      {answers.selected.length} · conoscenza ed esperienza sono
+                      due cose diverse.
+                    </p>
+                  ) : null}
+                  {screen === "welcome" ? (
+                    <div className={styles.body}>
+                      <p className={styles.lead}>
+                        C’è chi parte da zero, chi investe da anni e chi vuole
+                        esplorare un argomento nuovo. Qui c’è spazio per tutti.
+                      </p>
+                      <p>
+                        Ci servono solo alcune informazioni sulla tua esperienza
+                        per aiutarti a trovare le persone con cui confrontarti.
+                      </p>
+                      <div className={styles.promise}>
+                        <Check size={20} aria-hidden />
+                        <div>
+                          <strong>Solo le domande che ti riguardano</strong>
+                          <p>
+                            Scegli gli strumenti che conosci o hai usato.
+                            Approfondiremo solo quelli, senza un quiz generale.
+                          </p>
+                        </div>
+                      </div>
+                      <p className={styles.caption}>
+                        Non assegniamo etichette pubbliche. Conoscenza e importi
+                        restano privati; potrai rivederli in seguito.
+                      </p>
+                    </div>
+                  ) : screen === "selection" ? (
+                    <div className={styles.body}>
+                      <p>
+                        Seleziona anche gli strumenti che hai solo studiato,
+                        oppure quelli in cui hai investito affidandoti a qualcun
+                        altro.{" "}
+                        <strong>
+                          Non è una lista di ciò che vuoi imparare.
+                        </strong>
+                      </p>
+                      <fieldset className={styles.instruments}>
+                        <legend className="sr-only">
+                          Strumenti conosciuti o utilizzati
+                        </legend>
+                        {instrumentOptions.map((item) => (
+                          <label
+                            key={item.value}
+                            className={
+                              answers.selected.includes(item.value)
+                                ? styles.selected
+                                : ""
+                            }
+                          >
+                            <input
+                              type="checkbox"
+                              checked={answers.selected.includes(item.value)}
+                              onChange={(event) =>
+                                change({
+                                  ...answers,
+                                  none: false,
+                                  selectionConfirmed: false,
+                                  selected: event.target.checked
+                                    ? instrumentOptions
+                                        .filter(
+                                          (option) =>
+                                            option.value === item.value ||
+                                            answers.selected.includes(
+                                              option.value,
+                                            ),
+                                        )
+                                        .map((option) => option.value)
+                                    : answers.selected.filter(
+                                        (topic) => topic !== item.value,
+                                      ),
+                                })
+                              }
+                            />
+                            <span>{item.label}</span>
+                          </label>
+                        ))}
+                      </fieldset>
+                      <label className={styles.none}>
+                        <input
+                          type="checkbox"
+                          checked={answers.none}
+                          onChange={(event) =>
+                            change({
+                              ...answers,
+                              selected: [],
+                              none: event.target.checked,
+                              selectionConfirmed: false,
+                            })
+                          }
+                        />
+                        <span>
+                          Non conosco e non ho mai usato questi strumenti
+                        </span>
+                      </label>
+                      <p className={styles.caption}>
+                        Continuando confermi che per gli strumenti non
+                        selezionati non hai conoscenze né denaro investito, oggi
+                        o in passato. Puoi sempre tornare qui e correggere la
+                        scelta.
+                      </p>
+                    </div>
+                  ) : activeTopic ? (
+                    <div className={styles.body}>
+                      <ChoiceGroup
+                        title="Quanto lo conosci?"
+                        name={`knowledge-${activeTopic}`}
+                        options={topicKnowledgeOptions}
+                        value={row.knowledge_level}
+                        onChange={(value) =>
+                          updateTopic({
+                            knowledge_level: value as TopicKnowledgeLevel,
+                          })
+                        }
+                      />
+                      <ChoiceGroup
+                        title="Qual è il massimo importo tuo investito nello stesso momento?"
+                        hint={
+                          activeTopic === "forex" ||
+                          activeTopic === "derivatives"
+                            ? "Considera capitale proprio, premio o margine a rischio: non il nozionale. Demo e simulatori non contano."
+                            : "Considera anche il passato, senza sommare acquisti e vendite ripetuti sullo stesso capitale. Demo e simulatori non contano."
+                        }
+                        name={`investment-${activeTopic}`}
+                        compact
+                        options={topicInvestmentOptions}
+                        value={row.invested_amount_band}
+                        onChange={(value) =>
+                          updateTopic({
+                            invested_amount_band: value as TopicInvestmentBand,
+                          })
+                        }
+                      />
+                      {isMentorEligible(row) ? (
+                        <ChoiceGroup
+                          title="Ti senti pronto a condividere la tua esperienza pratica su questo strumento per aiutare un’altra persona?"
+                          name={`mentor-${activeTopic}`}
+                          compact
+                          options={[
+                            { value: "yes", label: "Sì" },
+                            { value: "no", label: "No" },
+                          ]}
+                          value={
+                            typeof row.wants_to_mentor === "boolean"
+                              ? row.wants_to_mentor
+                                ? "yes"
+                                : "no"
+                              : undefined
+                          }
+                          onChange={(value) =>
+                            updateTopic({ wants_to_mentor: value === "yes" })
+                          }
+                        />
+                      ) : null}
+                      {activeTopic === "forex" ||
+                      activeTopic === "derivatives" ? (
+                        <SafetyScenario
+                          topic={activeTopic}
+                          answer={row}
+                          onChange={(value) =>
+                            updateTopic({ safety_scenario_answer: value })
+                          }
+                        />
+                      ) : null}
+                    </div>
+                  ) : screen === "autonomy" ? (
+                    <div className={styles.body}>
+                      <p>
+                        Pensando agli investimenti che hai fatto finora, quale
+                        situazione ti descrive meglio?
+                      </p>
+                      <ChoiceGroup
+                        title="Nelle decisioni di investimento…"
+                        name="autonomy"
+                        options={autonomyOptions}
+                        value={answers.autonomy}
+                        onChange={(value) =>
+                          change({ ...answers, autonomy: value })
+                        }
+                      />
+                      <p className={styles.caption}>
+                        Questa risposta ci aiuta a distinguere l’esperienza
+                        diretta da quella completamente delegata.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className={styles.body}>
+                      <p>
+                        Non devono essere risposte perfette: devono descrivere
+                        la tua esperienza di oggi.
+                      </p>
+                      {answers.selected.map((topic) => {
+                        const item = answers.topics[topic] || {};
+                        return (
+                          <div className={styles.review} key={topic}>
+                            <div>
+                              <h2>{label(topic)}</h2>
+                              <p>
+                                {topicKnowledgeOptions.find(
+                                  (option) =>
+                                    option.value === item.knowledge_level,
+                                )?.label || "Conoscenza da completare"}{" "}
+                                ·{" "}
+                                {topicInvestmentOptions.find(
+                                  (option) =>
+                                    option.value === item.invested_amount_band,
+                                )?.label || "Importo da completare"}
+                              </p>
+                              <p className={styles.caption}>
+                                {item.wants_to_mentor
+                                  ? "Vuoi condividere la tua esperienza"
+                                  : "Per ora non ti proponi come mentor"}
+                              </p>
+                            </div>
+                            <button
+                              className="button secondary"
+                              onClick={() => go(`topic:${topic}`)}
+                              aria-label={`Modifica ${label(topic)}`}
+                            >
+                              Modifica
+                            </button>
+                          </div>
+                        );
+                      })}
+                      <div className={styles.review}>
+                        <p>
+                          {answers.selected.length
+                            ? "Gli altri strumenti: nessuna conoscenza e nessun investimento."
+                            : "Non hai ancora conoscenze né investimenti negli strumenti elencati. Va benissimo partire da qui."}
+                        </p>
+                        <button
+                          className="button secondary"
+                          onClick={() => go("selection")}
+                        >
+                          Rivedi strumenti
+                        </button>
+                      </div>
+                      {hasInvestment(answers) ? (
+                        <div className={styles.review}>
+                          <p>
+                            {autonomyOptions.find(
+                              (option) => option.value === answers.autonomy,
+                            )?.label || "Autonomia da completare"}
+                          </p>
+                          <button
+                            className="button secondary"
+                            onClick={() => go("autonomy")}
+                          >
+                            Modifica autonomia
+                          </button>
+                        </div>
+                      ) : null}
+                      {answers.autonomy === "delegated" ? (
+                        <p className={styles.caption}>
+                          Con decisioni completamente delegate non attiviamo la
+                          disponibilità come mentor. Puoi comunque iniziare a
+                          imparare e aggiornare l’esperienza in seguito.
+                        </p>
+                      ) : null}
+                    </div>
+                  )}
+                  <div className={styles.footer}>
+                    {screen !== "welcome" ? (
+                      <button
+                        className="button secondary"
+                        type="button"
+                        disabled={submitting}
+                        onClick={() =>
+                          go(
+                            route[Math.max(0, currentIndex - 1)] || "selection",
+                          )
+                        }
+                      >
+                        <ChevronLeft size={16} aria-hidden /> Indietro
+                      </button>
+                    ) : (
+                      <span />
+                    )}
+                    <button
+                      className="button primary"
+                      type="button"
+                      disabled={submitting}
+                      onClick={screen === "review" ? submit : next}
+                    >
+                      {submitting
+                        ? "Salvataggio…"
+                        : screen === "welcome"
+                          ? "Cominciamo"
+                          : screen === "review"
+                            ? "Conferma le risposte"
+                            : "Continua"}
+                      {!submitting ? (
+                        <ArrowRight size={16} aria-hidden />
+                      ) : null}
+                    </button>
+                  </div>
+                  {screen !== "welcome" ? (
+                    <p className={styles.save} role="status">
+                      {reassessment
+                        ? "Le modifiche saranno salvate alla conferma finale."
+                        : saving
+                          ? "Salvataggio bozza…"
+                          : saveMessage ||
+                            "Puoi tornare indietro: le risposte rimangono."}
+                    </p>
+                  ) : null}
+                </>
+              )}
+            </>
+          )}
+        </section>
       </div>
     </AppShell>
   );
 }
 
-function GeneralKnowledgeStep({ answers, onChange }: { answers: Answers; onChange: (key: string, value: string) => void }) {
-  return (
-    <div className="stack">
-      <p className="muted">Ora guardiamo alcuni concetti che attraversano più strumenti.</p>
-      <div className="survey-matrix survey-form-grid">
-        {knowledgeConcepts.map((concept) => (
-          <QuestionSelect
-            key={concept.value}
-            id={`knowledge-${concept.value}`}
-            label={concept.label}
-            options={knowledgeOptions}
-            value={answers.D4?.[concept.value] === undefined ? undefined : String(answers.D4[concept.value])}
-            onChange={(value) => onChange(concept.value, value)}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SituationsStep({
-  answers,
-  skipAutonomy,
-  onChange,
-}: {
-  answers: Answers;
-  skipAutonomy: boolean;
-  onChange: (key: string, value: string) => void;
-}) {
-  return (
-    <div className="stack survey-situations">
-      <p className="muted">Non cerchiamo la risposta perfetta: scegli quella che descrive meglio come ragioneresti.</p>
-      {skipAutonomy ? (
-        <div className="survey-not-applicable" role="note">
-          <strong>Autonomia nelle decisioni</strong>
-          <span>Hai indicato 0 € per tutti gli strumenti: questa domanda non serve nel tuo caso.</span>
-        </div>
-      ) : (
-        <QuestionSelect
-          id="experience-autonomy"
-          label="Quando investi, come prendi le decisioni?"
-          options={autonomyOptions}
-          value={answers.D5}
-          onChange={(value) => onChange("D5", value)}
-          hint="Ci interessa distinguere l’esperienza diretta dalle operazioni eseguite seguendo completamente qualcun altro."
-        />
-      )}
-      {situationalQuestions.map((question) => (
-        <QuestionSelect
-          key={question.key}
-          id={`situation-${question.key}`}
-          label={question.prompt}
-          options={question.options}
-          value={answers[question.key] as string | undefined}
-          onChange={(value) => onChange(question.key, value)}
-        />
-      ))}
-    </div>
-  );
-}
-
-function ContextStep({ answers, onChange }: { answers: Record<string, string>; onChange: (key: string, value: string) => void }) {
-  return (
-    <div className="stack">
-      <p className="muted">
-        Questa sezione fa parte della survey ma non cambia il matching. Per ogni domanda puoi scegliere
-        “Preferisco non rispondere”. Le risposte condivise restano private e sono usate solo in forma aggregata.
-      </p>
-      <div className="survey-form-grid">
-        {sectionDQuestions.map((question) => (
-          <QuestionSelect
-            key={question.key}
-            id={`context-${question.key}`}
-            label={question.label}
-            options={question.options}
-            value={answers[question.key]}
-            onChange={(value) => onChange(question.key, value)}
-            hint="Scegli una risposta oppure “Preferisco non rispondere”."
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function ReviewStep({ answers, onEdit }: { answers: Answers; onEdit: (kind: StepKind) => void }) {
-  const skipAutonomy = allInvestmentBandsAreZero(answers);
-  const sections = [
-    {
-      kind: "knowledge" as const,
-      label: "Conoscenze di base",
-      items: knowledgeConcepts.map((concept) => ({
-        label: concept.label,
-        value: optionLabel(knowledgeOptions, String(answers.D4?.[concept.value] ?? "")),
-      })),
-    },
-    {
-      kind: "situations" as const,
-      label: "Scenari",
-      items: [
-        ...(!skipAutonomy
-          ? [{ label: "Come prendi le decisioni", value: optionLabel(autonomyOptions, answers.D5) }]
-          : []),
-        ...situationalQuestions.map((question) => ({
-          label: question.prompt,
-          value: optionLabel(question.options, answers[question.key] as string | undefined),
-        })),
-      ],
-    },
-    {
-      kind: "context" as const,
-      label: "Contesto personale",
-      items: sectionDQuestions.map((question) => ({
-        label: question.label,
-        value: optionLabel(question.options, answers.section_d?.[question.key]),
-      })),
-    },
-  ];
-  return (
-    <div className="stack">
-      <p className="muted">
-        Controlla le risposte prima dell’invio: sono il punto di partenza per proporti confronti adatti. In seguito potrai aggiornare la tua esperienza e la disponibilità a condividerla.
-      </p>
-      <TopicReview
-        answers={answers.topic_competences_v2 || {}}
-        onEdit={(section) => onEdit(section === "knowledge" ? "topicKnowledge" : section === "investment" ? "topicInvestment" : "topicMentoring")}
-      />
-      <div className="review-list">
-        {sections.map((section) => (
-          <section className="review-row" key={section.kind} aria-labelledby={`review-${section.kind}`}>
-            <div className="review-row-head">
-              <h3 id={`review-${section.kind}`}>{section.label}</h3>
-              {section.kind === "context" ? <span className="pill">Privato</span> : null}
-            </div>
-            <dl className="review-values">
-              {section.items.map((item) => <div key={item.label}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}
-            </dl>
-            <button className="button secondary" type="button" onClick={() => onEdit(section.kind)}>
-              Modifica {section.label.toLocaleLowerCase("it-IT")}
-            </button>
-          </section>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function QuestionSelect({
-  id,
-  label,
+function ChoiceGroup({
+  title,
+  hint,
+  name,
   options,
   value,
   onChange,
-  hint,
+  compact = false,
 }: {
-  id: string;
-  label: string;
-  options: SelectOption[];
+  title: string;
+  hint?: string;
+  name: string;
+  options: readonly { value: string; label: string; description?: string }[];
   value?: string;
   onChange: (value: string) => void;
-  hint?: string;
+  compact?: boolean;
 }) {
   return (
-    <div className="survey-question" data-incomplete={value ? undefined : "true"}>
-      <label htmlFor={id}>{label}</label>
-      {hint ? <span className="survey-question-hint">{hint}</span> : null}
-      <select id={id} name={id} className="input" value={value || ""} onChange={(event) => onChange(event.target.value)} required>
-        <option value="">Seleziona una risposta</option>
-        {options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
-    </div>
-  );
-}
-
-function ResultCard({ isCoach, alreadyCompleted = false }: { isCoach: boolean; alreadyCompleted?: boolean }) {
-  return (
-    <div className="survey-layout single">
-      <div className="survey-main">
-        <Card className="workflow-result">
-          <div className="stack">
-            <span className="workflow-symbol"><CheckCircle2 size={26} aria-hidden /></span>
-            <p className="eyebrow">Le tue risposte sono salvate</p>
-            <div className="level-reveal">
-              <div className="level-reveal-badge" aria-hidden="true"><CheckCircle2 size={32} /></div>
-              <div>
-                <h2>Il tuo prossimo confronto parte da qui</h2>
-                <p className="muted">Useremo conoscenze ed esperienza su ogni strumento per proporti percorsi pertinenti.</p>
-                {isCoach ? <span className="pill green">Disponibilità mentor attiva su uno o più strumenti</span> : null}
-              </div>
-            </div>
-            <p className="muted">
-              {alreadyCompleted
-                ? "Puoi aggiornare ciò che vuoi imparare. Il tuo contesto di partenza resta privato."
-                : "Ora scegli cosa vuoi imparare con l’aiuto della community. Il tuo contesto di partenza resterà privato."}
-            </p>
-            <div className="cluster">
-              <ButtonLink href="/goal">{alreadyCompleted ? "Gestisci obiettivo" : "Scegli cosa imparare"}</ButtonLink>
-              {alreadyCompleted ? <ButtonLink href="/dashboard" variant="secondary">Dashboard</ButtonLink> : null}
-            </div>
-          </div>
-        </Card>
+    <fieldset className={styles.choices}>
+      <legend>{title}</legend>
+      {hint ? <p className={styles.caption}>{hint}</p> : null}
+      <div className={compact ? styles.compact : styles.options}>
+        {options.map((option) => (
+          <label
+            className={value === option.value ? styles.selected : ""}
+            key={option.value}
+          >
+            <input
+              type="radio"
+              name={name}
+              value={option.value}
+              checked={value === option.value}
+              onChange={() => onChange(option.value)}
+            />
+            <span>
+              <strong>{option.label}</strong>
+              {option.description ? <small>{option.description}</small> : null}
+            </span>
+          </label>
+        ))}
       </div>
-    </div>
-  );
-}
-
-function isStepComplete(step: StepKind, answers: Answers): boolean {
-  const topics = answers.topic_competences_v2 || {};
-  const topicKnowledgeComplete = instrumentOptions.every((item) => !!topics[item.value]?.knowledge_level);
-  const investmentComplete = instrumentOptions.every((item) => !!topics[item.value]?.invested_amount_band);
-  const mentoringComplete = instrumentOptions.every((item) => (
-    !isMentorEligible(topics[item.value]) || mentorChoiceIsComplete(item.value, topics[item.value])
-  ));
-  const knowledgeComplete = knowledgeConcepts.every((concept) => answers.D4?.[concept.value] !== undefined);
-  const situationsComplete = (allInvestmentBandsAreZero(answers) || !!answers.D5)
-    && situationalQuestions.every((question) => !!answers[question.key]);
-  const contextComplete = sectionDQuestions.every((question) => !!answers.section_d?.[question.key]);
-
-  if (step === "topicKnowledge") return topicKnowledgeComplete;
-  if (step === "topicInvestment") return investmentComplete;
-  if (step === "topicMentoring") return mentoringComplete;
-  if (step === "knowledge") return knowledgeComplete;
-  if (step === "situations") return situationsComplete;
-  if (step === "context") return contextComplete;
-  return topicKnowledgeComplete && investmentComplete && mentoringComplete
-    && knowledgeComplete && situationsComplete && contextComplete;
-}
-
-function optionLabel(options: SelectOption[], value?: string): string {
-  if (!value) return "Da completare";
-  return options.find((option) => option.value === value)?.label || value;
-}
-
-function optionScore(options: SelectOption[], value?: string): number {
-  return Number(options.find((option) => option.value === value)?.score || 0);
-}
-
-function estimateDraftScores(answers: Answers): { A: number; B: number; C: number } {
-  const topics = answers.topic_competences_v2 || {};
-  const A = instrumentOptions.filter((item) => !!topics[item.value]?.knowledge_level).length;
-  const B = instrumentOptions.filter((item) => {
-    const amount = topics[item.value]?.invested_amount_band;
-    return !!amount && amount !== "A0";
-  }).length;
-  const C = situationalQuestions.reduce(
-    (total, question) => total + optionScore(question.options, answers[question.key] as string | undefined),
-    0
-  );
-  return { A, B, C };
-}
-
-function allInvestmentBandsAreZero(answers: Answers): boolean {
-  const topics = answers.topic_competences_v2 || {};
-  return instrumentOptions.every((item) => topics[item.value]?.invested_amount_band === "A0");
-}
-
-function buildSubmittedAnswers(answers: Answers): SubmittedAnswers {
-  const topics = answers.topic_competences_v2 || {};
-  const instruments = instrumentOptions.map((item) => {
-    const answer = topics[item.value];
-    if (!answer?.knowledge_level || !answer.invested_amount_band) throw new Error(`Risposta incompleta per ${item.value}`);
-    return {
-      topic: item.value,
-      knowledge_level: answer.knowledge_level,
-      invested_amount_band: answer.invested_amount_band,
-      wants_to_mentor: isMentorEligible(answer) && answer.wants_to_mentor === true,
-      safety_scenario_answer: answer.safety_scenario_answer || null,
-    };
-  });
-  const rest: Answers = { ...answers };
-  delete rest.topic_competences_v2;
-  if (allInvestmentBandsAreZero(answers)) delete rest.D5;
-  return { ...rest, topic_competences_v2: { instruments } };
-}
-
-function normalizeDraftAnswers(answers: Answers): Answers {
-  const rawTopics = answers.topic_competences_v2;
-  if (!rawTopics || Array.isArray(rawTopics)) return { ...answers, topic_competences_v2: {} };
-  const normalized = { ...answers };
-  if (allInvestmentBandsAreZero(normalized)) delete normalized.D5;
-  return normalized;
-}
-
-function clampStep(value: number): number {
-  return Math.min(Math.max(value, 0), STEPS.length - 1);
-}
-
-function SurveyStyles() {
-  return (
-    <style jsx global>{`
-      .survey-page { display: grid; gap: 20px; margin-inline: auto; max-width: 1240px; min-width: 0; width: 100%; }
-      .survey-save-status { color: var(--muted); font-size: 0.78rem; margin: -10px 0 0; text-align: right; }
-      .survey-layout { align-items: start; display: grid; gap: 20px; grid-template-columns: minmax(0, 1fr) 280px; }
-      .survey-layout.single { grid-template-columns: minmax(0, 760px); }
-      .survey-main,
-      .survey-sidebar,
-      .survey-question,
-      .survey-form-grid,
-      .survey-matrix { display: grid; gap: 16px; min-width: 0; }
-      .survey-sidebar { gap: 14px; }
-      .survey-not-applicable {
-        background: var(--surface-soft, #f5f7f6);
-        border: 1px solid var(--line);
-        border-radius: var(--radius-sm);
-        color: var(--muted);
-        display: grid;
-        font-size: 0.9rem;
-        gap: 4px;
-        line-height: 1.5;
-        padding: 14px 16px;
-      }
-      .survey-not-applicable strong { color: var(--ink); }
-      .survey-heading { font-size: clamp(1.45rem, 3vw, 2rem); margin: 0 0 6px; }
-      .survey-subheading { line-height: 1.55; margin: 0; }
-      .workflow-question { min-height: 600px; padding: clamp(18px, 3vw, 30px); }
-      .workflow-panel-head,
-      .survey-navigation { align-items: center; display: flex; gap: 14px; justify-content: space-between; }
-      .survey-navigation { border-top: 1px solid var(--line); margin-top: 8px; padding-top: 18px; }
-      .survey-form-grid,
-      .survey-matrix { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .survey-question label { color: var(--navy-950); font-size: 0.88rem; font-weight: 800; margin-bottom: 2px; }
-      .survey-question-hint { color: var(--muted); font-size: 0.76rem; line-height: 1.4; }
-      .survey-situations { gap: 22px; }
-      .review-list { border: 1px solid var(--line); border-radius: var(--radius-sm); overflow: hidden; }
-      .review-row { display: grid; gap: 14px; padding: 14px 16px; }
-      .review-list > .review-row + .review-row { border-top: 1px solid var(--line); }
-      .review-row-head { align-items: center; display: flex; gap: 10px; justify-content: space-between; }
-      .review-row-head h3 { font-size: 0.95rem; margin: 0; }
-      .review-row > .button { justify-self: start; }
-      .review-values { display: grid; gap: 0; margin: 0; }
-      .review-values > div { display: grid; gap: 4px; grid-template-columns: minmax(150px, 0.65fr) minmax(0, 1fr); padding: 9px 0; }
-      .review-values > div + div { border-top: 1px solid var(--line); }
-      .review-values dt { color: var(--muted); font-size: 0.78rem; line-height: 1.45; }
-      .review-values dd { color: var(--navy-950); font-size: 0.82rem; font-weight: 750; line-height: 1.45; margin: 0; }
-      .survey-sidebar-label { color: var(--muted); font-size: 0.72rem; font-weight: 900; letter-spacing: 0.08em; margin: 0 0 8px; text-transform: uppercase; }
-      .survey-sidebar .muted { font-size: 0.86rem; line-height: 1.55; margin: 0; }
-      .workflow-note,
-      .survey-privacy-note { align-items: center; color: var(--muted); display: flex; font-size: 0.8rem; gap: 9px; }
-      .workflow-symbol { align-items: center; background: var(--mint-100); border-radius: 999px; color: var(--mint-600); display: inline-flex; height: 52px; justify-content: center; width: 52px; }
-      .workflow-result { min-width: 0; padding: clamp(22px, 4vw, 34px); }
-      .workflow-result .pill { line-height: 1.35; max-width: 100%; white-space: normal; }
-      .level-reveal { align-items: center; background: linear-gradient(145deg, #fff8e8, #ffffff); border: 1px solid #ffe0a0; border-radius: var(--radius); display: grid; gap: 18px; grid-template-columns: auto 1fr; padding: 18px; }
-      .level-reveal-badge { align-items: center; background: var(--navy-950); border: 4px solid var(--gold-500); border-radius: 999px; color: white; display: inline-flex; font-size: 1.35rem; font-weight: 950; height: 84px; justify-content: center; width: 84px; }
-      .level-reveal > div { min-width: 0; }
-      @media (max-width: 1050px) {
-        .survey-layout { grid-template-columns: 1fr; }
-        .survey-sidebar { display: none; }
-      }
-      @media (max-width: 640px) {
-        .survey-form-grid,
-        .survey-matrix,
-        .level-reveal { grid-template-columns: 1fr; }
-        .workflow-panel-head,
-        .review-row-head { align-items: stretch; display: grid; }
-        .review-values > div { grid-template-columns: 1fr; }
-        .survey-navigation { align-items: stretch; display: grid; grid-template-columns: 1fr 1fr; }
-      }
-      @media (max-width: 420px) {
-        .survey-navigation { grid-template-columns: 1fr; }
-        .survey-navigation .button { min-width: 0; white-space: normal; width: 100%; }
-      }
-    `}</style>
+    </fieldset>
   );
 }

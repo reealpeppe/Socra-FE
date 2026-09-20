@@ -335,317 +335,115 @@ test("settings treats a missing Forex safety answer as a completable preference"
   await expect(page.getByText("Non risultano ancora strumenti disponibili per la mentorship.")).toHaveCount(0);
 });
 
-test("onboarding submits score and links to goal", async ({ page }) => {
-  await page.route("**/api/backend/surveys/onboarding/me", async (route) => route.fulfill({ json: { user_id: "u1", level: "L0", is_coach: false, latest_answer_id: null } }));
-  let submittedPayload: { section: string; answers: Record<string, unknown> } = { section: "", answers: {} };
-  await page.route("**/api/backend/surveys/onboarding/me/answers", async (route) => {
-    submittedPayload = route.request().postDataJSON();
-    await route.fulfill({ json: { answer_id: "a1", total_score: 19.6, derived_level: "L2", is_coach: true } });
-  });
+type EssentialSubmission = { onboarding_policy?: string; D5?: string; topic_competences_v2?: { instruments: Array<{ topic: string; knowledge_level: string; invested_amount_band: string; wants_to_mentor: boolean }> } };
 
+test("essential onboarding asks only chosen instruments and submits no generic quiz", async ({ page }) => {
+  await page.route("**/api/backend/surveys/onboarding/me", route => route.fulfill({ json: { user_id: "u1", latest_answer_id: null } }));
+  let submitted: EssentialSubmission = {};
+  await page.route("**/api/backend/surveys/onboarding/me/answers", route => {
+    submitted = route.request().postDataJSON().answers;
+    return route.fulfill({ json: { is_coach: true } });
+  });
   await page.goto("/onboarding");
-  await expect(page.getByRole("heading", { name: "Conoscenza degli strumenti" })).toBeVisible();
-  await expect(page.locator('input[name^="topic-knowledge-"]:checked')).toHaveCount(0);
-  const topicKnowledgeRadios = page.locator('input[name^="topic-knowledge-"][value="K3"]');
-  await expect(topicKnowledgeRadios).toHaveCount(8);
-  for (const radio of await topicKnowledgeRadios.all()) await radio.check();
+  await expect(page.getByRole("heading", { name: "Partiamo da te" })).toBeVisible();
+  await expect(page.getByRole("radio")).toHaveCount(0);
+  await expect(page.locator(".progress-step")).toHaveCount(0);
+  await page.getByRole("button", { name: "Cominciamo" }).click();
+  await page.getByRole("checkbox", { name: "ETF", exact: true }).check();
+  await page.getByRole("checkbox", { name: "Forex", exact: true }).check();
   await page.getByRole("button", { name: "Continua", exact: true }).click();
-
-  await expect(page.getByRole("heading", { name: "Esperienza diretta e importi" })).toBeVisible();
-  const topicInvestmentRadios = page.locator('input[name^="topic-investment-"][value="A3"]');
-  await expect(topicInvestmentRadios).toHaveCount(8);
-  for (const radio of await topicInvestmentRadios.all()) await radio.check();
-  await page.getByRole("button", { name: "Continua", exact: true }).click();
-
-  await expect(page.getByRole("heading", { name: "Disponibilità a condividere" })).toBeVisible();
-  const mentorNoRadios = page.locator('input[name^="topic-mentoring-"][value="no"]');
-  await expect(mentorNoRadios).toHaveCount(8);
-  for (const radio of await mentorNoRadios.all()) await radio.check();
-  await page.locator("#topic-mentoring-etf_funds-yes").check();
-  await page.locator("#topic-mentoring-forex-yes").check();
-  await page.getByLabel("La leva può amplificare le perdite fino a esaurire il capitale esposto.").check();
-  await page.getByRole("button", { name: "Continua", exact: true }).click();
-
-  await expect(page.getByRole("heading", { name: "Conoscenze di base" })).toBeVisible();
-  const knowledgeSelects = page.locator(".survey-matrix select");
-  await expect(knowledgeSelects).toHaveCount(6);
-  for (const select of await knowledgeSelects.all()) {
-    await select.selectOption("2");
+  for (const topic of ["etf_funds", "forex"]) {
+    await page.locator('input[name="knowledge-' + topic + '"][value="K3"]').check();
+    await page.locator('input[name="investment-' + topic + '"][value="A3"]').check();
+    await page.locator('input[name="mentor-' + topic + '"][value="yes"]').check();
+    if (topic === "forex") await page.getByLabel("La leva può amplificare le perdite fino a esaurire il capitale esposto.").check();
+    await page.getByRole("button", { name: "Continua", exact: true }).click();
   }
-  await expect(page.locator(".progress-steps")).toHaveCount(1);
-  await expect(page.locator(".progress-step")).toHaveCount(7);
-  if ((page.viewportSize()?.width || 0) <= 620) {
-    await expect(page.locator(".progress-step-label").first()).toHaveCSS("width", "1px");
-  } else {
-    await expect(page.locator(".progress-step-label").first()).toBeVisible();
-  }
+  await page.getByLabel("Decido in autonomia dopo ricerche personali").check();
   await page.getByRole("button", { name: "Continua", exact: true }).click();
-
-  await expect(page.getByRole("heading", { name: "Scelte in situazioni concrete" })).toBeVisible();
-  await page.getByLabel("Quando investi, come prendi le decisioni?").selectOption("independent");
-  const situationSelects = page.locator(".survey-situations select");
-  await expect(situationSelects).toHaveCount(4);
-  for (const select of await situationSelects.all().then((items) => items.slice(1))) {
-    await select.selectOption("excellent");
-  }
-  await page.getByRole("button", { name: "Continua", exact: true }).click();
-
-  await expect(page.getByRole("heading", { name: "Contesto personale" })).toBeVisible();
-  const contextSelects = page.locator("#context-D1, #context-D2, #context-D3, #context-D4, #context-D5");
-  await expect(contextSelects).toHaveCount(5);
-  for (const select of await contextSelects.all()) {
-    await select.selectOption("undisclosed");
-  }
-  await page.getByRole("button", { name: "Continua", exact: true }).click();
-
-  await expect(page.getByRole("heading", { name: "Rivedi e conferma" })).toBeVisible();
-  const instrumentsReview = page.locator(".topic-review");
-  const knowledgeReview = page.locator(".review-row").filter({ hasText: "Conoscenze" });
-  const situationsReview = page.locator(".review-row").filter({ hasText: "Scenari" });
-  await expect(instrumentsReview.getByText("Avanzata").first()).toBeVisible();
-  await expect(instrumentsReview.getByText("Da 1.000 a 9.999 €").first()).toBeVisible();
-  await expect(knowledgeReview.getByText("Lo conosco bene").first()).toBeVisible();
-  await expect(situationsReview.getByText("Decido in autonomia dopo ricerche personali")).toBeVisible();
-  await expect(situationsReview.getByText("Dipende dal resto della sua situazione finanziaria e orizzonte")).toBeVisible();
-
-  const contextReview = page.locator(".review-row").filter({ hasText: "Contesto personale" });
-  await expect(contextReview.getByText("Preferisco non rispondere").first()).toBeVisible();
-  await contextReview.getByRole("button", { name: "Modifica contesto personale" }).click();
-  await expect(page.getByRole("heading", { name: "Contesto personale" })).toBeVisible();
-  await expect(page.getByLabel("Situazione professionale")).toHaveValue("undisclosed");
-  await page.getByRole("button", { name: "Continua", exact: true }).click();
-
+  await expect(page.getByRole("heading", { name: "Ti riconosci in queste risposte?" })).toBeVisible();
   await page.getByRole("button", { name: "Conferma le risposte" }).click();
-
-  expect(submittedPayload.section).toBe("onboarding");
-  const topicPayload = submittedPayload.answers.topic_competences_v2 as { instruments: Array<Record<string, unknown>> };
-  expect(topicPayload.instruments).toHaveLength(8);
-  expect(topicPayload.instruments.find((item) => item.topic === "etf_funds")).toMatchObject({
-    knowledge_level: "K3",
-    invested_amount_band: "A3",
-    wants_to_mentor: true
-  });
-  expect(topicPayload.instruments.find((item) => item.topic === "forex")).toMatchObject({
-    wants_to_mentor: true,
-    safety_scenario_answer: "leverage_can_exhaust_capital"
-  });
-  expect(Object.keys((submittedPayload.answers.D4 as Record<string, number>) || {})).toHaveLength(6);
-  expect(submittedPayload.answers).toMatchObject({ D5: "independent", D7: "excellent", D8: "excellent", D9: "excellent" });
-  expect(submittedPayload.answers).not.toHaveProperty("D1");
-  expect(submittedPayload.answers).not.toHaveProperty("D3");
-  expect(submittedPayload.answers).not.toHaveProperty("D6");
-  expect(submittedPayload.answers.section_d).toEqual({
-    D1: "undisclosed",
-    D2: "undisclosed",
-    D3: "undisclosed",
-    D4: "undisclosed",
-    D5: "undisclosed"
-  });
-  await expect(page.getByRole("heading", { name: "Il tuo prossimo confronto parte da qui" })).toBeVisible();
-  await expect(page.getByLabel("Livello L2")).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "Scegli cosa imparare" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Il tuo punto di partenza è pronto" })).toBeVisible();
+  expect(submitted.onboarding_policy).toBe("onboarding-essential-2026-09");
+  expect(submitted.D5).toBe("independent");
+  for (const key of ["D4", "D7", "D8", "D9", "section_d"]) expect(submitted).not.toHaveProperty(key);
+  expect(submitted.topic_competences_v2?.instruments).toHaveLength(8);
+  expect(submitted.topic_competences_v2?.instruments.find(row => row.topic === "stocks")).toMatchObject({ knowledge_level: "K0", invested_amount_band: "A0", wants_to_mentor: false });
 });
 
-test("onboarding omits the autonomy question when every invested amount is zero", async ({ page }) => {
-  const topicCodes = ["savings_first_steps", "mutual_funds", "etf_funds", "stocks", "bonds", "crypto", "forex", "derivatives"];
-  const topicAnswers = Object.fromEntries(topicCodes.map((topic) => [topic, {
-    knowledge_level: "K1",
-    invested_amount_band: "A0",
-    wants_to_mentor: false
-  }]));
-  let submittedAnswers: Record<string, unknown> = {};
-  await page.route("**/api/backend/surveys/onboarding/me", async (route) => route.fulfill({
-    json: { user_id: "u1", level: "L0", is_coach: false, latest_answer_id: null }
-  }));
-  await page.route("**/api/backend/surveys/onboarding/me/draft", async (route) => {
-    if (route.request().method() === "GET") {
-      await route.fulfill({ json: {
-        id: "draft-zero",
-        current_step: 4,
-        scores: { A: 8, B: 0, C: 0 },
-        answers: {
-          topic_competences_v2: topicAnswers,
-          D4: {
-            diversification: 1,
-            compound_interest: 1,
-            risk_return: 1,
-            pac: 1,
-            asset_allocation: 1,
-            taxation: 1
-          }
-        },
-        include_section_d: true,
-        d_never_invested: true,
-        updated_at: new Date().toISOString()
-      } });
-      return;
-    }
-    const body = route.request().postDataJSON();
-    await route.fulfill({ json: { id: "draft-zero", ...body, updated_at: new Date().toISOString() } });
+test("onboarding zero-experience route has no autonomy or quiz", async ({ page }) => {
+  await page.route("**/api/backend/surveys/onboarding/me", route => route.fulfill({ json: { user_id: "u1", latest_answer_id: null } }));
+  let submitted: EssentialSubmission = {};
+  await page.route("**/api/backend/surveys/onboarding/me/answers", route => {
+    submitted = route.request().postDataJSON().answers;
+    return route.fulfill({ json: { is_coach: false } });
   });
-  await page.route("**/api/backend/surveys/onboarding/me/answers", async (route) => {
-    const body = route.request().postDataJSON() as { answers: Record<string, unknown> };
-    submittedAnswers = body.answers;
-    await route.fulfill({ json: { answer_id: "answer-zero", total_score: 5, derived_level: "L0", is_coach: false } });
-  });
-
   await page.goto("/onboarding");
-
-  await expect(page.getByRole("heading", { name: "Scelte in situazioni concrete" })).toBeVisible();
-  await expect(page.getByLabel("Quando investi, come prendi le decisioni?")).toHaveCount(0);
-  await expect(page.getByText("questa domanda non serve nel tuo caso")).toBeVisible();
-  const scenarioSelects = page.locator(".survey-situations select");
-  await expect(scenarioSelects).toHaveCount(3);
-  for (const select of await scenarioSelects.all()) await select.selectOption("excellent");
+  await page.getByRole("button", { name: "Cominciamo" }).click();
   await page.getByRole("button", { name: "Continua", exact: true }).click();
-
-  for (const select of await page.locator("#context-D1, #context-D2, #context-D3, #context-D4, #context-D5").all()) {
-    await select.selectOption("undisclosed");
-  }
+  await expect(page.getByRole("alert").filter({ hasText: "Scegli almeno" })).toBeVisible();
+  await page.getByLabel("Non conosco e non ho mai usato questi strumenti", { exact: true }).check();
   await page.getByRole("button", { name: "Continua", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Rivedi e conferma" })).toBeVisible();
-  const situationsReview = page.locator(".review-row").filter({ hasText: "Scenari" });
-  await expect(situationsReview.getByText("Come prendi le decisioni")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Ti riconosci in queste risposte?" })).toBeVisible();
+  await expect(page.getByRole("radio")).toHaveCount(0);
   await page.getByRole("button", { name: "Conferma le risposte" }).click();
-
-  expect(submittedAnswers).not.toHaveProperty("D5");
-  await expect(page.getByRole("heading", { name: "Il tuo prossimo confronto parte da qui" })).toBeVisible();
-  await expect(page.getByLabel("Livello L0")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Il tuo punto di partenza è pronto" })).toBeVisible();
+  expect(submitted).not.toHaveProperty("D5");
+  expect(submitted.topic_competences_v2?.instruments.every(row => row.knowledge_level === "K0" && row.invested_amount_band === "A0" && !row.wants_to_mentor)).toBe(true);
 });
 
-test("onboarding draft survives navigation", async ({ page }) => {
-  await page.route("**/api/backend/surveys/onboarding/me", async (route) => route.fulfill({ json: { user_id: "u1", level: "L0", is_coach: false, latest_answer_id: null } }));
-  let savedDraft: {
-    id: string;
-    current_step: number;
-    scores: Record<string, number>;
-    answers: Record<string, unknown>;
-    include_section_d: boolean;
-    d_never_invested: boolean;
-    updated_at: string;
-  } | null = null;
-  await page.route("**/api/backend/surveys/onboarding/me/draft", async (route) => {
-    if (route.request().method() === "GET") {
-      await route.fulfill({ json: savedDraft });
-      return;
-    }
-    const body = route.request().postDataJSON();
-    savedDraft = {
-      id: "draft1",
-      current_step: body.current_step,
-      scores: body.scores,
-      answers: body.answers,
-      include_section_d: body.include_section_d,
-      d_never_invested: body.d_never_invested,
-      updated_at: new Date().toISOString()
-    };
-    await route.fulfill({ json: savedDraft });
+test("onboarding draft survives navigation and never replays retired fields", async ({ page }) => {
+  await page.route("**/api/backend/surveys/onboarding/me", route => route.fulfill({ json: { user_id: "u1", latest_answer_id: null } }));
+  let draft: { answers?: { essential_flow?: { screen?: string } }; updated_at: string } | null = null;
+  await page.route("**/api/backend/surveys/onboarding/me/draft", route => {
+    if (route.request().method() === "POST") draft = { ...route.request().postDataJSON(), updated_at: new Date().toISOString() };
+    return route.fulfill({ json: draft });
   });
-
   await page.goto("/onboarding");
-  await expect(page.getByRole("heading", { name: "Conoscenza degli strumenti" })).toBeVisible();
-  const knowledgeRadios = page.locator('input[name^="topic-knowledge-"][value="K2"]');
-  await expect(knowledgeRadios).toHaveCount(8);
-  for (const radio of await knowledgeRadios.all()) await radio.check();
+  await page.getByRole("button", { name: "Cominciamo" }).click();
+  await page.getByRole("checkbox", { name: "ETF", exact: true }).check();
   await page.getByRole("button", { name: "Continua", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Esperienza diretta e importi" })).toBeVisible();
-  await expect.poll(() => savedDraft?.current_step).toBe(1);
-
+  await page.locator('input[name="knowledge-etf_funds"][value="K2"]').check();
+  await expect.poll(() => draft?.answers?.essential_flow?.screen).toBe("topic:etf_funds");
   await page.goto("/come-funziona");
-  await expect(page.getByRole("heading", { name: /Come funziona SOCRA/i })).toBeVisible();
-
   await page.goto("/onboarding");
-  await expect(page.getByRole("heading", { name: "Esperienza diretta e importi" })).toBeVisible();
-  await page.getByRole("button", { name: "Indietro" }).click();
-  await expect(page.locator("#topic-knowledge-etf_funds-K2")).toBeChecked();
+  await expect(page.locator('input[name="knowledge-etf_funds"][value="K2"]')).toBeChecked();
+  await expect(page.locator('input[name="investment-etf_funds"]:checked')).toHaveCount(0);
 });
 
-test("onboarding clears mentor opt-in when a topic becomes unavailable", async ({ page }) => {
-  await page.route("**/api/backend/surveys/onboarding/me", async (route) => route.fulfill({
-    json: { user_id: "u1", level: "L0", is_coach: false, latest_answer_id: null }
-  }));
-  let latestAnswers: Record<string, unknown> = {};
-  await page.route("**/api/backend/surveys/onboarding/me/draft", async (route) => {
-    if (route.request().method() === "GET") {
-      await route.fulfill({ json: null });
-      return;
-    }
-    const body = route.request().postDataJSON();
-    latestAnswers = body.answers;
-    await route.fulfill({ json: { id: "draft-edge", ...body, updated_at: new Date().toISOString() } });
-  });
-
+test("onboarding clears an opt-in after competence becomes ineligible", async ({ page }) => {
+  await page.route("**/api/backend/surveys/onboarding/me", route => route.fulfill({ json: { user_id: "u1", latest_answer_id: null } }));
   await page.goto("/onboarding");
-  await expect(page.getByRole("heading", { name: "Conoscenza degli strumenti" })).toBeVisible();
-  await expect(page.locator('input[name^="topic-knowledge-"][value="K2"]')).toHaveCount(8);
-  for (const radio of await page.locator('input[name^="topic-knowledge-"][value="K2"]').all()) await radio.check();
+  await page.getByRole("button", { name: "Cominciamo" }).click();
+  await page.getByRole("checkbox", { name: "ETF", exact: true }).check();
   await page.getByRole("button", { name: "Continua", exact: true }).click();
-  for (const radio of await page.locator('input[name^="topic-investment-"][value="A3"]').all()) await radio.check();
-  await page.getByRole("button", { name: "Continua", exact: true }).click();
-  await page.locator("#topic-mentoring-etf_funds-yes").check();
-
-  await page.getByRole("button", { name: "Indietro" }).click();
-  await page.getByRole("button", { name: "Indietro" }).click();
-  await page.locator("#topic-knowledge-etf_funds-K1").check();
-  await page.getByRole("button", { name: "Continua", exact: true }).click();
-  await page.getByRole("button", { name: "Continua", exact: true }).click();
-
-  const etfRow = page.locator(".topic-matrix tbody tr").filter({ hasText: "ETF" });
-  await expect(etfRow).toHaveClass(/disabled/);
-  await expect(etfRow.getByText("Non disponibile con le risposte attuali")).toBeVisible();
-  await expect.poll(() => {
-    const topicDraft = latestAnswers.topic_competences_v2 as Record<string, { wants_to_mentor?: boolean }> | undefined;
-    return topicDraft?.etf_funds?.wants_to_mentor;
-  }).toBe(false);
+  await page.locator('input[name="knowledge-etf_funds"][value="K2"]').check();
+  await page.locator('input[name="investment-etf_funds"][value="A3"]').check();
+  await page.locator('input[name="mentor-etf_funds"][value="yes"]').check();
+  await page.locator('input[name="knowledge-etf_funds"][value="K1"]').check();
+  await expect(page.locator('input[name="mentor-etf_funds"]')).toHaveCount(0);
+  await page.locator('input[name="knowledge-etf_funds"][value="K2"]').check();
+  await expect(page.locator('input[name="mentor-etf_funds"]:checked')).toHaveCount(0);
 });
 
 test("onboarding never restores a draft from another account", async ({ page }) => {
-  await page.route("**/api/backend/surveys/onboarding/me", async (route) => route.fulfill({
-    json: {
-      user_id: "account-b",
-      level: "L0",
-      is_coach: false,
-      latest_answer_id: null
-    }
-  }));
-  await page.route("**/api/backend/surveys/onboarding/me/draft", async (route) => {
-    if (route.request().method() === "GET") {
-      await route.fulfill({ json: null });
-      return;
-    }
-    await route.fulfill({ json: route.request().postDataJSON() });
-  });
-
+  await page.route("**/api/backend/surveys/onboarding/me", route => route.fulfill({ json: { user_id: "account-b", latest_answer_id: null } }));
   await page.goto("/dashboard");
   await page.evaluate(() => {
-    window.sessionStorage.setItem("socra_onboarding_draft", JSON.stringify({
-      step: 3,
-      answers: {
-        D1: "none",
-        D4: {},
-        section_d: {
-          D1: "employed_permanent",
-          D2: "gt_75k",
-          D3: "gt_1k",
-          D4: "mortgage_and_other_debt",
-          D5: "no"
-        }
-      }
-    }));
+    const old = JSON.stringify({ answers: { D4: {}, section_d: { D2: "gt_75k" } } });
+    sessionStorage.setItem("socra_onboarding_draft", old);
+    sessionStorage.setItem("socra_onboarding_draft:account-a", old);
   });
-
   await page.goto("/onboarding");
-
-  await expect(page.getByRole("heading", { name: "Conoscenza degli strumenti" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Contesto personale" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Partiamo da te" })).toBeVisible();
+  await expect(page.getByRole("radio")).toHaveCount(0);
 });
 
 test("completed onboarding cannot be restarted", async ({ page }) => {
   await page.goto("/onboarding");
-  await expect(page.getByText("Le tue risposte sono salvate")).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Il tuo prossimo confronto parte da qui" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Gestisci obiettivo" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Conoscenza degli strumenti" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Il tuo punto di partenza è pronto" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Scegli cosa vuoi imparare" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Cominciamo" })).toHaveCount(0);
 });
 
 test("goal route preloads the current goal without requiring a special query", async ({ page }) => {

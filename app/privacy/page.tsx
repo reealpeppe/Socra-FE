@@ -73,9 +73,10 @@ export default function PrivacyPage() {
             </p>
             <h3>Sezione di contesto personale</h3>
             <p>
-              La sezione va completata, ma ogni domanda permette di scegliere “Preferisco
-              non rispondere”. Queste risposte non cambiano il matching e non
-              diventano visibili ai mentor.
+              Il nuovo ingresso non richiede informazioni su reddito, professione o
+              situazione familiare. Le risposte eventualmente fornite nelle versioni
+              precedenti restano private: non cambiano il matching e non diventano
+              visibili ai mentor.
             </p>
           </section>
 

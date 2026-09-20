@@ -28,17 +28,24 @@ export default function DashboardPage() {
   const [errors, setErrors] = useState<Partial<Record<DashboardErrorKey, string>>>({});
   const [loading, setLoading] = useState(true);
   const [dashboardRetryVersion, setDashboardRetryVersion] = useState(0);
+  const [requestsReady, setRequestsReady] = useState(false);
 
   useEffect(() => {
     let active = true;
 
+    // Credits and inbox are independent panels; they cannot stall the goal,
+    // paths or the next matching request.
+    clientGet<Wallet>("/wallet/me").then(value => {
+      if (active) { setWallet(value); setErrors(current => ({ ...current, wallet: undefined })); }
+    }).catch(error => { if (active) setErrors(current => ({ ...current, wallet: error.message || "Crediti non disponibili" })); });
+    clientGet<MatchRequestItem[]>("/matching/requests/me?role=all").then(value => {
+      if (active) { setRequests(Array.isArray(value) ? value : []); setRequestsReady(true); setErrors(current => ({ ...current, requests: undefined })); }
+    }).catch(error => { if (active) setErrors(current => ({ ...current, requests: error.message || "Richieste non disponibili" })); });
     Promise.allSettled([
       clientGet<UserMe>("/auth/me"),
-      clientGet<Wallet>("/wallet/me"),
       clientGet<GoalsMe>("/goals/me"),
-      clientGet<MatchRequestItem[]>("/matching/requests/me?role=all"),
       clientGet<PathItem[]>("/paths/me")
-    ]).then(([userResult, walletResult, goalResult, requestResult, pathResult]) => {
+    ]).then(([userResult, goalResult, pathResult]) => {
       if (!active) return;
 
       const nextErrors: Partial<Record<DashboardErrorKey, string>> = {};
@@ -46,21 +53,14 @@ export default function DashboardPage() {
       if (userResult.status === "fulfilled") setMe(userResult.value);
       else nextErrors.user = userResult.reason?.message || "Profilo non disponibile";
 
-      if (walletResult.status === "fulfilled") setWallet(walletResult.value);
-      else nextErrors.wallet = walletResult.reason?.message || "Crediti non disponibili";
-
       if (goalResult.status === "fulfilled") setGoals(goalResult.value);
       else nextErrors.goals = goalResult.reason?.message || "Obiettivi non disponibili";
-
-      if (requestResult.status === "fulfilled")
-        setRequests(Array.isArray(requestResult.value) ? requestResult.value : []);
-      else nextErrors.requests = requestResult.reason?.message || "Richieste non disponibili";
 
       if (pathResult.status === "fulfilled")
         setPaths(Array.isArray(pathResult.value) ? pathResult.value : []);
       else nextErrors.paths = pathResult.reason?.message || "Percorsi non disponibili";
 
-      setErrors(nextErrors);
+      setErrors(current => ({ wallet: current.wallet, requests: current.requests, ...nextErrors }));
       setLoading(false);
     });
 
@@ -158,7 +158,7 @@ export default function DashboardPage() {
           <p>Benvenuto nella tua dashboard. Qui trovi tutto quello che ti serve per il tuo percorso Socra.</p>
         </div>
 
-        {Object.keys(errors).length > 0 && (
+        {Object.values(errors).some(Boolean) && (
           <div className="dash-alert" role="alert">
             <span>Alcuni dati non sono disponibili al momento. Mostriamo solo le informazioni già verificate.</span>
             <button className="button secondary" type="button" onClick={() => setDashboardRetryVersion((value) => value + 1)}>
@@ -267,7 +267,7 @@ export default function DashboardPage() {
                   label="Percorsi completati"
                 />
                 <MetricStat
-                  value={pendingRequests.length}
+                  value={requestsReady && !errors.requests ? pendingRequests.length : "—"}
                   label="Richieste in attesa"
                 />
                 <MetricStat

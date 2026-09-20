@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { PerformanceDiagnostics } from "@/components/PerformanceDiagnostics";
 
 export const metadata: Metadata = {
   applicationName: "Socra",
@@ -37,7 +38,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="it">
-      <body>{children}</body>
+      <body><PerformanceDiagnostics />{children}</body>
     </html>
   );
 }

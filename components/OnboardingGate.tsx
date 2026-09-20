@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { ButtonLink, Card } from "@/components/Ui";
-import { ClientApiError, clientGet } from "@/lib/api";
+import { ClientApiError, clientGet, cachedClientValue } from "@/lib/api";
 
 type OnboardingState = {
   latest_answer_id: string | null;
@@ -13,11 +13,12 @@ type GateState = "loading" | "complete" | "missing" | "unauthenticated" | "error
 
 export function OnboardingGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [state, setState] = useState<GateState>("loading");
+  const [state, setState] = useState<GateState>(() => cachedClientValue<OnboardingState>("/surveys/onboarding/me")?.latest_answer_id ? "complete" : "loading");
   const [loginHref, setLoginHref] = useState("/login");
 
   const verify = useCallback(() => {
-    window.queueMicrotask(() => setState("loading"));
+    if (!cachedClientValue<OnboardingState>("/surveys/onboarding/me")?.latest_answer_id)
+      window.queueMicrotask(() => setState("loading"));
     clientGet<OnboardingState>("/surveys/onboarding/me")
       .then((response) => setState(response.latest_answer_id ? "complete" : "missing"))
       .catch((error) => {

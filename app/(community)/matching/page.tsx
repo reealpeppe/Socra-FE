@@ -53,10 +53,10 @@ function MatchingContent() {
       setError(null);
       setCandidateError(null);
       setRequestStateReady(false);
-      const [meResult, goalsResult, requestsResult] = await Promise.allSettled([
+      const requestsPromise = Promise.allSettled([clientGet<MatchRequestItem[]>("/matching/requests/me?role=mentee")]);
+      const [meResult, goalsResult] = await Promise.allSettled([
         clientGet<UserMe>("/auth/me"),
         clientGet<GoalsMe>("/goals/me"),
-        clientGet<MatchRequestItem[]>("/matching/requests/me?role=mentee")
       ]);
 
       if (!active) return;
@@ -89,6 +89,9 @@ function MatchingContent() {
         return;
       }
 
+      // Pending-request checks protect actions, not the visibility of results.
+      void requestsPromise.then(([requestsResult]) => {
+      if (!active) return;
       if (requestsResult.status === "fulfilled") {
         const pendingIds = (Array.isArray(requestsResult.value) ? requestsResult.value : [])
           .filter((request) => request.status === "pending" && request.goal_id === selectedGoal.id)
@@ -99,6 +102,7 @@ function MatchingContent() {
         setRequestedMentors(new Set());
         setError(requestsResult.reason?.message || "Richieste già inviate non disponibili. Riprova prima di inviarne una nuova.");
       }
+      });
 
       setLoadingCandidates(true);
       clientPost<MatchCandidate[]>("/matching/candidates", { goal_id: selectedGoal.id })

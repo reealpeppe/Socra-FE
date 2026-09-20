@@ -3441,6 +3441,11 @@ summary:focus-visible,
   }
 }
 
+.route-skeleton { display: grid; gap: 18px; padding: 12px 0; }
+.route-skeleton span { display: block; height: 18px; background: #e8edf2; border-radius: 6px; }
+.route-skeleton span:first-child { height: 30px; width: 55%; }
+.route-skeleton span:last-child { width: 80%; }
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
