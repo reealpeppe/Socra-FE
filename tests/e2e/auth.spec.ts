@@ -123,12 +123,11 @@ test("login rejects external, protocol-relative and executable next values", asy
   }
 });
 
-test("onboarding gate keeps pathname and search in the expired-session login link", async ({ context, page }) => {
+test("onboarding gate keeps pathname and search in the expired-session login link", async ({ context, page, baseURL }) => {
   await context.addCookies([{
     name: "socra_session",
     value: "stale-token",
-    domain: "127.0.0.1",
-    path: "/"
+    url: baseURL!
   }]);
   await page.route("**/api/backend/surveys/onboarding/me", async (route) => {
     await route.fulfill({ status: 401, json: { detail: "Invalid session" } });

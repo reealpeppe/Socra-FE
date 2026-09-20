@@ -6,6 +6,7 @@ export function cachedClientValue<T>(path: string): T | undefined { return peekR
 const CACHE_TTL: Record<string, number> = {
   "/auth/me": 30_000, "/surveys/onboarding/me": 30_000,
   "/surveys/goal/catalog": 300_000,
+  "/goals/me": 5_000, "/matching/requests/me?role=mentee": 5_000,
 };
 let sessionInvalid = false;
 if (typeof window !== "undefined") {

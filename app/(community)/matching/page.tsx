@@ -15,6 +15,12 @@ import { ClientApiError, clientGet, clientPost } from "@/lib/api";
 import type { Goal, GoalsMe, MatchCandidate, MatchRequestItem, UserMe } from "@/lib/types";
 
 export default function MatchingPage() {
+  useEffect(() => {
+    // Independent protected reads can start while the gate verifies onboarding.
+    // The backend still authorizes both; the content consumes these same promises.
+    void clientGet<GoalsMe>("/goals/me").catch(() => undefined);
+    void clientGet<MatchRequestItem[]>("/matching/requests/me?role=mentee").catch(() => undefined);
+  }, []);
   return (
     <AppShell>
       <OnboardingGate>

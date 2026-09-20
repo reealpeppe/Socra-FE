@@ -218,6 +218,9 @@
   cursor: pointer;
 }
 @media (max-width: 620px) {
+  .body { gap: 18px; }
+  .lead { font-size: 1rem; }
+  .promise { padding: 16px; }
   .panel {
     padding: 24px 18px;
     border-radius: 18px;

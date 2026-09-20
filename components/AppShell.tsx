@@ -127,6 +127,7 @@ function ShellFrame({ children, primaryAction }: AppShellProps) {
 
 function AppShellContent({ children, currentTab, primaryAction }: AppShellContentProps) {
   const pathname = usePathname();
+  const isOnboarding = pathname === "/onboarding";
   const router = useRouter();
   const [user, setUser] = useState<UserMe | null>(null);
   const [sessionState, setSessionState] = useState<SessionState>("loading");
@@ -193,12 +194,12 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
     }
     refreshSession();
     window.addEventListener("socra:session-refresh", refreshSession);
-    window.queueMicrotask(() => void refreshNotifications());
+    if (!isOnboarding) window.queueMicrotask(() => void refreshNotifications());
     return () => {
       active = false;
       window.removeEventListener("socra:session-refresh", refreshSession);
     };
-  }, [refreshNotifications]);
+  }, [refreshNotifications, isOnboarding]);
 
   useEffect(() => {
     // The frame persists while pages change, but transient menus should not.
@@ -360,6 +361,16 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
   const notificationLabel = unreadCount === 0
     ? "Notifiche: nessuna non letta"
     : `Notifiche: ${unreadCount} ${unreadCount === 1 ? "non letta" : "non lette"}`;
+
+  if (isOnboarding) return <div className="onboarding-shell">
+    <a className="skip-link" href="#main-content">Vai al contenuto principale</a>
+    <header className="onboarding-header">
+      <Link href="/" aria-label="Socra, vai alla home"><Brand variant="dark" /></Link>
+      <div className="cluster"><Link href="/settings" className="button secondary">Account</Link><button className="button secondary" onClick={logout} disabled={logoutLoading}>{logoutLoading ? "Uscita…" : "Esci"}</button></div>
+    </header>
+    {logoutError ? <p className="error" role="alert">{logoutError}</p> : null}
+    <main id="main-content" className="onboarding-main">{children}</main>
+  </div>;
 
   return (
     <div className="app-shell">

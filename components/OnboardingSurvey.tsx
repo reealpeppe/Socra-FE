@@ -111,9 +111,11 @@ export default function OnboardingSurvey({
             }
             const online =
               draftResult.status === "fulfilled" ? draftResult.value : null;
+            const serverTime = online?.updated_at || "";
+            const serverSavedAt = serverTime ? Date.parse(/[zZ]|[+-]\d{2}:\d{2}$/.test(serverTime) ? serverTime : `${serverTime}Z`) : 0;
             const raw =
               local &&
-              (!online || local.savedAt > Date.parse(online.updated_at || ""))
+              (!online || local.savedAt > serverSavedAt)
                 ? local.answers
                 : online?.answers;
             if (raw && Object.keys(raw).length) {
@@ -613,7 +615,7 @@ export default function OnboardingSurvey({
                       <div className={styles.review}>
                         <p>
                           {answers.selected.length
-                            ? "Gli altri strumenti: nessuna conoscenza e nessun investimento."
+                            ? answers.selected.length === instrumentOptions.length ? "Hai incluso tutti gli strumenti disponibili." : "Gli altri strumenti: nessuna conoscenza e nessun investimento."
                             : "Non hai ancora conoscenze né investimenti negli strumenti elencati. Va benissimo partire da qui."}
                         </p>
                         <button

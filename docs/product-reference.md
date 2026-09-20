@@ -12,6 +12,8 @@ Slice 18/09/2026: nove tipi di confronto, da uno a tre nel frontend; nessun effe
 Branch `feature/onboarding-performance-20260920`, collaudo separato dalla produzione.
 Regole: wiki backend 02 (survey/crescita), 07 (contratti), 08 (decisioni).
 Il gruppo `app/(community)` mantiene il layout tra pagine, senza cambiare URL.
+L'ingresso `/onboarding` usa una cornice minima: nessun menu operativo o barra
+inferiore che possa distrarre o coprire i comandi su mobile.
 Il nuovo onboarding raccoglie solo conoscenza, importi, disponibilità e autonomia
 quando applicabile, progressivamente per gli strumenti scelti. Scenari generici,
 autovalutazione trasversale e dati demografici non sono nel nuovo ingresso.
@@ -21,3 +23,8 @@ browser corrente, senza identificativi o risposte e senza invii a servizi estern
 Non equiparare i tempi dei test con API mock alle latenze reali. Per eseguire i test
 di regressione su un server già avviato usare `PLAYWRIGHT_EXTERNAL_SERVER=1` e
 `PLAYWRIGHT_BASE_URL`; i test con mock restano soltanto controlli di interfaccia.
+
+Cache privata solo in memoria del browser: profilo e stato survey 30 secondi,
+catalogo obiettivi 5 minuti, obiettivi e richieste inviate 5 secondi (prefetch
+parallelo al controllo di ingresso nel matching). Mutazioni e cambio sessione
+invalidano la cache; non si condividono risposte personali tra utenti o server.

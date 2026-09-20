@@ -228,7 +228,7 @@ export function SafetyScenario({
   answer?: TopicCompetenceDraft;
   onChange: (value: string) => void;
 }) {
-  if (answer?.wants_to_mentor !== true && !answer?.safety_scenario_answer) return null;
+  if (answer?.wants_to_mentor !== true) return null;
   const scenario = TOPIC_SAFETY_SCENARIOS[topic];
   const passed = answer.safety_scenario_answer === scenario.pass;
   return (
