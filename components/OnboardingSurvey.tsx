@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowRight, Check, ChevronLeft, LockKeyhole } from "lucide-react";
+import { ArrowRight, ChevronLeft, LockKeyhole } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { ButtonLink } from "@/components/Ui";
 import {
@@ -12,6 +12,7 @@ import { clientGet, clientPost } from "@/lib/api";
 import {
   autonomyOptions,
   instrumentOptions,
+  sectionDQuestions,
   topicInvestmentOptions,
   topicKnowledgeOptions,
 } from "@/lib/options";
@@ -211,7 +212,7 @@ export default function OnboardingSurvey({
         current_step: 0,
         scores: {},
         answers: raw,
-        include_section_d: false,
+        include_section_d: true,
         d_never_invested: !hasInvestment(answers),
       };
       void drainSaves();
@@ -223,12 +224,16 @@ export default function OnboardingSurvey({
     if (loaded) heading.current?.focus({ preventScroll: true });
   }, [screen, loaded, done]);
   const activeTopic = screen.startsWith("topic:") ? screen.slice(6) : null;
+  const contextQuestion = screen.startsWith("context:")
+    ? sectionDQuestions.find((question) => question.key === screen.slice(8))
+    : undefined;
   const row = activeTopic ? answers.topics[activeTopic] || {} : {};
   const route = [
     "welcome",
     "selection",
     ...answers.selected.map((topic) => `topic:${topic}`),
     ...(hasInvestment(answers) ? ["autonomy"] : []),
+    ...sectionDQuestions.map((question) => `context:${question.key}`),
     "review",
   ];
   const currentIndex = route.indexOf(screen);
@@ -275,12 +280,16 @@ export default function OnboardingSurvey({
       setError("Scegli la risposta che descrive meglio la tua esperienza.");
       return;
     }
+    if (contextQuestion && !answers.context[contextQuestion.key]) {
+      setError("Scegli una risposta oppure “Preferisco non rispondere” per continuare.");
+      return;
+    }
     go(route[currentIndex + 1] || "review");
   }
   async function submit() {
     if (!surveyComplete(answers)) {
       setError(
-        "Manca qualche risposta. Rivedi gli strumenti selezionati prima di confermare.",
+        "Manca qualche risposta. Rivedi il riepilogo e completa le voci mancanti prima di confermare.",
       );
       return;
     }
@@ -330,7 +339,9 @@ export default function OnboardingSurvey({
           ? label(activeTopic)
           : screen === "autonomy"
             ? "Come prendi le tue decisioni?"
-            : "Ti riconosci in queste risposte?";
+            : contextQuestion
+              ? contextQuestion.label
+              : "Ti riconosci in queste risposte?";
 
   return (
     <AppShell>
@@ -397,22 +408,7 @@ export default function OnboardingSurvey({
                         esplorare un argomento nuovo. Qui c’è spazio per tutti.
                       </p>
                       <p>
-                        Ci servono solo alcune informazioni sulla tua esperienza
-                        per aiutarti a trovare le persone con cui confrontarti.
-                      </p>
-                      <div className={styles.promise}>
-                        <Check size={20} aria-hidden />
-                        <div>
-                          <strong>Solo le domande che ti riguardano</strong>
-                          <p>
-                            Scegli gli strumenti che conosci o hai usato.
-                            Approfondiremo solo quelli, senza un quiz generale.
-                          </p>
-                        </div>
-                      </div>
-                      <p className={styles.caption}>
-                        Non assegniamo etichette pubbliche. Conoscenza e importi
-                        restano privati; potrai rivederli in seguito.
+                        Raccontaci la tua esperienza e il tuo contesto personale.
                       </p>
                     </div>
                   ) : screen === "selection" ? (
@@ -573,6 +569,29 @@ export default function OnboardingSurvey({
                         diretta da quella completamente delegata.
                       </p>
                     </div>
+                  ) : contextQuestion ? (
+                    <div className={styles.body}>
+                      <p className={styles.caption}>
+                        Contesto personale · {sectionDQuestions.indexOf(contextQuestion) + 1} di {sectionDQuestions.length}
+                      </p>
+                      <p>
+                        Queste informazioni aiutano Socra a conoscere la community
+                        in forma aggregata. Non cambiano il matching e non sono
+                        visibili agli altri utenti. Puoi scegliere “Preferisco non
+                        rispondere” per ogni domanda.
+                      </p>
+                      <ChoiceGroup
+                        title={contextQuestion.label}
+                        name={`context-${contextQuestion.key}`}
+                        options={contextQuestion.options}
+                        value={answers.context[contextQuestion.key]}
+                        onChange={(value) => change({
+                          ...answers,
+                          context: { ...answers.context, [contextQuestion.key]: value },
+                        })}
+                        hideTitle
+                      />
+                    </div>
                   ) : (
                     <div className={styles.body}>
                       <p>
@@ -647,6 +666,18 @@ export default function OnboardingSurvey({
                           imparare e aggiornare l’esperienza in seguito.
                         </p>
                       ) : null}
+                      <h2>Contesto personale</h2>
+                      {sectionDQuestions.map((question) => (
+                        <div className={styles.review} key={question.key}>
+                          <div>
+                            <h3>{question.label}</h3>
+                            <p>{question.options.find((option) => option.value === answers.context[question.key])?.label || "Da completare"}</p>
+                          </div>
+                          <button className="button secondary" onClick={() => go(`context:${question.key}`)} aria-label={`Modifica ${question.label}`}>
+                            Modifica
+                          </button>
+                        </div>
+                      ))}
                     </div>
                   )}
                   <div className={styles.footer}>
@@ -712,6 +743,7 @@ function ChoiceGroup({
   value,
   onChange,
   compact = false,
+  hideTitle = false,
 }: {
   title: string;
   hint?: string;
@@ -720,10 +752,11 @@ function ChoiceGroup({
   value?: string;
   onChange: (value: string) => void;
   compact?: boolean;
+  hideTitle?: boolean;
 }) {
   return (
     <fieldset className={styles.choices}>
-      <legend>{title}</legend>
+      <legend className={hideTitle ? "sr-only" : undefined}>{title}</legend>
       {hint ? <p className={styles.caption}>{hint}</p> : null}
       <div className={compact ? styles.compact : styles.options}>
         {options.map((option) => (

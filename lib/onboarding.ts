@@ -1,23 +1,25 @@
-import { instrumentOptions } from "@/lib/options";
+import { instrumentOptions, sectionDQuestions } from "@/lib/options";
 import type { TopicCompetenceDraft, TopicCompetencePayload } from "@/lib/types";
 import {
   isMentorEligible,
   mentorChoiceIsComplete,
 } from "@/components/TopicCompetenceMatrix";
 
-export const ONBOARDING_POLICY = "onboarding-essential-2026-09";
+export const ONBOARDING_POLICY = "onboarding-essential-context-2026-09";
 export type EssentialAnswers = {
   topics: Record<string, TopicCompetenceDraft>;
   selected: string[];
   selectionConfirmed: boolean;
   none: boolean;
   autonomy?: string;
+  context: Record<string, string>;
 };
 export const emptyAnswers = (): EssentialAnswers => ({
   topics: {},
   selected: [],
   selectionConfirmed: false,
   none: false,
+  context: {},
 });
 export const hasInvestment = (answers: EssentialAnswers) =>
   answers.selected.some((topic) => {
@@ -41,7 +43,10 @@ export function surveyComplete(answers: EssentialAnswers): boolean {
     answers.selected.every((topic) =>
       topicComplete(topic, answers.topics[topic]),
     ) &&
-    (!hasInvestment(answers) || !!answers.autonomy)
+    (!hasInvestment(answers) || !!answers.autonomy) &&
+    sectionDQuestions.every((question) =>
+      question.options.some((option) => option.value === answers.context[question.key]),
+    )
   );
 }
 export function submittedAnswers(answers: EssentialAnswers) {
@@ -63,6 +68,7 @@ export function submittedAnswers(answers: EssentialAnswers) {
   return {
     onboarding_policy: ONBOARDING_POLICY,
     topic_competences_v2: { instruments } as TopicCompetencePayload,
+    section_d: answers.context,
     ...(hasInvestment(answers) ? { D5: answers.autonomy } : {}),
   };
 }
@@ -72,14 +78,17 @@ export function restoreAnswers(raw: Record<string, unknown>): {
 } {
   const flow = raw.essential_flow as
     { answers?: EssentialAnswers; screen?: string } | undefined;
-  if (raw.onboarding_policy === ONBOARDING_POLICY && flow?.answers) {
+  if ([ONBOARDING_POLICY, "onboarding-essential-2026-09"].includes(String(raw.onboarding_policy)) && flow?.answers) {
     const valid = new Set(instrumentOptions.map((row) => row.value));
+    const context = restoreContext(flow.answers.context);
+    const missingContext = sectionDQuestions.find((question) => !context[question.key]);
     return {
       answers: {
         ...flow.answers,
         selected: flow.answers.selected.filter((topic) => valid.has(topic)),
+        context,
       },
-      screen: flow.screen || "selection",
+      screen: flow.screen === "review" && missingContext ? `context:${missingContext.key}` : flow.screen || "selection",
     };
   }
   const matrix = raw.topic_competences_v2 as
@@ -107,7 +116,18 @@ export function restoreAnswers(raw: Record<string, unknown>): {
       selectionConfirmed: confirmed,
       none: confirmed && selected.length === 0,
       autonomy: typeof raw.D5 === "string" ? raw.D5 : undefined,
+      context: restoreContext(raw.section_d),
     },
     screen: "selection",
   };
+}
+
+function restoreContext(raw: unknown): Record<string, string> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const values = raw as Record<string, unknown>;
+  return Object.fromEntries(sectionDQuestions.flatMap((question) => {
+    const value = values[question.key];
+    return question.options.some((option) => option.value === value)
+      ? [[question.key, value as string]] : [];
+  }));
 }

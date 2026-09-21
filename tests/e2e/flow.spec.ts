@@ -335,7 +335,15 @@ test("settings treats a missing Forex safety answer as a completable preference"
   await expect(page.getByText("Non risultano ancora strumenti disponibili per la mentorship.")).toHaveCount(0);
 });
 
-type EssentialSubmission = { onboarding_policy?: string; D5?: string; topic_competences_v2?: { instruments: Array<{ topic: string; knowledge_level: string; invested_amount_band: string; wants_to_mentor: boolean }> } };
+type EssentialSubmission = { onboarding_policy?: string; D5?: string; section_d?: Record<string, string>; topic_competences_v2?: { instruments: Array<{ topic: string; knowledge_level: string; invested_amount_band: string; wants_to_mentor: boolean }> } };
+
+async function completeContext(page: import("@playwright/test").Page, privateAnswers = false) {
+  const responses = { D1: "employee_permanent", D2: "25k_35k", D3: "100_300", D4: "mortgage", D5: "partial" };
+  for (const [key, value] of Object.entries(responses)) {
+    await page.locator(`input[name="context-${key}"][value="${privateAnswers ? "undisclosed" : value}"]`).check();
+    await page.getByRole("button", { name: "Continua", exact: true }).click();
+  }
+}
 
 test("essential onboarding asks only chosen instruments and submits no generic quiz", async ({ page }) => {
   await page.route("**/api/backend/surveys/onboarding/me", route => route.fulfill({ json: { user_id: "u1", latest_answer_id: null } }));
@@ -361,12 +369,14 @@ test("essential onboarding asks only chosen instruments and submits no generic q
   }
   await page.getByLabel("Decido in autonomia dopo ricerche personali").check();
   await page.getByRole("button", { name: "Continua", exact: true }).click();
+  await completeContext(page);
   await expect(page.getByRole("heading", { name: "Ti riconosci in queste risposte?" })).toBeVisible();
   await page.getByRole("button", { name: "Conferma le risposte" }).click();
   await expect(page.getByRole("heading", { name: "Il tuo punto di partenza è pronto" })).toBeVisible();
-  expect(submitted.onboarding_policy).toBe("onboarding-essential-2026-09");
+  expect(submitted.onboarding_policy).toBe("onboarding-essential-context-2026-09");
   expect(submitted.D5).toBe("independent");
-  for (const key of ["D4", "D7", "D8", "D9", "section_d"]) expect(submitted).not.toHaveProperty(key);
+  for (const key of ["D4", "D7", "D8", "D9"]) expect(submitted).not.toHaveProperty(key);
+  expect(submitted.section_d).toEqual({ D1: "employee_permanent", D2: "25k_35k", D3: "100_300", D4: "mortgage", D5: "partial" });
   expect(submitted.topic_competences_v2?.instruments).toHaveLength(8);
   expect(submitted.topic_competences_v2?.instruments.find(row => row.topic === "stocks")).toMatchObject({ knowledge_level: "K0", invested_amount_band: "A0", wants_to_mentor: false });
 });
@@ -384,11 +394,17 @@ test("onboarding zero-experience route has no autonomy or quiz", async ({ page }
   await expect(page.getByRole("alert").filter({ hasText: "Scegli almeno" })).toBeVisible();
   await page.getByLabel("Non conosco e non ho mai usato questi strumenti", { exact: true }).check();
   await page.getByRole("button", { name: "Continua", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Situazione professionale" })).toBeVisible();
+  await expect(page.getByRole("radio", { checked: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Continua", exact: true }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "Preferisco non rispondere" })).toBeVisible();
+  await completeContext(page, true);
   await expect(page.getByRole("heading", { name: "Ti riconosci in queste risposte?" })).toBeVisible();
   await expect(page.getByRole("radio")).toHaveCount(0);
   await page.getByRole("button", { name: "Conferma le risposte" }).click();
   await expect(page.getByRole("heading", { name: "Il tuo punto di partenza è pronto" })).toBeVisible();
   expect(submitted).not.toHaveProperty("D5");
+  expect(submitted.section_d).toEqual({ D1: "undisclosed", D2: "undisclosed", D3: "undisclosed", D4: "undisclosed", D5: "undisclosed" });
   expect(submitted.topic_competences_v2?.instruments.every(row => row.knowledge_level === "K0" && row.invested_amount_band === "A0" && !row.wants_to_mentor)).toBe(true);
 });
 
@@ -409,6 +425,40 @@ test("onboarding draft survives navigation and never replays retired fields", as
   await page.goto("/onboarding");
   await expect(page.locator('input[name="knowledge-etf_funds"][value="K2"]')).toBeChecked();
   await expect(page.locator('input[name="investment-etf_funds"]:checked')).toHaveCount(0);
+});
+
+test("old essential draft must collect context before final confirmation", async ({ page }) => {
+  await page.route("**/api/backend/surveys/onboarding/me", route => route.fulfill({ json: { user_id: "u1", latest_answer_id: null } }));
+  await page.route("**/api/backend/surveys/onboarding/me/draft", route => route.fulfill({ json: {
+    answers: { onboarding_policy: "onboarding-essential-2026-09", essential_flow: {
+      answers: { topics: {}, selected: [], selectionConfirmed: true, none: true }, screen: "review",
+    } },
+  } }));
+  await page.goto("/onboarding");
+  await expect(page.getByRole("heading", { name: "Situazione professionale" })).toBeVisible();
+  await expect(page.getByRole("radio", { checked: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Conferma le risposte" })).toHaveCount(0);
+});
+
+test("financial context draft survives reload without replacing answers with undisclosed", async ({ page }) => {
+  await page.route("**/api/backend/surveys/onboarding/me", route => route.fulfill({ json: { user_id: "u1", latest_answer_id: null } }));
+  let draft: unknown = null;
+  await page.route("**/api/backend/surveys/onboarding/me/draft", route => {
+    if (route.request().method() === "POST") draft = { ...route.request().postDataJSON(), updated_at: new Date().toISOString() };
+    return route.fulfill({ json: draft });
+  });
+  await page.goto("/onboarding");
+  await page.getByRole("button", { name: "Cominciamo" }).click();
+  await page.getByLabel("Non conosco e non ho mai usato questi strumenti", { exact: true }).check();
+  await page.getByRole("button", { name: "Continua", exact: true }).click();
+  await page.getByLabel("Lavoratore autonomo / freelance", { exact: true }).check();
+  await page.getByRole("button", { name: "Continua", exact: true }).click();
+  await page.getByLabel("Tra 25.000 EUR e 35.000 EUR", { exact: true }).check();
+  await expect(page.getByRole("status").filter({ hasText: "Bozza salvata" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByLabel("Tra 25.000 EUR e 35.000 EUR", { exact: true })).toBeChecked();
+  await page.getByRole("button", { name: "Indietro", exact: true }).click();
+  await expect(page.getByLabel("Lavoratore autonomo / freelance", { exact: true })).toBeChecked();
 });
 
 test("onboarding clears an opt-in after competence becomes ineligible", async ({ page }) => {

@@ -73,10 +73,12 @@ export default function PrivacyPage() {
             </p>
             <h3>Sezione di contesto personale</h3>
             <p>
-              Il nuovo ingresso non richiede informazioni su reddito, professione o
-              situazione familiare. Le risposte eventualmente fornite nelle versioni
-              precedenti restano private: non cambiano il matching e non diventano
-              visibili ai mentor.
+              La survey include professione, fascia di reddito, risparmio mensile,
+              debiti e fondo di emergenza. Per ciascuna domanda puoi scegliere
+              “Preferisco non rispondere”. Le informazioni che scegli di condividere
+              servono a conoscere la community in forma aggregata: restano private,
+              non cambiano il matching e non sono visibili ai mentor. Questa scelta
+              non attiva comunicazioni marketing o usi commerciali.
             </p>
           </section>
 

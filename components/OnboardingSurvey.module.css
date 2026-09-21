@@ -57,21 +57,6 @@
 .body .caption {
   margin: 0;
 }
-.promise {
-  display: flex;
-  gap: 14px;
-  padding: 22px;
-  background: #f5f8f4;
-  border-radius: 16px;
-}
-.promise svg {
-  flex-shrink: 0;
-  color: #277655;
-  margin-top: 3px;
-}
-.promise p {
-  margin-top: 6px;
-}
 .instruments,
 .choices {
   padding: 0;
@@ -165,7 +150,8 @@
   padding: 18px 0;
   border-bottom: 1px solid #e2e8f0;
 }
-.review h2 {
+.review h2,
+.review h3 {
   font-size: 1.1rem;
   margin: 0 0 8px;
 }
@@ -220,7 +206,6 @@
 @media (max-width: 620px) {
   .body { gap: 18px; }
   .lead { font-size: 1rem; }
-  .promise { padding: 16px; }
   .panel {
     padding: 24px 18px;
     border-radius: 18px;
