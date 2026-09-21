@@ -395,6 +395,8 @@ test("onboarding zero-experience route has no autonomy or quiz", async ({ page }
   await page.getByLabel("Non conosco e non ho mai usato questi strumenti", { exact: true }).check();
   await page.getByRole("button", { name: "Continua", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Situazione professionale" })).toBeVisible();
+  await expect(page.getByText("Situazione professionale", { exact: true })).toHaveCount(1);
+  await expect(page.getByRole("group", { name: "Situazione professionale", exact: true })).toBeVisible();
   await expect(page.getByRole("radio", { checked: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Continua", exact: true }).click();
   await expect(page.getByRole("alert").filter({ hasText: "Preferisco non rispondere" })).toBeVisible();
@@ -996,7 +998,9 @@ test("goal form warns before discarding unsaved choices", async ({ page }) => {
 test("wallet hides monetization language and shows internal credits", async ({ page }) => {
   await page.goto("/wallet");
   await expect(page.getByRole("heading", { name: "Crediti Socra" })).toBeVisible();
-  await expect(page.getByText("Unità interna di partecipazione, non monetizzabile, usata solo nei percorsi Socra.")).toBeVisible();
+  const content = page.getByRole("main");
+  await expect(content).toHaveCount(1);
+  await expect(content.getByText("Unità interna di partecipazione, non monetizzabile, usata solo nei percorsi Socra.")).toBeVisible();
 });
 
 test("paths are grouped by current user role", async ({ page }) => {

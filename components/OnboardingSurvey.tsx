@@ -755,8 +755,8 @@ function ChoiceGroup({
   hideTitle?: boolean;
 }) {
   return (
-    <fieldset className={styles.choices}>
-      <legend className={hideTitle ? "sr-only" : undefined}>{title}</legend>
+    <fieldset className={styles.choices} aria-label={hideTitle ? title : undefined}>
+      {!hideTitle ? <legend>{title}</legend> : null}
       {hint ? <p className={styles.caption}>{hint}</p> : null}
       <div className={compact ? styles.compact : styles.options}>
         {options.map((option) => (
