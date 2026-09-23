@@ -10,6 +10,7 @@ import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
 import { TabPanel, Tabs } from "@/components/Ui";
 import { ClientApiError, clientGet, clientPost } from "@/lib/api";
+import { parseApiDate } from "@/lib/date";
 import type { MatchRequestItem, UserMe, Wallet } from "@/lib/types";
 
 type RequestWithCost = MatchRequestItem & {
@@ -41,8 +42,10 @@ function requestTiming(request: MatchRequestItem): string | null {
   const timestamp = request.status === "pending" || request.status.startsWith("expired")
     ? request.expires_at
     : terminalTimestamp;
-  if (!timestamp || Number.isNaN(new Date(timestamp).getTime())) return null;
-  const formatted = expiryFormatter.format(new Date(timestamp));
+  if (!timestamp) return null;
+  const instant = parseApiDate(timestamp);
+  if (Number.isNaN(instant.getTime())) return null;
+  const formatted = expiryFormatter.format(instant);
   if (request.status === "pending") return `Scade il: ${formatted}`;
   if (request.status.startsWith("expired")) return `Scaduta il: ${formatted}`;
   if (request.status === "accepted") return `Accettata il: ${formatted}`;
@@ -270,7 +273,13 @@ function RequestRow({
   const person = isReceived
     ? (initiatedByMentor ? request.mentor : request.mentee)
     : (initiatedByMentor ? request.mentee : request.mentor);
-  const personName = person?.nickname || person?.username || "Utente Socra";
+  const personName = person?.nickname || "Utente Socra";
+  const personId = isReceived
+    ? (initiatedByMentor ? request.mentor_id : request.mentee_id)
+    : (initiatedByMentor ? request.mentee_id : request.mentor_id);
+  const direction = isReceived
+    ? (initiatedByMentor ? "Ti propone di essere il tuo mentor" : "Ti chiede di essere il suo mentor")
+    : (initiatedByMentor ? "Gli hai proposto di essere il suo mentor" : "Gli hai chiesto di essere il tuo mentor");
   const status = STATUS_LABELS[request.status] || { label: request.status, className: "" };
   const timing = requestTiming(request);
 
@@ -281,34 +290,23 @@ function RequestRow({
         <div className="requests-row-head">
           <div>
             <h2>{personName}</h2>
-            <p className="muted">
-              {isReceived
-                ? initiatedByMentor
-                  ? "Ti propone di iniziare un percorso insieme"
-                  : "Vuole iniziare un percorso con te"
-                : initiatedByMentor
-                  ? "Proposta inviata all’apprendista"
-                  : "Richiesta inviata al mentor"}
-            </p>
+            <p className="muted">{direction}</p>
+            {personId ? <Link className="requests-profile-link" href={`/profiles/${encodeURIComponent(personId)}?from=requests`} aria-label={`Profilo di ${personName}`}>Vedi il profilo pubblico</Link> : null}
           </div>
           <span className={`pill ${status.className}`.trim()}>{status.label}</span>
         </div>
         <div className="requests-goal">
-          <strong>{request.goal?.goal_tag || "Obiettivo Socra"}</strong>
-          {request.goal?.topic ? <span>{request.goal.topic}</span> : null}
+          {request.goal?.topic ? <p><span>Tema</span><strong>{request.goal.topic}</strong></p> : null}
+          <p><span>Risultato</span><strong>{request.goal?.goal_tag || "Obiettivo Socra"}</strong></p>
           <DiscussionPreferences labels={request.goal?.discussion_type_labels} />
-          {request.alignment_message ? <p style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}><strong>Messaggio iniziale:</strong> {request.alignment_message}</p> : null}
+          {request.alignment_message ? <p className="requests-message"><span>Messaggio iniziale</span><span>{request.alignment_message}</span></p> : null}
           {isReceived && initiatedByMentor && typeof request.cost_at_request === "number" ? (
             <span>
               Costo all&apos;accettazione: {request.cost_at_request} {request.cost_at_request === 1 ? "credito" : "crediti"}
             </span>
           ) : null}
         </div>
-        <div className="requests-meta">
-          <span>Mentor: {request.mentor?.nickname || "Profilo mentor"}</span>
-          <span>Apprendista: {request.mentee?.nickname || "Profilo apprendista"}</span>
-          {timing ? <span>{timing}</span> : null}
-        </div>
+        {timing ? <p className="requests-timing">{timing}</p> : null}
         {request.status === "accepted" && request.path_id ? (
           <Link className="button secondary" href={`/paths/${request.path_id}`}>Apri il percorso</Link>
         ) : null}
@@ -436,6 +434,18 @@ function RequestsStyles() {
         margin: 0 0 2px;
       }
 
+      .requests-profile-link {
+        color: var(--navy-950, #07172d);
+        display: inline-block;
+        font-size: 0.84rem;
+        font-weight: 800;
+        margin-top: 6px;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .requests-profile-link:focus-visible { outline: 3px solid var(--gold-500); outline-offset: 3px; }
+
       .requests-goal {
         background: var(--paper);
         border: 1px solid var(--line);
@@ -445,13 +455,17 @@ function RequestsStyles() {
         padding: 10px 12px;
       }
 
+      .requests-goal p { display: grid; gap: 3px; margin: 0 0 7px; min-width: 0; }
+      .requests-goal p strong { color: var(--navy-950, #07172d); font-size: .9rem; overflow-wrap: anywhere; }
+      .requests-goal .requests-message { border-top: 1px solid var(--line); margin: 4px 0 0; padding-top: 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
+      .requests-timing { color: var(--muted); font-size: .82rem; margin: 0; }
+
       .requests-goal span,
       .requests-meta {
         color: var(--muted);
         font-size: 0.82rem;
       }
 
-      .requests-meta,
       .requests-actions {
         display: flex;
         flex-wrap: wrap;

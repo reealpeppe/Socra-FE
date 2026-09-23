@@ -7,12 +7,12 @@ import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
 import { AsyncState, Button } from "@/components/Ui";
 import { clientGet, clientPost, ClientApiError } from "@/lib/api";
-import { capitalGoalOptions, type SelectOption } from "@/lib/options";
+import { type SelectOption } from "@/lib/options";
 import type { Goal, GoalsMe } from "@/lib/types";
 import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes-guard";
 
 type GoalCatalog = {
-  topics: Array<{ code: string; label: string; goals: Array<{ code: string; label: string }> }>;
+  topics: Array<{ code: string; label: string; goals: Array<{ code: string; label: string; recommended?: boolean }> }>;
   discussion_types: Array<{ code: string; label: string; description: string }>;
   max_discussion_types: number;
 };
@@ -35,7 +35,8 @@ function GoalForm() {
   const pathId = searchParams.get("pathId");
   const [catalog, setCatalog] = useState<GoalCatalog | null>(null);
   const [hasCurrentGoal, setHasCurrentGoal] = useState(false);
-  const [form, setForm] = useState({ topic: "", goal_tag: "", capital_goal: "", risk: "", discussion_types: [] as string[] });
+  const [form, setForm] = useState({ topic: "", goal_tag: "", capital_goal: null as string | null, amount_range: null as string | null, risk: null as string | null, discussion_types: [] as string[] });
+  const [showAllResults, setShowAllResults] = useState(false);
   const [currentTopicOption, setCurrentTopicOption] = useState<SelectOption | null>(null);
   const [currentGoalOption, setCurrentGoalOption] = useState<SelectOption | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,18 +57,16 @@ function GoalForm() {
     }
     return options;
   }, [catalog, currentTopicOption, form.topic]);
-  const availableGoals = useMemo(() => {
-    const options = catalog?.topics.find((topic) => topic.code === form.topic)?.goals.map((goal) => ({ value: goal.code, label: goal.label })) || [];
-    if (
-      form.goal_tag
-      && currentGoalOption?.value === form.goal_tag
-      && !options.some((option) => option.value === form.goal_tag)
-    ) {
-      return [...options, currentGoalOption];
-    }
-    return options;
-  }, [catalog, currentGoalOption, form.goal_tag, form.topic]);
-  const availableCapital = capitalGoalOptions;
+  const topicGoals = catalog?.topics.find((topic) => topic.code === form.topic)?.goals || [];
+  const hasRecommendations = topicGoals.some((goal) => typeof goal.recommended === "boolean");
+  const hasOtherResults = hasRecommendations && topicGoals.some((goal) => !goal.recommended && goal.code !== form.goal_tag);
+  const availableGoals = topicGoals
+    .filter((goal) => !hasRecommendations || showAllResults || goal.recommended || goal.code === form.goal_tag)
+    .map((goal) => ({ value: goal.code, label: goal.label }));
+  if (form.goal_tag && currentGoalOption?.value === form.goal_tag
+    && !availableGoals.some((option) => option.value === form.goal_tag)) {
+    availableGoals.push(currentGoalOption);
+  }
   const editMode = hasCurrentGoal;
   useUnsavedChangesGuard(dirty);
 
@@ -108,10 +107,11 @@ function GoalForm() {
 
   function updateTopic(topic: string) {
     setDirty(true);
+    setShowAllResults(false);
     setForm((current) => ({ ...current, topic, goal_tag: "" }));
   }
 
-  function updateField(field: "goal_tag" | "capital_goal" | "risk", value: string) {
+  function updateField(field: "goal_tag", value: string) {
     setDirty(true);
     setForm((current) => ({ ...current, [field]: value }));
   }
@@ -126,7 +126,7 @@ function GoalForm() {
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
-    if (!catalog || !form.topic || !form.goal_tag || !form.capital_goal || !form.discussion_types.length) {
+    if (!catalog || !form.topic || !form.goal_tag || !form.discussion_types.length) {
       setError("Completa tutte le scelte prima di continuare.");
       return;
     }
@@ -134,7 +134,7 @@ function GoalForm() {
     setSubmitting(true);
     try {
       const endpoint = pathId ? `/paths/${pathId}/update-goal` : "/surveys/goal/me";
-      const goal = await clientPost<Goal>(endpoint, { ...form, risk: form.risk || null, amount_range: form.capital_goal });
+      const goal = await clientPost<Goal>(endpoint, form);
       setDirty(false);
       router.push(pathId
         ? `/paths/${pathId}?goalReviewed=1`
@@ -221,7 +221,7 @@ function GoalForm() {
               <div>
                 <p style={{ color: "var(--navy-950)", fontWeight: 800, margin: "0 0 4px" }}>Scegli il tema del confronto</p>
                 <p style={{ color: "var(--muted)", fontSize: "0.88rem", margin: 0 }}>
-                  Chi valuta un percorso con te vede il tema, il risultato di apprendimento e i tipi di confronto. Il contesto di partenza resta privato.
+                  Chi valuta un percorso con te vede il tema, il risultato di apprendimento e i tipi di confronto.
                 </p>
               </div>
 
@@ -240,14 +240,17 @@ function GoalForm() {
                   options={availableGoals}
                   disabled={loading || submitting || !form.topic}
                 />
-                <SelectField
-                  label="Contesto di partenza (privato)"
-                  value={form.capital_goal}
-                  onChange={(value) => updateField("capital_goal", value)}
-                  options={availableCapital}
-                  disabled={loading || submitting || !catalog}
-                />
               </div>
+              {form.topic && hasRecommendations ? (
+                <div className="goal-result-guidance">
+                  <p className="muted">Risultati suggeriti per la tua preparazione su questo tema. Puoi sceglierne anche un altro.</p>
+                  {hasOtherResults || showAllResults ? (
+                    <button className="goal-result-toggle" type="button" onClick={() => setShowAllResults((value) => !value)} disabled={submitting}>
+                      {showAllResults ? "Mostra solo i risultati suggeriti" : "Mostra tutti i risultati"}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
 
               <fieldset className="discussion-fieldset" aria-describedby="discussion-help discussion-count" disabled={submitting}>
                 <legend>Che tipo di confronto cerchi?</legend>
@@ -313,6 +316,10 @@ function GoalForm() {
               gap: 16px;
               grid-template-columns: repeat(2, minmax(0, 1fr));
             }
+            .goal-result-guidance { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+            .goal-result-guidance p { margin: 0; font-size: .84rem; line-height: 1.5; }
+            .goal-result-toggle { border: 0; background: none; color: var(--navy-950); font: inherit; font-size: .84rem; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 6px 0; }
+            .goal-result-toggle:focus-visible { outline: 3px solid var(--gold-500); outline-offset: 3px; }
             @media (max-width: 640px) {
               .goal-fields, .discussion-options {
                 grid-template-columns: 1fr;
@@ -333,7 +340,6 @@ function SelectField({
   disabled: boolean;
 }) {
   const id = useId();
-  const selectedLabel = options.find(option => option.value === value)?.label;
   return (
     <div style={{ display: "grid", gap: "6px" }}>
       <label htmlFor={id} style={{ color: "var(--navy-950)", fontSize: "0.85rem", fontWeight: 800 }}>{label}</label>
@@ -351,9 +357,6 @@ function SelectField({
           <option key={option.value} value={option.value}>{option.label}</option>
         ))}
       </select>
-      {selectedLabel && (label === "Risultato di apprendimento" || selectedLabel.length > 28)
-        ? <small className="muted" data-testid="goal-selection-summary" style={{ lineHeight: 1.5, overflowWrap: "anywhere" }}>{selectedLabel}</small>
-        : null}
     </div>
   );
 }
@@ -364,8 +367,9 @@ function goalToForm(goal: Goal, catalog: GoalCatalog) {
   return {
     topic,
     goal_tag: goalTag,
-    capital_goal: goal.capital_goal || goal.amount_range || "",
-    risk: goal.risk || "",
+    capital_goal: goal.capital_goal ?? null,
+    amount_range: goal.amount_range ?? null,
+    risk: goal.risk ?? null,
     discussion_types: goal.discussion_types || []
   };
 }

@@ -25,10 +25,10 @@ if (typeof window !== "undefined") {
   });
 }
 
-function invalidate(session = false) {
+function invalidate(session = false, broadcastSessionChange = false) {
   clearRequestCache(session);
   if (typeof window === "undefined") return;
-  if (session) {
+  if (broadcastSessionChange) {
     try { localStorage.setItem("socra-session-change", crypto.randomUUID()); } catch { /* Storage may be disabled. */ }
   }
 }
@@ -250,6 +250,8 @@ async function mutate<T>(method: string, path: string, payload?: unknown): Promi
     if (affectsCachedData) invalidate();
     if (typeof window !== "undefined" && (path.includes("/reassessment") || path.includes("/onboarding/me/answers") || path.includes("/mentor") || path.includes("/profile")))
       window.dispatchEvent(new Event("socra:session-refresh"));
+    if (typeof window !== "undefined" && /^\/matching\/requests(?:\/|$)/.test(path))
+      window.dispatchEvent(new Event("socra:proposals-refresh"));
   }
 }
 
@@ -259,6 +261,7 @@ export async function authPost<T>(path: "login" | "register" | "logout", payload
     const value = await request<T>(`/api/auth/${path}`, { method: "POST", headers: jsonHeaders,
       body: payload === undefined ? undefined : JSON.stringify(payload) });
     sessionInvalid = false;
+    invalidate(true, true);
     return value;
   } finally { invalidate(true); }
 }

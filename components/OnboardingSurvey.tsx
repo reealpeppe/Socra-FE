@@ -387,9 +387,6 @@ export default function OnboardingSurvey({
                         ? "Torna alla mia esperienza"
                         : "Scegli cosa vuoi imparare"}
                     </ButtonLink>
-                    <ButtonLink href="/settings" variant="secondary">
-                      Gestisci la disponibilità come mentor
-                    </ButtonLink>
                   </div>
                 </div>
               ) : (

@@ -92,6 +92,34 @@
   background: var(--gold-400);
 }
 
+.retryButton {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 10px;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 750;
+  min-height: 42px;
+  padding: 8px 16px;
+}
+
+.retryButton:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.sessionLoading,
+.sessionMessage {
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.82rem;
+  margin: 0;
+}
+
+.sessionLoading {
+  white-space: nowrap;
+}
+
 .mobileToggle {
   align-items: center;
   background: transparent;
@@ -312,6 +340,11 @@
   outline-offset: 3px;
 }
 
+.retryButton:focus-visible {
+  outline: 3px solid var(--gold-500);
+  outline-offset: 3px;
+}
+
 .actionDark:focus-visible,
 .actionOutline:focus-visible,
 .textLink:focus-visible {
@@ -369,6 +402,10 @@
 
   .mobilePanel .navLink[aria-current="page"] {
     box-shadow: inset 3px 0 0 var(--gold-500);
+  }
+
+  .mobilePanel .sessionMessage {
+    padding: 10px 14px;
   }
 
   .mobileDivider {

@@ -519,12 +519,10 @@ test("goal route preloads the current goal without requiring a special query", a
   await expect(page.getByRole("heading", { name: "Aggiorna cosa vuoi imparare" })).toBeVisible();
   await expect(page.getByLabel("Tema")).toHaveValue("etf_funds");
   await expect(page.getByLabel("Risultato di apprendimento")).toHaveValue("understand_etf");
-  await expect(page.getByLabel("Contesto di partenza (privato)")).toHaveValue("500_5k");
+  await expect(page.getByLabel("Contesto di partenza (privato)")).toHaveCount(0);
   await expect(page.getByLabel("Stile del confronto (privato)")).toHaveCount(0);
   await expect(page.getByRole("checkbox")).toHaveCount(9);
   await expect(page.getByRole("checkbox", { checked: true })).toHaveCount(0);
-  const contextLabels = await page.getByLabel("Contesto di partenza (privato)").locator("option").allTextContents();
-  expect(contextLabels.join(" ")).not.toMatch(/EUR|€/);
 });
 
 test("discussion preferences require one choice, cap at three and preserve private legacy context", async ({ page }) => {
@@ -538,8 +536,7 @@ test("discussion preferences require one choice, cap at three and preserve priva
     return route.fulfill({ json: { id: "saved-pref", ...payload } });
   });
   await page.goto("/goal");
-  await expect(page.getByTestId("goal-selection-summary").first()).toBeVisible();
-  await expect(page.getByTestId("goal-selection-summary").first()).not.toBeEmpty();
+  await expect(page.getByTestId("goal-selection-summary")).toHaveCount(0);
   await page.getByRole("button", { name: "Aggiorna e vedi i mentor" }).click();
   await expect(page.getByText("Completa tutte le scelte prima di continuare.")).toBeVisible();
   expect(payload).toBeNull();
@@ -552,7 +549,7 @@ test("discussion preferences require one choice, cap at three and preserve priva
   await page.getByRole("checkbox", { name: "Confrontare approcci diversi", exact: true }).check();
   await page.getByRole("button", { name: "Aggiorna e vedi i mentor" }).click();
   await expect(page).toHaveURL(/matching.*saved-pref/);
-  expect(payload).toMatchObject({ discussion_types: ["deepen_topic", "check_understanding", "compare_approaches"], risk: "balanced" });
+  expect(payload).toMatchObject({ discussion_types: ["deepen_topic", "check_understanding", "compare_approaches"], risk: "balanced", capital_goal: "500_5k" });
 });
 
 test("discussion selections preload and remain visible in received requests", async ({ page }) => {

@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { ArrowLeft, CheckCircle2, Shield, ThumbsUp } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { UserAvatar, MetricStat } from "@/components/Ui";
@@ -22,6 +22,7 @@ export default function ProfilePage() {
 
 function ProfileContent() {
   const { userId } = useParams<{ userId: string }>();
+  const fromRequests = useSearchParams().get("from") === "requests";
   const [me, setMe] = useState<UserMe | null>(null);
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -155,9 +156,9 @@ function ProfileContent() {
 	    <>
 	      <div className="profile-page">
         {showAlignment ? <AlignmentDialog name={profile?.nickname || "il mentor"} onClose={() => setShowAlignment(false)} onSend={sendMatchRequest} /> : null}
-        <Link href={isOwnProfile ? "/dashboard" : "/matching"} className="profile-back">
+        <Link href={isOwnProfile ? "/dashboard" : fromRequests ? "/requests" : "/matching"} className="profile-back">
           <ArrowLeft size={16} aria-hidden />
-          {isOwnProfile ? "Torna alla dashboard" : "Torna alla lista dei mentor"}
+          {isOwnProfile ? "Torna alla dashboard" : fromRequests ? "Torna alle proposte" : "Torna alla lista dei mentor"}
         </Link>
 
 	        {loading ? (
@@ -271,9 +272,11 @@ function ProfileContent() {
                   <OwnProfileCard isCoach={profile.is_coach} />
                 ) : !profile.is_coach ? (
                   <section className="card profile-request-card">
-                    <p className="profile-card-title">Profilo non disponibile come mentor</p>
-                    <p className="profile-muted-text">Questa persona non riceve richieste di percorso in questo momento.</p>
-                    <Link href="/matching" className="button secondary">Torna ai mentor</Link>
+                    <p className="profile-card-title">Profilo pubblico</p>
+                    <p className="profile-muted-text">Questa persona non è disponibile come mentor in questo momento.</p>
+                    <Link href={fromRequests ? "/requests" : "/matching"} className="button secondary">
+                      {fromRequests ? "Torna alle proposte" : "Torna ai mentor"}
+                    </Link>
                   </section>
                 ) : authError || !me ? (
                   <section className="card profile-request-card">

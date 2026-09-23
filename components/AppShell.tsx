@@ -18,13 +18,16 @@ import {
   Star,
   Target,
   UserRound,
-  WalletCards
+  WalletCards,
+  X
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { UserAvatar } from "@/components/Ui";
 import { authPost, ClientApiError, clientGet, clientPost } from "@/lib/api";
-import type { NotificationItem, UserMe } from "@/lib/types";
+import { parseApiDate } from "@/lib/date";
+import type { MatchRequestItem, NotificationItem, UserMe } from "@/lib/types";
+import proposalStyles from "./ProposalBanner.module.css";
 
 type NavItem = {
   id: string;
@@ -43,6 +46,24 @@ type AppShellContentProps = {
 };
 
 type SessionState = "loading" | "authenticated" | "unauthenticated" | "error";
+
+function dismissedProposalsKey(userId: string): string {
+  return `socra:dismissed-proposals:${userId}`;
+}
+
+function readDismissedProposals(userId: string): string[] {
+  try {
+    const saved: unknown = JSON.parse(sessionStorage.getItem(dismissedProposalsKey(userId)) || "[]");
+    return Array.isArray(saved) ? saved.filter((id): id is string => typeof id === "string").slice(-100) : [];
+  } catch {
+    return [];
+  }
+}
+
+function clearDismissedProposals(userId: string | null): void {
+  if (!userId) return;
+  try { sessionStorage.removeItem(dismissedProposalsKey(userId)); } catch { /* Storage may be disabled. */ }
+}
 
 function buildNavGroups(userId?: string, isCoach?: boolean): Array<{ label: string; items: NavItem[] }> {
   return [
@@ -132,9 +153,11 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
   const [user, setUser] = useState<UserMe | null>(null);
   const [sessionState, setSessionState] = useState<SessionState>("loading");
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [activeIncomingRequestIds, setActiveIncomingRequestIds] = useState<string[]>([]);
   const [notificationsError, setNotificationsError] = useState<string | null>(null);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [dismissedProposalIds, setDismissedProposalIds] = useState<string[]>([]);
   const [accountOpen, setAccountOpen] = useState(false);
   const [logoutError, setLogoutError] = useState<string | null>(null);
   const [logoutLoading, setLogoutLoading] = useState(false);
@@ -144,7 +167,16 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
   const accountButtonRef = useRef<HTMLButtonElement>(null);
   const notificationsDialogRef = useRef<HTMLDivElement>(null);
   const accountDialogRef = useRef<HTMLDivElement>(null);
+  const notificationOwnerRef = useRef<string | null>(null);
+  const notificationGenerationRef = useRef(0);
   const unreadCount = useMemo(() => notifications.filter((notification) => !notification.read_at).length, [notifications]);
+  const incomingProposals = useMemo(() => notifications.filter((notification) =>
+    !notification.read_at
+    && ["mentor_proposal_received", "match_request_received"].includes(notification.type)
+    && typeof notification.payload.request_id === "string"
+    && activeIncomingRequestIds.includes(notification.payload.request_id)
+  ), [notifications, activeIncomingRequestIds]);
+  const visibleProposal = incomingProposals.find((notification) => !dismissedProposalIds.includes(notification.id));
   const navGroups = useMemo(() => buildNavGroups(user?.id, user?.is_coach), [user?.id, user?.is_coach]);
   const shortcut = primaryAction || { href: "/matching", label: "Trova mentor compatibili" };
   const ShortcutIcon = shortcut.href.startsWith("/paths") ? Route : Compass;
@@ -159,15 +191,30 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
   };
 
   const refreshNotifications = useCallback(async () => {
+    const owner = notificationOwnerRef.current;
+    if (!owner) return;
+    const generation = ++notificationGenerationRef.current;
     setNotificationsLoading(true);
     try {
-      const items = await clientGet<NotificationItem[]>("/notifications/me");
+      const [items, requests] = await Promise.all([
+        clientGet<NotificationItem[]>("/notifications/me"),
+        clientGet<MatchRequestItem[]>("/matching/requests/me?role=all"),
+      ]);
+      if (owner !== notificationOwnerRef.current || generation !== notificationGenerationRef.current) return;
       setNotifications(Array.isArray(items) ? items : []);
+      setActiveIncomingRequestIds(Array.isArray(requests) ? requests.filter((request) =>
+        request.status === "pending"
+        && parseApiDate(request.expires_at).getTime() > Date.now()
+        && (request.initiator_role === "mentor" ? request.mentee_id === owner : request.mentor_id === owner)
+      ).map((request) => request.id) : []);
       setNotificationsError(null);
     } catch {
+      if (owner !== notificationOwnerRef.current || generation !== notificationGenerationRef.current) return;
+      setActiveIncomingRequestIds([]);
       setNotificationsError("Notifiche non aggiornate. Riprova.");
     } finally {
-      setNotificationsLoading(false);
+      if (owner === notificationOwnerRef.current && generation === notificationGenerationRef.current)
+        setNotificationsLoading(false);
     }
   }, []);
 
@@ -179,27 +226,57 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
       clientGet<UserMe>("/auth/me")
       .then((currentUser) => {
         if (!active || requestGeneration !== generation) return;
+        if (notificationOwnerRef.current !== currentUser.id) {
+          clearDismissedProposals(notificationOwnerRef.current);
+          notificationOwnerRef.current = currentUser.id;
+          notificationGenerationRef.current += 1;
+          setNotifications([]);
+          setActiveIncomingRequestIds([]);
+          setNotificationsError(null);
+          setDismissedProposalIds(readDismissedProposals(currentUser.id));
+        }
         setUser(currentUser);
         setSessionState("authenticated");
+        if (!isOnboarding) void refreshNotifications();
       })
       .catch((error: unknown) => {
         if (!active || requestGeneration !== generation) return;
-        setUser(null);
-        setSessionState(
-          error instanceof ClientApiError && error.status === 401
-            ? "unauthenticated"
-            : "error"
-        );
+        if (error instanceof ClientApiError && error.status === 401) {
+          clearDismissedProposals(notificationOwnerRef.current);
+          notificationOwnerRef.current = null;
+          notificationGenerationRef.current += 1;
+          setNotifications([]);
+          setActiveIncomingRequestIds([]);
+          setDismissedProposalIds([]);
+          setUser(null);
+          setSessionState("unauthenticated");
+        } else {
+          setSessionState((current) => current === "authenticated" ? current : "error");
+        }
       });
     }
     refreshSession();
     window.addEventListener("socra:session-refresh", refreshSession);
-    if (!isOnboarding) window.queueMicrotask(() => void refreshNotifications());
     return () => {
       active = false;
       window.removeEventListener("socra:session-refresh", refreshSession);
     };
   }, [refreshNotifications, isOnboarding]);
+
+  useEffect(() => {
+    if (isOnboarding) return;
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void refreshNotifications();
+    };
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    window.addEventListener("socra:proposals-refresh", refreshNotifications);
+    const interval = window.setInterval(refreshWhenVisible, 60_000);
+    return () => {
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+      window.removeEventListener("socra:proposals-refresh", refreshNotifications);
+      window.clearInterval(interval);
+    };
+  }, [isOnboarding, refreshNotifications]);
 
   useEffect(() => {
     // The frame persists while pages change, but transient menus should not.
@@ -284,6 +361,12 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
     setLogoutLoading(true);
     try {
       await authPost("logout");
+      clearDismissedProposals(notificationOwnerRef.current);
+      notificationOwnerRef.current = null;
+      notificationGenerationRef.current += 1;
+      setNotifications([]);
+      setActiveIncomingRequestIds([]);
+      setDismissedProposalIds([]);
       setUser(null);
       setSessionState("unauthenticated");
       setAccountOpen(false);
@@ -351,7 +434,7 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
       }
     : {
         title: "Profilo non disponibile",
-        body: "Non riusciamo a verificare la sessione. Accedi di nuovo."
+        body: "Non riusciamo a verificare la sessione. Riprova."
       };
   const accountButtonLabel = hasAuthenticatedUser
     ? `Apri il menu account di ${accountName}`
@@ -361,6 +444,15 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
   const notificationLabel = unreadCount === 0
     ? "Notifiche: nessuna non letta"
     : `Notifiche: ${unreadCount} ${unreadCount === 1 ? "non letta" : "non lette"}`;
+
+  function dismissIncomingProposals() {
+    const next = Array.from(new Set([...dismissedProposalIds, ...incomingProposals.map((item) => item.id)])).slice(-100);
+    const owner = notificationOwnerRef.current;
+    if (owner) {
+      try { sessionStorage.setItem(dismissedProposalsKey(owner), JSON.stringify(next)); } catch { /* Storage may be disabled. */ }
+    }
+    setDismissedProposalIds(next);
+  }
 
   if (isOnboarding) return <div className="onboarding-shell">
     <a className="skip-link" href="#main-content">Vai al contenuto principale</a>
@@ -428,13 +520,30 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
                 <strong>{sessionState === "loading" ? "Verifica della sessione" : sessionCopy.title}</strong>
                 <small>{sessionState === "loading" ? "Caricamento profilo…" : sessionCopy.body}</small>
               </div>
-              {sessionState !== "loading" ? <Link href={loginHref}>Accedi</Link> : null}
+              {sessionState === "unauthenticated" ? <Link href={loginHref}>Accedi</Link> : null}
+              {sessionState === "error" ? <button className="text-button" type="button" onClick={() => window.dispatchEvent(new Event("socra:session-refresh"))}>Riprova</button> : null}
             </div>
           )}
         </div>
       </aside>
 
       <div className="app-content">
+        {visibleProposal ? (
+          <div className={proposalStyles.banner} role="status" aria-label="Nuova proposta">
+            <div className={proposalStyles.icon} aria-hidden><Bell size={20} /></div>
+            <div className={proposalStyles.copy}>
+              <strong>{incomingProposals.length === 1 ? "Hai una nuova proposta" : `Hai ${incomingProposals.length} nuove proposte`}</strong>
+              <span>Una persona vuole iniziare un percorso con te. Rispondi dalla pagina delle richieste.</span>
+            </div>
+            <Link className={proposalStyles.action} href="/requests">Vedi proposte <span aria-hidden>→</span></Link>
+            <button
+              className={proposalStyles.dismiss}
+              type="button"
+              aria-label="Chiudi avviso"
+              onClick={dismissIncomingProposals}
+            ><X size={18} aria-hidden /></button>
+          </div>
+        ) : null}
         <header className="topbar">
           <Link className="topbar-brand" href="/dashboard" aria-label="Socra, vai alla dashboard">
             <Brand compact variant="dark" />
@@ -542,7 +651,7 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
                     </span>
                     <span className="account-copy">
                       <strong>{sessionState === "loading" ? "Caricamento" : "Sessione"}</strong>
-                      <small>{sessionState === "loading" ? "Attendi" : "Accedi"}</small>
+                      <small>{sessionState === "loading" ? "Attendi" : sessionState === "error" ? "Riprova" : "Accedi"}</small>
                     </span>
                   </>
                 )}
@@ -597,14 +706,17 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
                         <strong id="account-menu-title">{sessionCopy.title}</strong>
                         <span>{sessionCopy.body}</span>
                       </div>
-                      <Link
-                        className="button primary account-menu-login"
-                        href={loginHref}
-                        onClick={() => setAccountOpen(false)}
-                      >
-                        <LogIn size={16} aria-hidden />
-                        Accedi
-                      </Link>
+                      {sessionState === "error" ? (
+                        <button className="button primary account-menu-login" type="button" onClick={() => {
+                          setAccountOpen(false);
+                          window.dispatchEvent(new Event("socra:session-refresh"));
+                        }}>Riprova</button>
+                      ) : (
+                        <Link className="button primary account-menu-login" href={loginHref} onClick={() => setAccountOpen(false)}>
+                          <LogIn size={16} aria-hidden />
+                          Accedi
+                        </Link>
+                      )}
                     </>
                   )}
                 </div>

@@ -14,7 +14,12 @@ async function mockSuccessfulSession(page: Page) {
   await page.route("**/api/backend/surveys/onboarding/me", async (route) => {
     await route.fulfill({ json: { latest_answer_id: "answer-1" } });
   });
-  await page.route("**/api/backend/auth/me", async (route) => route.fulfill({
+  await page.route("**/api/backend/auth/me", async (route) => {
+    // Match the real BFF: a public navbar probe is anonymous until login has set the cookie.
+    if (!(route.request().headers().cookie || "").includes("socra_session=test-token")) {
+      return route.fulfill({ status: 401, json: { detail: "Authentication required" } });
+    }
+    return route.fulfill({
     json: {
       id: "u1",
       username: "user",
@@ -25,7 +30,8 @@ async function mockSuccessfulSession(page: Page) {
       role: "user",
       account_status: "active"
     }
-  }));
+    });
+  });
   await page.route("**/api/backend/wallet/me", async (route) => route.fulfill({
     json: { balance: 10, debt: 0, currency_label: "coin" }
   }));

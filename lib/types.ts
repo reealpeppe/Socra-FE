@@ -100,7 +100,6 @@ export type MenteeCandidate = {
 export type PublicProfile = {
   user_id: string;
   nickname: string | null;
-  level: string;
   path_cost: number;
   is_coach: boolean;
   completed_paths: number;
