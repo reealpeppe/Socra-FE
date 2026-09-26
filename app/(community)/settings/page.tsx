@@ -2,14 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, Mail, UserRound } from "lucide-react";
+import { LogOut, Mail } from "lucide-react";
 import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { TOPIC_SAFETY_SCENARIOS, isMentorEligible } from "@/components/TopicCompetenceMatrix";
 import { UserAvatar } from "@/components/Ui";
+import { ProfileEditor } from "@/components/ProfileEditor";
 import { authPost, ClientApiError, clientGet, clientPatch, clientPut } from "@/lib/api";
 import { instrumentOptions } from "@/lib/options";
-import type { TopicCompetenceSnapshot, TopicCompetenceSnapshotItem, UserMe } from "@/lib/types";
+import type { OwnProfile, TopicCompetenceSnapshot, TopicCompetenceSnapshotItem, UserMe } from "@/lib/types";
 
 const GENERAL_MENTOR_GUARDRAIL_FLAGS = new Set([
   "advanced_topic_claim_with_weak_knowledge_guardrail",
@@ -20,6 +21,7 @@ const GENERAL_MENTOR_GUARDRAIL_FLAGS = new Set([
 export default function SettingsPage() {
   const router = useRouter();
   const [me, setMe] = useState<UserMe | null>(null);
+  const [profile, setProfile] = useState<OwnProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [savingMentorStatus, setSavingMentorStatus] = useState(false);
@@ -39,11 +41,13 @@ export default function SettingsPage() {
     Promise.all([
       clientGet<UserMe>("/auth/me"),
       clientGet<TopicCompetenceSnapshot | null>("/surveys/competences-v2/me"),
+      clientGet<OwnProfile>("/profiles/me").catch(() => null),
     ])
-      .then(([user, topicSnapshot]) => {
+      .then(([user, topicSnapshot, ownProfile]) => {
         if (active) {
           setMe(user);
           setCompetences(topicSnapshot);
+          setProfile(ownProfile);
         }
       })
       .catch(() => {
@@ -148,7 +152,7 @@ export default function SettingsPage() {
     void saveMentorTopics(nextItems, topic);
   }
 
-  const displayName = me?.nickname || me?.username || "Account";
+  const displayName = profile?.nickname || me?.nickname || "Account Socra";
   const accountStatus = me?.account_status === "active"
     ? "Attivo"
     : me?.account_status === "suspended"
@@ -189,34 +193,26 @@ export default function SettingsPage() {
         {loading ? <div className="card" role="status">Caricamento impostazioni…</div> : null}
         {me ? (
         <>
+        {profile ? <ProfileEditor key={profile.user_id} initialProfile={profile} user={me} onUpdated={setProfile} /> : <div className="card"><p role="alert">Non riusciamo a caricare il profilo modificabile.</p><button className="button secondary" onClick={() => setRetryVersion(value => value + 1)}>Ricarica profilo</button></div>}
         <div className="card settings-card">
-          <h2 className="settings-section-title">Il tuo profilo</h2>
+          <h2 className="settings-section-title">Il tuo account</h2>
           <div className="settings-profile-top">
-            <UserAvatar name={displayName} size="lg" />
+            <UserAvatar name={displayName} src={profile?.avatar_url} size="lg" />
             <div className="settings-profile-name">
               <strong>{displayName}</strong>
-              {me?.nickname && me.username && (
-                <span className="settings-username">@{me.username}</span>
-              )}
             </div>
           </div>
           <div className="settings-fields">
-            <div className="settings-field">
-              <span className="settings-field-label">
-                <UserRound size={15} aria-hidden /> Username
-              </span>
-              <span className="settings-field-value">{me?.username || "-"}</span>
-            </div>
             <div className="settings-field">
               <span className="settings-field-label">
                 <Mail size={15} aria-hidden /> Email
               </span>
               <span className="settings-field-value">{me?.email || "-"}</span>
             </div>
-            {me?.nickname !== undefined && (
+            {profile?.nickname !== undefined && (
               <div className="settings-field">
                 <span className="settings-field-label">Nome visibile</span>
-                <span className="settings-field-value">{me.nickname || "-"}</span>
+                <span className="settings-field-value">{profile.nickname || "-"}</span>
               </div>
             )}
             <div className="settings-field">

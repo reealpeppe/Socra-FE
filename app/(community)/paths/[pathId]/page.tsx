@@ -1,6 +1,7 @@
 "use client";
 import { DiscussionPreferences } from "@/components/DiscussionPreferences";
 import { useConfirmation } from "@/components/ConfirmationDialog";
+import { EmailSharingNotice } from "@/components/EmailSharingNotice";
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -55,6 +56,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [emailSharing, setEmailSharing] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -232,6 +234,17 @@ function PathDetailContent({ pathId }: { pathId: string }) {
   const actionPending = pendingAction !== null;
   const pathsHref = role ? `/paths?tab=${role}` : "/paths";
 
+  async function shareEmail() {
+    if (!emailSharing || actionPending || !role) return;
+    setPendingAction("email-sharing"); setError(null); setMessage(null);
+    try {
+      await clientPost(`/paths/${pathId}/email-sharing`, { accepted: true });
+      await load(); setEmailSharing(false);
+      setMessage("La tua conferma di condivisione email è stata salvata.");
+    } catch (err) { setError(err instanceof ClientApiError ? err.message : "Conferma non salvata."); }
+    finally { setPendingAction(null); }
+  }
+
   return (
     <div style={{ display: "grid", gap: "24px", margin: "0 auto", maxWidth: "1100px", width: "100%" }}>
       {confirmationDialog}
@@ -301,6 +314,29 @@ function PathDetailContent({ pathId }: { pathId: string }) {
               </div>
             </div>
           </div>
+
+          {role ? <section className="card stack" aria-labelledby="path-contacts-title">
+            <div><p className="eyebrow">Privato tra voi</p><h2 id="path-contacts-title" style={{ fontSize: "1.15rem", margin: 0 }}>Contatti per il percorso</h2></div>
+            {path.contacts ? <>
+              <p className="muted">Avete entrambi accettato lo scambio. Scrivetevi per concordare il primo incontro e i passaggi successivi.</p>
+              <div className="path-people-grid">
+                {(["mentor", "mentee"] as const).map(side => <div key={side} className="stack" style={{ background: "var(--paper)", border: "1px solid var(--line)", borderRadius: 12, padding: 16, gap: 6, minWidth: 0 }}>
+                  <small className="muted">{side === "mentor" ? "Mentor" : "Apprendista"}</small>
+                  <strong>{path.contacts![side].display_name}</strong>
+                  <a href={`mailto:${path.contacts![side].email}`} style={{ overflowWrap: "anywhere", color: "var(--navy-950)", textUnderlineOffset: 3 }}>{path.contacts![side].email}</a>
+                </div>)}
+              </div>
+              {!user?.email_delivery_enabled ? <p className="muted">L’invio email è disattivato: i contatti restano disponibili qui.</p> : null}
+            </> : path.contact_sharing?.self_accepted ? <>
+              <p className="muted">In attesa della conferma dell’altra persona. Nessun recapito sarà mostrato prima di entrambe le conferme.</p>
+              <button className="button secondary" type="button" disabled={actionPending || loading} onClick={() => void load()}>Aggiorna conferme</button>
+            </> : <>
+              <p className="muted">Questo percorso è stato aperto prima dello scambio contatti. Il percorso resta attivo; per mostrare le email serve la conferma di entrambe le persone, senza nuovi addebiti.</p>
+              {path.contact_sharing?.other_accepted ? <p className="muted">L’altra persona ha già confermato.</p> : null}
+              <EmailSharingNotice accepted={emailSharing} onChange={setEmailSharing} disabled={actionPending} />
+              <button className="button dark" type="button" disabled={!emailSharing || actionPending} onClick={() => void shareEmail()}>{pendingAction === "email-sharing" ? "Conferma…" : "Conferma condivisione"}</button>
+            </>}
+          </section> : null}
 
           <div className="path-action-grid">
             <div className="card">

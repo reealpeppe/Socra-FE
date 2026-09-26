@@ -98,7 +98,7 @@ const sections = [
     faqs: [
       {
         q: "Come mi registro?",
-        a: "Crea il tuo account con username, email e password. Completa la survey raccontando cosa conosci e quali esperienze puoi condividere; poi scegli ciò che vuoi imparare o approfondire. La community è pensata sia per chi comincia sia per chi ha già esperienza.",
+        a: "Crea il tuo account con email e password. Il nome nella community si sceglie nelle impostazioni del profilo, dove puoi aggiungere una breve presentazione e una foto facoltativa. Completa la survey raccontando cosa conosci e quali esperienze puoi condividere; poi scegli ciò che vuoi imparare o approfondire. La community è pensata sia per chi comincia sia per chi ha già esperienza.",
       },
       {
         q: "Posso disattivare la disponibilità come mentor?",

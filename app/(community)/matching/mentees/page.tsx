@@ -103,7 +103,8 @@ function MenteeMatchingContent() {
       const request = await clientPost<MatchRequestItem>("/matching/proposals", {
         mentee_id: candidate.mentee_id,
         goal_id: candidate.goal_id,
-        alignment_message: alignmentMessage
+        alignment_message: alignmentMessage,
+        email_sharing_accepted: true
       });
       setRequests((current) => [request, ...current]);
       setMessage(`Proposta inviata a ${candidate.nickname || "questo utente"}. Avrà 48 ore per rispondere.`);

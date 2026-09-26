@@ -13,6 +13,16 @@ export type UserMe = {
   is_coach: boolean;
   role: string;
   account_status: string;
+  email_verified: boolean;
+  email_verification_required: boolean;
+  email_delivery_enabled: boolean;
+};
+
+export type OwnProfile = {
+  user_id: string;
+  nickname: string | null;
+  bio: string | null;
+  avatar_url: string | null;
 };
 
 export type NotificationItem = {
@@ -100,6 +110,8 @@ export type MenteeCandidate = {
 export type PublicProfile = {
   user_id: string;
   nickname: string | null;
+  bio?: string | null;
+  avatar_url?: string | null;
   path_cost: number;
   is_coach: boolean;
   completed_paths: number;
@@ -110,6 +122,7 @@ export type PublicProfile = {
 };
 
 export type MatchRequestItem = {
+  email_sharing_accepted?: boolean;
   alignment_message?: string | null;
   response_reason?: string | null;
   id: string;
@@ -138,6 +151,12 @@ export type UserSummary = {
 };
 
 export type PathItem = {
+  contacts?: {
+    mentor: { user_id: string; display_name: string; email: string };
+    mentee: { user_id: string; display_name: string; email: string };
+    shared_at: string;
+  } | null;
+  contact_sharing?: { self_accepted: boolean; other_accepted: boolean };
   id: string;
   status: "open" | "feedback_pending" | "completed" | string;
   mentee_id: string;

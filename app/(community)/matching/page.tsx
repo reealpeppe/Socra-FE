@@ -153,7 +153,8 @@ function MatchingContent() {
       await clientPost<MatchRequestItem>("/matching/requests", {
         mentor_id: candidate.mentor_id,
         goal_id: activeGoal.id,
-        alignment_message: alignmentMessage
+        alignment_message: alignmentMessage,
+        email_sharing_accepted: true
       });
       setRequestedMentors((prev) => new Set(prev).add(candidate.mentor_id));
       setMessage("Richiesta inviata. Il mentor ha 48 ore per rispondere.");

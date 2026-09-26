@@ -94,7 +94,7 @@ function ProfileContent() {
   }, [profileRetryVersion, userId]);
 
   const isOwnProfile = me?.id === userId;
-  const displayName = profile?.nickname || (isOwnProfile ? me?.nickname || me?.username : null) || "Utente Socra";
+  const displayName = profile?.nickname || (isOwnProfile ? me?.nickname : null) || "Utente Socra";
   const badges = profile?.public_badges || [];
   const topTopics = profile?.top_topics || [];
   const competences = profile?.competences || [];
@@ -141,7 +141,8 @@ function ProfileContent() {
       await clientPost("/matching/requests", {
         mentor_id: userId,
         goal_id: activeGoal.id,
-        alignment_message: alignmentMessage
+        alignment_message: alignmentMessage,
+        email_sharing_accepted: true
       });
       setRequestSent(true);
     } catch (err) {
@@ -173,9 +174,10 @@ function ProfileContent() {
           <>
             <section className="profile-hero card">
               <div className="profile-hero-left">
-                <UserAvatar name={displayName} size="xl" />
+                <UserAvatar name={displayName} size="xl" src={profile.avatar_url} />
                 <div className="profile-hero-info">
                   <h1 className="profile-name">{displayName}</h1>
+                  {profile.bio ? <p className="profile-muted-text" style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxWidth: "60ch" }}>{profile.bio}</p> : null}
                   <div className="profile-badges-row">
                     {profile.is_coach ? <span className="profile-mentor-badge">Mentor attivo</span> : null}
                     {isOwnProfile ? <span className="profile-own-badge">Profilo personale</span> : null}

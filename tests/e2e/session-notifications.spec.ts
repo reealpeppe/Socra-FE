@@ -67,14 +67,16 @@ test("temporary session failure offers retry without presenting the visitor as l
 });
 
 test("two anonymous public tabs do not broadcast session changes or reload one another", async ({ context, page }) => {
-  const otherTab = await context.newPage();
   let firstTabLoads = 0;
   let secondTabLoads = 0;
   page.on("load", () => { firstTabLoads += 1; });
-  otherTab.on("load", () => { secondTabLoads += 1; });
   await page.route("**/api/backend/auth/me", route => route.fulfill({ status: 401, json: { detail: "Authentication required" } }));
-  await otherTab.route("**/api/backend/auth/me", route => route.fulfill({ status: 401, json: { detail: "Authentication required" } }));
   await page.goto("/come-funziona");
+  // Resolve the first probe before backgrounding the tab: bootstrap scheduling is not the session-broadcast behavior under test.
+  await expect(page.getByRole("navigation", { name: "Navigazione pubblica" }).getByRole("link", { name: "Inizia ora" })).toBeVisible();
+  const otherTab = await context.newPage();
+  otherTab.on("load", () => { secondTabLoads += 1; });
+  await otherTab.route("**/api/backend/auth/me", route => route.fulfill({ status: 401, json: { detail: "Authentication required" } }));
   await otherTab.goto("/come-funziona");
   await expect(page.getByRole("navigation", { name: "Navigazione pubblica" }).getByRole("link", { name: "Inizia ora" })).toBeVisible();
   await expect(otherTab.getByRole("navigation", { name: "Navigazione pubblica" }).getByRole("link", { name: "Inizia ora" })).toBeVisible();

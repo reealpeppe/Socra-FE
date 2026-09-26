@@ -49,13 +49,20 @@ export default function PrivacyPage() {
           <section className={styles.section}>
             <h2>2. Quali dati trattiamo</h2>
             <ul>
-              <li>Account: username, email, password protetta, nickname e stato account.</li>
+              <li>Account: email, password protetta, identificativo interno, nome nella community, stato account e verifica email. Lo username degli account precedenti resta utilizzabile per l’accesso.</li>
+              <li>Profilo: nome nella community, presentazione breve e foto facoltativa, modificabili dalle impostazioni.</li>
               <li>Onboarding: risposte alla survey, valutazioni interne per argomento ed esperienza pratica.</li>
-              <li>Obiettivi e percorsi: argomento, descrizione generalizzata, proposte, stati e crediti interni.</li>
+              <li>Obiettivi e percorsi: argomento, descrizione generalizzata, proposte, stati, crediti interni e conferme per lo scambio dei contatti.</li>
               <li>Feedback e sicurezza: risposte strutturate, note private, badge e segnalazioni.</li>
               <li>Prima sessione: stanza, presenza e durata quando disponibili dal provider.</li>
               <li>Dati tecnici necessari a sessioni, sicurezza, errori e audit amministrativi.</li>
             </ul>
+            <p>
+              La presentazione può contenere al massimo 500 caratteri. La foto viene
+              ritagliata in quadrato e ricodificata senza i metadati del file originale;
+              puoi rimuoverla dalle impostazioni. Sono accettate foto statiche JPEG,
+              PNG o WebP fino a 2 MiB, non SVG o immagini animate.
+            </p>
             <p className={styles.callout}>
               Non chiediamo di pubblicare portafogli, allocazioni o importi personali.
               Evita di inserire credenziali, documenti, dati di terzi o informazioni
@@ -88,12 +95,27 @@ export default function PrivacyPage() {
             <p>
               Le valutazioni per argomento e il matching servono a rendere più pertinenti gli incontri.
               La persona sceglie sempre se inviare o accettare una proposta. Il profilo
-              nella community può mostrare nickname, disponibilità mentor,
+              nella community può mostrare nome, presentazione breve, foto facoltativa, disponibilità mentor,
               argomenti generalizzati, percorsi completati, badge e risultati aggregati.
             </p>
             <p>
               Risposte dettagliate, importi, descrizioni private, valutazioni interne e
               note del percorso non vengono pubblicati.
+            </p>
+            <h3>Condivisione dei contatti nel percorso</h3>
+            <p>
+              La tua email non è pubblica: non compare nel profilo, nei suggerimenti
+              di matching o nelle proposte in attesa o rifiutate. Prima di avviare un
+              nuovo percorso, entrambe le persone devono accettare esplicitamente la
+              condivisione della propria email per organizzare gli incontri. Dopo
+              l’accettazione, i recapiti sono disponibili soltanto alla coppia nel
+              dettaglio del percorso.
+            </p>
+            <p>
+              I percorsi già aperti non autorizzano automaticamente lo scambio:
+              anche qui servono entrambe le conferme prima che i contatti diventino
+              visibili, senza nuovi addebiti di crediti. Questa scelta è distinta dal
+              marketing e non autorizza usi commerciali o la diffusione dei recapiti.
             </p>
           </section>
 
@@ -119,6 +141,30 @@ export default function PrivacyPage() {
               gestione dei backup devono essere validate prima dell’apertura pubblica.
               Socra usa controlli di accesso, password protette, sessioni sicure e audit
               delle attività amministrative; nessun sistema è privo di rischi.
+            </p>
+            <h3>Email operative e fornitori</h3>
+            <p>
+              Quando l’invio è attivo, Socra usa Resend per le email di verifica
+              dell’indirizzo, recupero password richiesto dall’utente e comunicazione
+              di accettazione di un nuovo percorso. Resend riceve l’indirizzo del
+              destinatario e il contenuto necessario al messaggio. Per l’accettazione
+              vengono preparati due messaggi individuali, senza destinatari in copia,
+              con il contatto della controparte e il collegamento al percorso; il link
+              Google Meet compare solo se disponibile. Questi invii non sono marketing.
+            </p>
+            <p>
+              Se l’invio è disattivato, Socra non spedisce queste email e i messaggi
+              soppressi non vengono recuperati alla riattivazione. I contatti già
+              autorizzati restano consultabili nel percorso. Non sono previsti invii
+              per proposte ricevute, feedback o promemoria. La conferma tecnica del
+              provider non garantisce la consegna nella casella di posta.
+            </p>
+            <p>
+              I link di verifica email e recupero password sono personali, monouso
+              e soggetti a scadenza: rispettivamente 24 ore e 30 minuti. Il recupero
+              password chiude tutte le sessioni precedenti. I dettagli contrattuali
+              dei fornitori, le durate definitive e le condizioni privacy devono
+              essere completati nella versione validata del documento.
             </p>
           </section>
 

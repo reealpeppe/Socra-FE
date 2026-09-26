@@ -59,7 +59,8 @@ test("registration form keeps legal documents available before acceptance", asyn
 
   await expect(page.getByRole("heading", { name: "Crea il tuo account" })).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/per ora|codici SMS|\bV1\b/i);
-  await expect(page.getByLabel("Username")).toBeVisible();
+  await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Username", { exact: true })).toHaveCount(0);
   await expect(page.getByLabel("Password", { exact: true })).toBeVisible();
   const form = page.getByRole("form", { name: "Crea il tuo account" });
   const essentialConsent = page.getByLabel(/almeno 18 anni.*Termini.*privacy/i);
@@ -77,13 +78,11 @@ test("registration form keeps legal documents available before acceptance", asyn
   await expect(submit).toBeEnabled();
 });
 
-test("login offers honest account assistance and a route back to the public site", async ({ page }) => {
+test("login offers password recovery and a route back to the public site", async ({ page }) => {
   await page.goto("/login");
 
   await expect(page.getByRole("link", { name: /Torna alla pagina iniziale/i })).toHaveAttribute("href", "/");
-  await page.getByText("Non riesci ad accedere?").click();
-  await expect(page.getByText(/recupero automatico della password non è ancora disponibile/i)).toBeVisible();
-  await expect(page.getByText(/mai la password/i)).toBeVisible();
+  await expect(page.getByRole("link", { name: "Password dimenticata?" })).toHaveAttribute("href", "/forgot-password");
 });
 
 test("protected route redirects anonymous users to login", async ({ page }) => {

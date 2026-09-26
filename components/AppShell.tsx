@@ -421,7 +421,7 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
 
   const hasAuthenticatedUser = sessionState === "authenticated" && user !== null;
   const accountName = hasAuthenticatedUser
-    ? user.nickname || user.username || "Utente Socra"
+    ? user.nickname || "Utente Socra"
     : null;
   const currentHref = pathname === "/paths" && currentTab
     ? `${pathname}?tab=${encodeURIComponent(currentTab)}`

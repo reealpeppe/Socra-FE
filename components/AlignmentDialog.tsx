@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { EmailSharingNotice } from "@/components/EmailSharingNotice";
 
 export function AlignmentDialog({ name, mentorProposal = false, onSend, onClose }: {
   name: string;
@@ -11,6 +12,7 @@ export function AlignmentDialog({ name, mentorProposal = false, onSend, onClose 
   const dialog = useRef<HTMLDialogElement>(null);
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [emailSharing, setEmailSharing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => { dialog.current?.showModal(); }, []);
   return <dialog ref={dialog} aria-labelledby="alignment-title" onCancel={(event) => {
@@ -19,7 +21,7 @@ export function AlignmentDialog({ name, mentorProposal = false, onSend, onClose 
   }} style={{ width: "min(560px, calc(100% - 32px))", border: "1px solid var(--line)", borderRadius: 20, padding: 28, color: "var(--navy-950)" }}>
     <form className="stack" onSubmit={async (event) => {
       event.preventDefault();
-      if (busy || message.trim().length < 20) return;
+      if (busy || message.trim().length < 20 || !emailSharing) return;
       setBusy(true);
       setError(null);
       try { await onSend(message.trim()); onClose(); }
@@ -34,9 +36,10 @@ export function AlignmentDialog({ name, mentorProposal = false, onSend, onClose 
       <textarea id="alignment-message" className="input" autoFocus required minLength={20} maxLength={500} rows={5}
         value={message} disabled={busy} onChange={(event) => setMessage(event.target.value)} aria-describedby="alignment-count" />
       <small id="alignment-count" className="muted">{message.trim().length}/500 caratteri · almeno 20. Non inserire recapiti, importi o dati riservati.</small>
+      <EmailSharingNotice accepted={emailSharing} onChange={setEmailSharing} disabled={busy} />
       {error ? <p className="error" role="alert">{error}</p> : null}
       <div className="cluster">
-        <button className="button dark" type="submit" disabled={busy || message.trim().length < 20}>{busy ? "Invio…" : "Invia"}</button>
+        <button className="button dark" type="submit" disabled={busy || message.trim().length < 20 || !emailSharing}>{busy ? "Invio…" : "Invia"}</button>
         <button className="button secondary" type="button" disabled={busy} onClick={onClose}>Annulla</button>
       </div>
     </form>

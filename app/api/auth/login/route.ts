@@ -13,7 +13,9 @@ export async function POST(request: NextRequest) {
   }).catch(() => null);
   if (!backendResponse) return NextResponse.json({ detail: "Backend unavailable" }, { status: 503 });
   const body = await backendResponse.json();
-  const response = NextResponse.json(body, { status: backendResponse.status });
+  const response = NextResponse.json(backendResponse.ok ? { user_id: (body as TokenResponse).user_id } : body, {
+    status: backendResponse.status, headers: { "Cache-Control": "no-store" },
+  });
   if (backendResponse.ok) {
     setSessionCookie(response, (body as TokenResponse).access_token);
   }

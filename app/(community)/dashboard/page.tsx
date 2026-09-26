@@ -75,7 +75,7 @@ export default function DashboardPage() {
   }, [me?.id]);
 
   const activeGoal = goals?.active_goal || goals?.current || null;
-  const displayName = me?.nickname || me?.username || "utente Socra";
+  const displayName = me?.nickname || "utente Socra";
   const pendingGoalReview = useMemo(
     () => paths.find(
       (path) => path.mentee_id === me?.id
@@ -157,6 +157,11 @@ export default function DashboardPage() {
           <h1>Ciao {displayName}</h1>
           <p>Benvenuto nella tua dashboard. Qui trovi tutto quello che ti serve per il tuo percorso Socra.</p>
         </div>
+
+        {me && !me.nickname ? <div className="dash-alert">
+          <span>Scegli come presentarti alla community: puoi aggiungere un nome, una breve presentazione e una foto facoltativa.</span>
+          <Link href="/settings">Completa il tuo profilo</Link>
+        </div> : null}
 
         {Object.values(errors).some(Boolean) && (
           <div className="dash-alert" role="alert">
@@ -900,7 +905,7 @@ export default function DashboardPage() {
 /* ── PathRow helper ── */
 function PathRow({ path, meId }: { path: PathItem; meId?: string }) {
   const counterparty = path.mentor_id === meId ? path.mentee : path.mentor;
-  const name = counterparty?.nickname || counterparty?.username || "Partner";
+  const name = counterparty?.nickname || "Partner Socra";
 
   const statusLabel: Record<string, string> = {
     open: "Aperto",
