@@ -4,6 +4,7 @@ import { createRequire } from "node:module";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
 import ts from "typescript";
+import { NextRequest } from "next/server.js";
 
 const require = createRequire(import.meta.url);
 function compile(relativePath, globals, imports = {}) {
@@ -18,17 +19,25 @@ function compile(relativePath, globals, imports = {}) {
 function handler(action, upstreamBody, status = 200) {
   const globals = {
     process: { env: { NODE_ENV: "production", SOCRA_API_BASE_URL: "https://backend.example" } },
-    AbortSignal, setTimeout, clearTimeout,
+    AbortSignal, AbortController, setTimeout, clearTimeout, Headers, Response, TextDecoder, Uint8Array, Buffer,
     fetch: async () => new Response(JSON.stringify(upstreamBody), { status, headers: { "Content-Type": "application/json" } }),
   };
-  const server = compile("../lib/server.ts", globals);
+  const security = compile("../lib/web-security.ts", globals);
+  const server = compile("../lib/server.ts", globals, { "@/lib/web-security": security });
   return compile(`../app/api/auth/${action}/route.ts`, globals, { "@/lib/server": server }).POST;
+}
+
+function request(body) {
+  return new NextRequest("https://www.socra.it/api/auth/login", {
+    method: "POST", headers: { Origin: "https://www.socra.it", "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
 }
 
 for (const action of ["login", "register"]) {
   test(`${action} keeps bearer exclusively in an HttpOnly cookie`, async () => {
     const post = handler(action, { access_token: "fixture-session-bearer", token_type: "bearer", user_id: "user-1" });
-    const response = await post({ json: async () => ({ email: "local@example.com", password: "Password123" }) });
+    const response = await post(request({ email: "local@example.com", password: "Password123" }));
     assert.equal(response.status, 200);
     assert.deepEqual(await response.json(), { user_id: "user-1" });
     const cookie = response.headers.get("set-cookie");
@@ -40,7 +49,7 @@ for (const action of ["login", "register"]) {
 
   test(`${action} preserves upstream errors without establishing a session`, async () => {
     const post = handler(action, { detail: "Invalid credentials" }, 401);
-    const response = await post({ json: async () => ({}) });
+    const response = await post(request({}));
     assert.equal(response.status, 401);
     assert.deepEqual(await response.json(), { detail: "Invalid credentials" });
     assert.equal(response.headers.get("set-cookie"), null);

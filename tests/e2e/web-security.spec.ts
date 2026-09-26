@@ -18,8 +18,11 @@ test('CSP protects scripts and framing while the login page hydrates', async ({ 
   const inlineNonces = await page.locator('script:not([src])').evaluateAll(scripts => scripts.map(s => (s as HTMLScriptElement).nonce));
   expect(inlineNonces.length).toBeGreaterThan(0);
   expect(inlineNonces.every(value => value === nonce)).toBe(true);
-  await page.getByText('Non riesci ad accedere?').click();
-  await expect(page.getByText(/recupero automatico della password non è ancora disponibile/i)).toBeVisible();
+  await page.getByLabel('Password', { exact: true }).fill('FixturePassword123');
+  await page.getByRole('button', { name: 'Mostra password' }).click();
+  await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('type', 'text');
+  await page.getByRole('button', { name: 'Nascondi password' }).click();
+  await expect(page.getByLabel('Password', { exact: true })).toHaveAttribute('type', 'password');
   const nextResponse = await page.reload();
   expect(nextResponse!.headers()['content-security-policy']).not.toBe(csp);
   expect(violations).toEqual([]);

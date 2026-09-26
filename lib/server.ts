@@ -49,7 +49,10 @@ async function proxyPrivateBackend(request: NextRequest, path: string[], verific
   }
 
   let body: string | undefined;
-  try { if (!["GET", "HEAD"].includes(request.method)) body = await readJsonBody(request, (verificationRequest ? 16 : 256) * 1024, true); }
+  // The profile UI accepts 2 MiB images; base64 expands them to about 2.8 MiB.
+  const avatarUpload = request.method === "PUT" && path.join("/") === "profiles/me/avatar";
+  const bodyLimit = verificationRequest ? 16 * 1024 : avatarUpload ? 3 * 1024 * 1024 : 256 * 1024;
+  try { if (!["GET", "HEAD"].includes(request.method)) body = await readJsonBody(request, bodyLimit, true); }
   catch (error) { return bodyError(error); }
 
   const search = request.nextUrl.search || "";

@@ -108,7 +108,10 @@ test("public pages contain no placeholder hash links or unsupported population c
   for (const path of ["/", "/come-funziona", "/community", "/livelli", "/sicurezza", "/faq", "/termini", "/privacy"]) {
     await page.goto(path);
     // Dynamic rendering can deliver this legacy redirect in the streamed HTML.
-    if (path === "/livelli") await expect(page).toHaveURL(/\/come-funziona$/);
+    if (path === "/livelli") {
+      await page.waitForURL('**/come-funziona', { waitUntil: 'load' });
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    }
     await expect(page.locator('a[href="#"]')).toHaveCount(0);
     await expect(page.locator("body")).not.toContainText(/oltre 10\.000|18\.547 percorsi/i);
     const viewport = await page.evaluate(() => ({

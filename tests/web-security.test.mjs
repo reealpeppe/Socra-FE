@@ -144,3 +144,35 @@ test('proxy retains the authenticated GET auth/me contract', async () => {
   assert.deepEqual(await response.json(), { id: 'fixture-user' });
   assert.equal(f.calls(), 1);
 });
+
+test('avatar PUT preserves the existing 2 MiB file upload after base64 encoding', async () => {
+  const f = fixture('proxy', { ok: true }, 200, ['profiles', 'me', 'avatar']);
+  const body = JSON.stringify({ image_data: `data:image/png;base64,${'A'.repeat(Math.ceil(2 * 1024 * 1024 / 3) * 4)}` });
+  const response = await f.invoke(request({ method: 'PUT', body, cookie: 'socra_session=fixture' }));
+  assert.equal(response.status, 200);
+  assert.equal(f.calls(), 1);
+});
+
+test('avatar exception is bounded and applies only to the exact PUT endpoint', async () => {
+  for (const [path, method, size] of [
+    [['profiles', 'me', 'avatar'], 'PUT', 3 * 1024 * 1024],
+    [['profiles', 'me', 'avatar'], 'POST', 300 * 1024],
+    [['profiles', 'me'], 'PUT', 300 * 1024],
+  ]) {
+    const f = fixture('proxy', { ok: true }, 200, path);
+    const response = await f.invoke(request({ method, body: JSON.stringify({ padding: 'x'.repeat(size) }), cookie: 'socra_session=fixture' }));
+    assert.equal(response.status, 413);
+    assert.equal(f.calls(), 0);
+  }
+});
+
+test('fixed verification handler remains authenticated and noncacheable', async () => {
+  const f = fixture('email-verification/request', { status: 'suppressed' });
+  const response = await f.invoke(request({ cookie: 'socra_session=fixture' }));
+  assert.equal(response.status, 200);
+  assert.equal(f.calls(), 1);
+  assert.equal(response.headers.get('Cache-Control'), 'private, no-store');
+  const anonymous = fixture('email-verification/request');
+  assert.equal((await anonymous.invoke(request())).status, 401);
+  assert.equal(anonymous.calls(), 0);
+});

@@ -8,7 +8,7 @@
     "start": "next start -p 3000",
     "preview": "next build && next start -p 3000",
     "lint": "eslint .",
-    "test:security": "node --test tests/web-security.test.mjs",
+    "test:security": "node --test tests/web-security.test.mjs tests/auth-bff.test.mjs",
     "typecheck": "tsc --noEmit",
     "test:e2e": "npm run build && node scripts/run-e2e.mjs"
   },
