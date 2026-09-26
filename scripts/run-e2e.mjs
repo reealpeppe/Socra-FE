@@ -12,7 +12,7 @@ const playwrightArgs = process.argv.slice(2);
 
 const server = spawn(process.execPath, [nextCli, "start", "-p", port], {
   cwd: frontendRoot,
-  env: { ...process.env, PORT: port },
+  env: { ...process.env, PORT: port, SOCRA_PUBLIC_ORIGINS: baseURL },
   shell: false,
   stdio: "inherit",
   windowsHide: true,

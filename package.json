@@ -8,12 +8,13 @@
     "start": "next start -p 3000",
     "preview": "next build && next start -p 3000",
     "lint": "eslint .",
+    "test:security": "node --test tests/web-security.test.mjs",
     "typecheck": "tsc --noEmit",
     "test:e2e": "npm run build && node scripts/run-e2e.mjs"
   },
   "dependencies": {
     "lucide-react": "^1.27.0",
-    "next": "^16.2.11",
+    "next": "^16.3.6",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },
@@ -23,11 +24,11 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.39.1",
-    "eslint-config-next": "^16.2.11",
+    "eslint-config-next": "^16.3.6",
     "typescript": "5.5.3"
   },
   "overrides": {
     "postcss": "8.5.23",
-    "sharp": "0.35.3"
+    "sharp": "0.35.4"
   }
 }

@@ -16,6 +16,8 @@ Aggiornato: 26/09/2026. Proprietario dei confini tecnici locali; la [guida](../a
 
 ## Vincoli e verifica
 
+[Standard web obbligatori](../security-baseline.md): guardie Origin/JSON/body/cache centralizzate, auth dedicata e token solo cookie; CSP a nonce per richiesta e layout dinamico. Niente cache CDN condivisa HTML/RSC, asset statici conservano cache framework. Cambi a questi confini richiedono browser production e regressioni BFF, non bypass silenziosi.
+
 Stack e comandi sono in [package.json](../../package.json). Quando cambiano stack, sessione, cache o confini: aggiornare questa pagina; per un contratto condiviso aggiornare anche wiki 07 e, se la scelta lo richiede, ADR backend. Nessun valore di scoring client diventa autorevole.
 
 Il codice di una slice account/email o registrazione non prova che sia pubblicato: verificare lo stato backend. Integrazioni, consenso, dati condivisi e permessi appartengono alle pagine wiki sul ref pertinente.

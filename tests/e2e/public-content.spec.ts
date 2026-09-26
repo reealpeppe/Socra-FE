@@ -107,6 +107,8 @@ test("FAQ category is reflected in the URL and answers expose their open state",
 test("public pages contain no placeholder hash links or unsupported population claims", async ({ page }) => {
   for (const path of ["/", "/come-funziona", "/community", "/livelli", "/sicurezza", "/faq", "/termini", "/privacy"]) {
     await page.goto(path);
+    // Dynamic rendering can deliver this legacy redirect in the streamed HTML.
+    if (path === "/livelli") await expect(page).toHaveURL(/\/come-funziona$/);
     await expect(page.locator('a[href="#"]')).toHaveCount(0);
     await expect(page.locator("body")).not.toContainText(/oltre 10\.000|18\.547 percorsi/i);
     const viewport = await page.evaluate(() => ({
