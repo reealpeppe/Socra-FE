@@ -11,6 +11,7 @@ import { ProfileEditor } from "@/components/ProfileEditor";
 import { authPost, ClientApiError, clientGet, clientPatch, clientPut } from "@/lib/api";
 import { instrumentOptions } from "@/lib/options";
 import type { OwnProfile, TopicCompetenceSnapshot, TopicCompetenceSnapshotItem, UserMe } from "@/lib/types";
+import { ONBOARDING_POLICY } from "@/lib/onboarding";
 
 const GENERAL_MENTOR_GUARDRAIL_FLAGS = new Set([
   "advanced_topic_claim_with_weak_knowledge_guardrail",
@@ -30,6 +31,8 @@ export default function SettingsPage() {
   const [loggingOut, setLoggingOut] = useState(false);
   const [loading, setLoading] = useState(true);
   const [retryVersion, setRetryVersion] = useState(0);
+  const sharing = competences?.onboarding_policy === ONBOARDING_POLICY;
+  const topicEligible = (item: TopicCompetenceSnapshotItem) => sharing ? item.mentor_eligible === true : isMentorEligible(item);
 
   useEffect(() => {
     let active = true;
@@ -109,8 +112,8 @@ export default function SettingsPage() {
           const item = nextItems.find((candidate) => candidate.topic === option.value);
           return {
             topic: option.value,
-            wants_to_mentor: item && isMentorEligible(item) ? item.wants_to_mentor : false,
-            safety_scenario_answer: item?.safety_scenario_answer || null,
+            wants_to_mentor: item && topicEligible(item) ? item.wants_to_mentor : false,
+            safety_scenario_answer: sharing ? null : item?.safety_scenario_answer || null,
           };
         }),
       });
@@ -135,7 +138,7 @@ export default function SettingsPage() {
         }
       : item);
     const nextItem = nextItems.find((item) => item.topic === topic);
-    const scenario = topic === "forex" || topic === "derivatives" ? TOPIC_SAFETY_SCENARIOS[topic] : null;
+    const scenario = !sharing && (topic === "forex" || topic === "derivatives") ? TOPIC_SAFETY_SCENARIOS[topic] : null;
     if (wantsToMentor && scenario && nextItem?.safety_scenario_answer !== scenario.pass) {
       setCompetences({ ...competences, instruments: nextItems });
       setMessage(null);
@@ -169,7 +172,7 @@ export default function SettingsPage() {
     (flag) => GENERAL_MENTOR_GUARDRAIL_FLAGS.has(flag)
   ) ?? false;
   const hasAvailableMentorTopic = competences?.instruments.some((item) => {
-    if (!isMentorEligible(item)) return false;
+    if (!topicEligible(item)) return false;
     const highRisk = item.topic === "forex" || item.topic === "derivatives";
     const safetyCanBeCompleted = highRisk
       && !generalMentorGuardrailBlocked
@@ -274,8 +277,8 @@ export default function SettingsPage() {
               </div>
               {instrumentOptions.map((option) => {
                 const item = competences.instruments.find((candidate) => candidate.topic === option.value);
-                if (!item || !isMentorEligible(item)) return null;
-                const highRisk = option.value === "forex" || option.value === "derivatives";
+                if (!item || !topicEligible(item)) return null;
+                const highRisk = !sharing && (option.value === "forex" || option.value === "derivatives");
                 const scenario = highRisk ? TOPIC_SAFETY_SCENARIOS[option.value as "forex" | "derivatives"] : null;
                 const safetyCorrectable = highRisk && item.safety_scenario_passed === false;
                 const safetyAnswerMissing = highRisk && item.safety_scenario_passed === null;

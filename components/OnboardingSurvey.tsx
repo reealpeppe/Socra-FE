@@ -4,17 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { ArrowRight, ChevronLeft, LockKeyhole } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { ButtonLink } from "@/components/Ui";
-import {
-  SafetyScenario,
-  isMentorEligible,
-} from "@/components/TopicCompetenceMatrix";
 import { clientGet, clientPost } from "@/lib/api";
 import {
-  autonomyOptions,
+  sharingAutonomyOptions as autonomyOptions,
   instrumentOptions,
   sectionDQuestions,
   topicInvestmentOptions,
   topicKnowledgeOptions,
+  topicExperienceDurationOptions,
 } from "@/lib/options";
 import {
   emptyAnswers,
@@ -51,6 +48,7 @@ export default function OnboardingSurvey({
 }) {
   const [answers, setAnswers] = useState<EssentialAnswers>(emptyAnswers);
   const [screen, setScreen] = useState("welcome");
+  const [editingReview, setEditingReview] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [done, setDone] = useState(false);
@@ -123,6 +121,7 @@ export default function OnboardingSurvey({
               const restored = restoreAnswers(raw);
               setAnswers(restored.answers);
               setScreen(restored.screen);
+              setEditingReview(restored.reviewVisited === true);
               setSaveMessage(
                 "Abbiamo recuperato le tue risposte. Puoi modificarle prima di confermare.",
               );
@@ -191,7 +190,7 @@ export default function OnboardingSurvey({
       return;
     const raw = {
       onboarding_policy: ONBOARDING_POLICY,
-      essential_flow: { answers, screen },
+      essential_flow: { answers, screen, reviewVisited: editingReview || screen === "review" },
     };
     try {
       if (draftKey.current)
@@ -218,7 +217,7 @@ export default function OnboardingSurvey({
       void drainSaves();
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [answers, screen, loaded, done, reassessment]);
+  }, [answers, screen, loaded, done, reassessment, editingReview]);
 
   useEffect(() => {
     if (loaded) heading.current?.focus({ preventScroll: true });
@@ -232,7 +231,7 @@ export default function OnboardingSurvey({
     "welcome",
     "selection",
     ...answers.selected.map((topic) => `topic:${topic}`),
-    ...(hasInvestment(answers) ? ["autonomy"] : []),
+    "autonomy",
     ...sectionDQuestions.map((question) => `context:${question.key}`),
     "review",
   ];
@@ -247,19 +246,18 @@ export default function OnboardingSurvey({
     setError(null);
     setAnswers(next);
   }
+  function edit(next: string) {
+    setEditingReview(true);
+    go(next);
+  }
   function updateTopic(patch: Partial<TopicCompetenceDraft>) {
     if (!activeTopic) return;
     const nextRow = { ...row, ...patch };
-    if (!isMentorEligible(nextRow)) {
-      delete nextRow.wants_to_mentor;
-      delete nextRow.safety_scenario_answer;
-    }
-    if (patch.wants_to_mentor === false) delete nextRow.safety_scenario_answer;
+    delete nextRow.safety_scenario_answer;
     const next = {
       ...answers,
       topics: { ...answers.topics, [activeTopic]: nextRow },
     };
-    if (!hasInvestment(next)) delete next.autonomy;
     change(next);
   }
   function next() {
@@ -328,13 +326,13 @@ export default function OnboardingSurvey({
     }
   }
   const title = done
-    ? "Il tuo punto di partenza è pronto"
+    ? "Il tuo punto di partenza è chiaro"
     : screen === "welcome"
       ? reassessment
         ? "La tua esperienza, oggi"
         : "Partiamo da te"
       : screen === "selection"
-        ? "Quali strumenti conosci o hai già usato?"
+        ? "Con quali strumenti finanziari hai già familiarità?"
         : activeTopic
           ? label(activeTopic)
           : screen === "autonomy"
@@ -377,9 +375,11 @@ export default function OnboardingSurvey({
               ) : done ? (
                 <div className={styles.body}>
                   <p>
-                    Ora possiamo proporti confronti più adatti a ciò che conosci
-                    e a ciò che vuoi imparare. Potrai aggiornare queste risposte
-                    in qualsiasi momento.
+                    Ora sappiamo cosa conosci già e quali esperienze hai maturato.
+                    È il momento di scoprire cosa vuoi approfondire e quali obiettivi vuoi raggiungere.
+                  </p>
+                  <p>
+                    Potrai aggiornare queste informazioni in qualsiasi momento.
                   </p>
                   <div className={styles.actions}>
                     <ButtonLink href={reassessment ? "/competenze" : "/goal"}>
@@ -394,28 +394,28 @@ export default function OnboardingSurvey({
                   {activeTopic ? (
                     <p className={styles.caption}>
                       Strumento {answers.selected.indexOf(activeTopic) + 1} di{" "}
-                      {answers.selected.length} · conoscenza ed esperienza sono
-                      due cose diverse.
+                      {answers.selected.length} · Distinguiamo ciò che conosci da ciò che hai sperimentato direttamente.
                     </p>
                   ) : null}
                   {screen === "welcome" ? (
                     <div className={styles.body}>
                       <p className={styles.lead}>
-                        C’è chi parte da zero, chi investe da anni e chi vuole
-                        esplorare un argomento nuovo. Qui c’è spazio per tutti.
+                        C’è chi si avvicina alla finanza personale per la prima volta,
+                        chi investe già da anni e chi vuole approfondire qualcosa di nuovo.
+                        In SOCRA c’è spazio per ogni punto di partenza.
                       </p>
                       <p>
-                        Raccontaci la tua esperienza e il tuo contesto personale.
+                        Raccontaci la tua esperienza: ci aiuterà a capire cosa vuoi imparare
+                        e cosa potresti condividere con gli altri.
                       </p>
                     </div>
                   ) : screen === "selection" ? (
                     <div className={styles.body}>
                       <p>
-                        Seleziona anche gli strumenti che hai solo studiato,
-                        oppure quelli in cui hai investito affidandoti a qualcun
-                        altro.{" "}
+                        Seleziona quelli che conosci, hai studiato o hai già utilizzato,
+                        anche se hai investito con il supporto di qualcun altro.{" "}
                         <strong>
-                          Non è una lista di ciò che vuoi imparare.
+                          Qui vogliamo capire cosa conosci già, non cosa vorresti imparare.
                         </strong>
                       </p>
                       <fieldset className={styles.instruments}>
@@ -473,7 +473,7 @@ export default function OnboardingSurvey({
                           }
                         />
                         <span>
-                          Non conosco e non ho mai usato questi strumenti
+                          Nessuno di questi / Sto partendo da zero
                         </span>
                       </label>
                       <p className={styles.caption}>
@@ -486,7 +486,7 @@ export default function OnboardingSurvey({
                   ) : activeTopic ? (
                     <div className={styles.body}>
                       <ChoiceGroup
-                        title="Quanto lo conosci?"
+                        title="Quanto conosci questo strumento?"
                         name={`knowledge-${activeTopic}`}
                         options={topicKnowledgeOptions}
                         value={row.knowledge_level}
@@ -497,12 +497,12 @@ export default function OnboardingSurvey({
                         }
                       />
                       <ChoiceGroup
-                        title="Qual è il massimo importo tuo investito nello stesso momento?"
+                        title="Qual è stato l’importo massimo che hai investito personalmente?"
                         hint={
                           activeTopic === "forex" ||
                           activeTopic === "derivatives"
-                            ? "Considera capitale proprio, premio o margine a rischio: non il nozionale. Demo e simulatori non contano."
-                            : "Considera anche il passato, senza sommare acquisti e vendite ripetuti sullo stesso capitale. Demo e simulatori non contano."
+                            ? "Considera anche esperienze passate e indica il capitale massimo investito contemporaneamente, senza sommare acquisti e vendite ripetuti. Per Forex e derivati conta capitale proprio, premio o margine a rischio, non il nozionale. Demo e simulatori non contano."
+                            : "Considera anche esperienze passate e indica il capitale massimo che hai avuto investito contemporaneamente in questo strumento senza sommare acquisti e vendite ripetuti sullo stesso capitale. Demo e simulatori non contano."
                         }
                         name={`investment-${activeTopic}`}
                         compact
@@ -514,9 +514,16 @@ export default function OnboardingSurvey({
                           })
                         }
                       />
-                      {isMentorEligible(row) ? (
+                      <ChoiceGroup
+                        title="Da quanto tempo hai esperienza con questo strumento?"
+                        hint="Considera anche il tempo dedicato a conoscerlo e studiarlo."
+                        name={`duration-${activeTopic}`}
+                        options={topicExperienceDurationOptions}
+                        value={row.experience_duration || undefined}
+                        onChange={(value) => updateTopic({ experience_duration: value })}
+                      />
                         <ChoiceGroup
-                          title="Ti senti pronto a condividere la tua esperienza pratica su questo strumento per aiutare un’altra persona?"
+                          title="Sei disponibile a condividere la tua esperienza su questo strumento con altre persone?"
                           name={`mentor-${activeTopic}`}
                           compact
                           options={[
@@ -534,26 +541,15 @@ export default function OnboardingSurvey({
                             updateTopic({ wants_to_mentor: value === "yes" })
                           }
                         />
-                      ) : null}
-                      {activeTopic === "forex" ||
-                      activeTopic === "derivatives" ? (
-                        <SafetyScenario
-                          topic={activeTopic}
-                          answer={row}
-                          onChange={(value) =>
-                            updateTopic({ safety_scenario_answer: value })
-                          }
-                        />
-                      ) : null}
                     </div>
                   ) : screen === "autonomy" ? (
                     <div className={styles.body}>
                       <p>
                         Pensando agli investimenti che hai fatto finora, quale
-                        situazione ti descrive meglio?
+                        situazione ti rappresenta meglio?
                       </p>
                       <ChoiceGroup
-                        title="Nelle decisioni di investimento…"
+                        title="Quando devo prendere una decisione di investimento…"
                         name="autonomy"
                         options={autonomyOptions}
                         value={answers.autonomy}
@@ -562,25 +558,29 @@ export default function OnboardingSurvey({
                         }
                       />
                       <p className={styles.caption}>
-                        Questa risposta ci aiuta a distinguere l’esperienza
-                        diretta da quella completamente delegata.
+                        Puoi condividere anche un’esperienza maturata con il supporto di altri.
                       </p>
                     </div>
                   ) : contextQuestion ? (
                     <div className={styles.body}>
                       <p className={styles.caption}>
-                        Contesto personale · {sectionDQuestions.indexOf(contextQuestion) + 1} di {sectionDQuestions.length}
+                        {contextQuestion.key === "D1" ? "Qualcosa in più su di te" : "Il tuo profilo"} · {sectionDQuestions.indexOf(contextQuestion) + 1} di {sectionDQuestions.length}
                       </p>
                       <p>
-                        Queste informazioni aiutano Socra a conoscere la community
-                        in forma aggregata. Non cambiano il matching e non sono
-                        visibili agli altri utenti. Puoi scegliere “Preferisco non
-                        rispondere” per ogni domanda.
+                        {contextQuestion.key === "D1"
+                          ? "Qualche informazione in più ci aiuta a conoscere meglio le persone che fanno parte di SOCRA e a migliorare la community nel tempo."
+                          : "Questa informazione ci aiuta a conoscere meglio la community e a comprenderne bisogni e caratteristiche nel tempo."}
+                      </p>
+                      <p>
+                        Questa risposta non influenza il matching e non sarà visibile agli altri utenti.
+                        Se preferisci, puoi non rispondere.
                       </p>
                       <ChoiceGroup
                         title={contextQuestion.label}
                         name={`context-${contextQuestion.key}`}
-                        options={contextQuestion.options}
+                        options={contextQuestion.key === "D2" && answers.context.D2 === "gt_75k"
+                          ? [...contextQuestion.options, { value: "gt_75k", label: "Più di 75.000 € (risposta precedente)" }]
+                          : contextQuestion.options}
                         value={answers.context[contextQuestion.key]}
                         onChange={(value) => change({
                           ...answers,
@@ -588,6 +588,9 @@ export default function OnboardingSurvey({
                         })}
                         hideTitle
                       />
+                      <p className={styles.trust}>
+                        <LockKeyhole size={16} aria-hidden /> Privato · Facoltativo · Non influenza il matching
+                      </p>
                     </div>
                   ) : (
                     <div className={styles.body}>
@@ -611,6 +614,7 @@ export default function OnboardingSurvey({
                                   (option) =>
                                     option.value === item.invested_amount_band,
                                 )?.label || "Importo da completare"}
+                                {" · "}{topicExperienceDurationOptions.find(option => option.value === item.experience_duration)?.label || "Durata da completare"}
                               </p>
                               <p className={styles.caption}>
                                 {item.wants_to_mentor
@@ -620,7 +624,7 @@ export default function OnboardingSurvey({
                             </div>
                             <button
                               className="button secondary"
-                              onClick={() => go(`topic:${topic}`)}
+                              onClick={() => edit(`topic:${topic}`)}
                               aria-label={`Modifica ${label(topic)}`}
                             >
                               Modifica
@@ -636,12 +640,12 @@ export default function OnboardingSurvey({
                         </p>
                         <button
                           className="button secondary"
-                          onClick={() => go("selection")}
+                          onClick={() => edit("selection")}
                         >
                           Rivedi strumenti
                         </button>
                       </div>
-                      {hasInvestment(answers) ? (
+                      {(
                         <div className={styles.review}>
                           <p>
                             {autonomyOptions.find(
@@ -650,33 +654,37 @@ export default function OnboardingSurvey({
                           </p>
                           <button
                             className="button secondary"
-                            onClick={() => go("autonomy")}
+                            onClick={() => edit("autonomy")}
                           >
                             Modifica autonomia
                           </button>
                         </div>
-                      ) : null}
-                      {answers.autonomy === "delegated" ? (
-                        <p className={styles.caption}>
-                          Con decisioni completamente delegate non attiviamo la
-                          disponibilità come mentor. Puoi comunque iniziare a
-                          imparare e aggiornare l’esperienza in seguito.
-                        </p>
-                      ) : null}
+                      )}
                       <h2>Contesto personale</h2>
                       {sectionDQuestions.map((question) => (
                         <div className={styles.review} key={question.key}>
                           <div>
                             <h3>{question.label}</h3>
-                            <p>{question.options.find((option) => option.value === answers.context[question.key])?.label || "Da completare"}</p>
+                            <p>{question.key === "D2" && answers.context.D2 === "gt_75k"
+                              ? "Più di 75.000 € (risposta precedente)"
+                              : question.options.find((option) => option.value === answers.context[question.key])?.label || "Da completare"}</p>
                           </div>
-                          <button className="button secondary" onClick={() => go(`context:${question.key}`)} aria-label={`Modifica ${question.label}`}>
+                          <button className="button secondary" onClick={() => edit(`context:${question.key}`)} aria-label={`Modifica ${question.label}`}>
                             Modifica
                           </button>
                         </div>
                       ))}
                     </div>
                   )}
+                  {editingReview && screen !== "review" ? (
+                    <div className={styles.returnToReview}>
+                      <p>Le altre risposte sono conservate. Puoi tornare al riepilogo e controllare eventuali voci mancanti.</p>
+                      <button className="button secondary" type="button" onClick={() => {
+                        if (screen === "selection") change({ ...answers, selectionConfirmed: answers.selected.length > 0 || answers.none });
+                        go("review");
+                      }}>Torna al riepilogo</button>
+                    </div>
+                  ) : null}
                   <div className={styles.footer}>
                     {screen !== "welcome" ? (
                       <button

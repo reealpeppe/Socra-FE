@@ -41,7 +41,7 @@ export const topicKnowledgeOptions = [
     value: "K1",
     label: "Base",
     shortLabel: "Base",
-    description: "So cos’è e a cosa serve."
+    description: "So cos’è e ne conosco il funzionamento generale."
   },
   {
     value: "K2",
@@ -53,17 +53,32 @@ export const topicKnowledgeOptions = [
     value: "K3",
     label: "Avanzata",
     shortLabel: "Avanzata",
-    description: "So confrontare alternative, limiti e scenari più articolati."
+    description: "So confrontare alternative e valutarne caratteristiche, vantaggi e limiti."
   }
 ] as const;
 
 export const topicInvestmentOptions = [
-  { value: "A0", label: "0 €", shortLabel: "0 €" },
+  { value: "A0", label: "0 € — Mai investito", shortLabel: "0 €" },
   { value: "A1", label: "Meno di 100 €", shortLabel: "< 100 €" },
   { value: "A2", label: "Da 100 a 999 €", shortLabel: "100–999 €" },
   { value: "A3", label: "Da 1.000 a 9.999 €", shortLabel: "1.000–9.999 €" },
   { value: "A4", label: "10.000 € o più", shortLabel: "10.000 €+" }
 ] as const;
+
+export const topicExperienceDurationOptions = [
+  { value: "lt_6m", label: "Meno di 6 mesi" },
+  { value: "6m_12m", label: "6–12 mesi" },
+  { value: "1y_3y", label: "1–3 anni" },
+  { value: "3y_5y", label: "3–5 anni" },
+  { value: "gt_5y", label: "Più di 5 anni" },
+] as const;
+
+export const sharingAutonomyOptions: SelectOption[] = [
+  { value: "delegated", label: "Mi affido principalmente a un professionista" },
+  { value: "guided", label: "Mi confronto con altri, poi decido io" },
+  { value: "independent", label: "Faccio le mie valutazioni in autonomia" },
+  { value: "not_yet", label: "Non ho ancora preso decisioni di investimento" },
+];
 
 export const knowledgeConcepts = [
   { value: "diversification", label: "Diversificazione" },
@@ -133,7 +148,7 @@ export const situationalQuestions = [
 export const sectionDQuestions = [
   {
     key: "D1",
-    label: "Situazione professionale",
+    label: "Qual è la tua situazione professionale?",
     options: [
       { value: "employee_permanent", label: "Dipendente a tempo indeterminato" },
       { value: "employee_fixed", label: "Dipendente a tempo determinato" },
@@ -142,54 +157,56 @@ export const sectionDQuestions = [
       { value: "student", label: "Studente" },
       { value: "retired", label: "Pensionato" },
       { value: "unemployed", label: "Non occupato / in cerca di lavoro" },
+      { value: "other", label: "Altro" },
       { value: "undisclosed", label: "Preferisco non rispondere" }
     ]
   },
   {
     key: "D2",
-    label: "Reddito annuo lordo",
+    label: "Qual è indicativamente il tuo reddito annuo lordo?",
     options: [
-      { value: "lt_15k", label: "Meno di 15.000 EUR" },
-      { value: "15k_25k", label: "Tra 15.000 EUR e 25.000 EUR" },
-      { value: "25k_35k", label: "Tra 25.000 EUR e 35.000 EUR" },
-      { value: "35k_50k", label: "Tra 35.000 EUR e 50.000 EUR" },
-      { value: "50k_75k", label: "Tra 50.000 EUR e 75.000 EUR" },
-      { value: "gt_75k", label: "Più di 75.000 EUR" },
+      { value: "lt_15k", label: "Meno di 15.000 €" },
+      { value: "15k_25k", label: "15.000 – 25.000 €" },
+      { value: "25k_35k", label: "25.000 – 35.000 €" },
+      { value: "35k_50k", label: "35.000 – 50.000 €" },
+      { value: "50k_75k", label: "50.000 – 75.000 €" },
+      { value: "75k_100k", label: "75.000 – 100.000 €" },
+      { value: "gt_100k", label: "Oltre 100.000 €" },
       { value: "undisclosed", label: "Preferisco non rispondere" }
     ]
   },
   {
     key: "D3",
-    label: "Risparmio mensile medio",
+    label: "Quanto riesci a risparmiare mediamente ogni mese?",
     options: [
-      { value: "none", label: "Non riesco a risparmiare" },
-      { value: "lt_100", label: "Meno di 100 EUR" },
-      { value: "100_300", label: "Tra 100 EUR e 300 EUR" },
-      { value: "300_600", label: "Tra 300 EUR e 600 EUR" },
-      { value: "600_1k", label: "Tra 600 EUR e 1.000 EUR" },
-      { value: "gt_1k", label: "Più di 1.000 EUR" },
+      { value: "none", label: "Al momento non risparmio" },
+      { value: "lt_100", label: "Meno di 100 €" },
+      { value: "100_300", label: "100 – 300 €" },
+      { value: "300_600", label: "300 – 600 €" },
+      { value: "600_1k", label: "600 – 1.000 €" },
+      { value: "gt_1k", label: "Oltre 1.000 €" },
       { value: "undisclosed", label: "Preferisco non rispondere" }
     ]
   },
   {
     key: "D4",
-    label: "Mutuo o debiti significativi",
+    label: "Hai attualmente mutui o altri debiti?",
     options: [
-      { value: "none", label: "No, non ho debiti significativi" },
-      { value: "mortgage", label: "Sì, ho un mutuo sulla prima casa" },
-      { value: "mortgage_plus", label: "Sì, ho un mutuo e altri debiti" },
-      { value: "other_debt", label: "Sì, ho debiti ma non un mutuo" },
+      { value: "none", label: "No, non ho mutui o altri debiti" },
+      { value: "mortgage", label: "Sì, ho un mutuo" },
+      { value: "other_debt", label: "Sì, ho prestiti o altri finanziamenti" },
+      { value: "mortgage_plus", label: "Sì, ho un mutuo e altri finanziamenti" },
       { value: "undisclosed", label: "Preferisco non rispondere" }
     ]
   },
   {
     key: "D5",
-    label: "Fondo di emergenza",
+    label: "Hai un fondo di emergenza?",
     options: [
-      { value: "adequate", label: "Sì, ce l'ho e copre almeno 3 mesi di spese" },
-      { value: "partial", label: "Sì, ma è inferiore a 3 mesi di spese" },
-      { value: "none", label: "No, non ce l'ho" },
-      { value: "unaware", label: "Non so cosa sia o come calcolarlo" },
+      { value: "adequate", label: "Sì, copre almeno 3 mesi delle mie spese" },
+      { value: "partial", label: "Sì, ma copre meno di 3 mesi delle mie spese" },
+      { value: "none", label: "No, non ne ho ancora uno" },
+      { value: "unaware", label: "Non so ancora come valutarlo" },
       { value: "undisclosed", label: "Preferisco non rispondere" }
     ]
   }

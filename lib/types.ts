@@ -216,6 +216,7 @@ export type TopicKnowledgeLevel = "K0" | "K1" | "K2" | "K3";
 export type TopicInvestmentBand = "A0" | "A1" | "A2" | "A3" | "A4";
 
 export type TopicCompetenceInput = {
+  experience_duration?: string | null;
   topic: string;
   knowledge_level: TopicKnowledgeLevel;
   invested_amount_band: TopicInvestmentBand;
@@ -228,6 +229,7 @@ export type TopicCompetencePayload = {
 };
 
 export type TopicCompetenceDraft = {
+  experience_duration?: string | null;
   knowledge_level?: TopicKnowledgeLevel;
   invested_amount_band?: TopicInvestmentBand;
   wants_to_mentor?: boolean;
@@ -241,6 +243,7 @@ export type TopicCompetenceSnapshotItem = TopicCompetenceInput & {
 };
 
 export type TopicCompetenceSnapshot = {
+  onboarding_policy?: string;
   instruments: TopicCompetenceSnapshotItem[];
   eligible_mentor_topics?: string[];
   consistency_flags?: string[];
