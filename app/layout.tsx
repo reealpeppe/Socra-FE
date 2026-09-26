@@ -2,6 +2,9 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { PerformanceDiagnostics } from "@/components/PerformanceDiagnostics";
 
+// A fresh CSP nonce must be attached to Next's scripts on every request.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   applicationName: "Socra",
   title: {
