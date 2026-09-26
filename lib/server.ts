@@ -14,6 +14,7 @@ export async function getSessionToken(): Promise<string | undefined> {
 }
 
 export function setSessionCookie(response: NextResponse, token: string): void {
+  clearStepUpCookie(response);
   response.cookies.set(sessionCookie, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -24,6 +25,7 @@ export function setSessionCookie(response: NextResponse, token: string): void {
 }
 
 export function clearSessionCookie(response: NextResponse): void {
+  clearStepUpCookie(response);
   response.cookies.set(sessionCookie, "", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -33,7 +35,16 @@ export function clearSessionCookie(response: NextResponse): void {
   });
 }
 
+function clearStepUpCookie(response: NextResponse): void {
+  response.cookies.set("socra_monitoring", "", {httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"strict",path:"/",maxAge:0});
+}
+
 export async function proxyBackend(request: NextRequest, path: string[]): Promise<NextResponse> {
+  // Private monitoring has its own BFF. Never expose its grants via this proxy.
+  let decoded: string;
+  try { decoded=decodeURIComponent(path.join("/")).replaceAll("\\", "/"); }
+  catch { return NextResponse.json({detail:"Risorsa non disponibile"},{status:403,headers:{"Cache-Control":"private, no-store"}}); }
+  if (/[\u0000-\u0020\u007f?#]/.test(decoded) || decoded.split("/").some(segment=>segment==="monitoring" || segment==="." || segment==="..")) return NextResponse.json({detail:"Risorsa non disponibile"},{status:403,headers:{"Cache-Control":"private, no-store"}});
   const token = request.cookies.get(sessionCookie)?.value;
   if (!token) {
     return NextResponse.json({ detail: "Authentication required" }, { status: 401 });
