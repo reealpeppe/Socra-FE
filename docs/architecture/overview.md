@@ -1,6 +1,6 @@
 # Architettura frontend Socra
 
-Aggiornato: 26/09/2026. Proprietario dei confini tecnici locali; la [guida](../agent/README.md) risolve wiki e architettura condivisa del backend sul ref del task.
+Aggiornato: 27/09/2026. Proprietario dei confini tecnici locali; la [guida](../agent/README.md) risolve wiki e architettura condivisa del backend sul ref del task.
 
 ## Responsabilità e punti di ingresso
 
@@ -25,3 +25,5 @@ Il codice di una slice account/email o registrazione non prova che sia pubblicat
 Test locali di riferimento: [auth/BFF](../../tests/auth-bff.test.mjs), [cache](../../tests/request-cache.mjs), [date](../../tests/date.test.mjs), [browser](../../tests/e2e). La configurazione e il runner distinguono mock e server esterno; i risultati browser con mock non verificano API/provider reali.
 
 Monitoraggio privato: route `/admin/monitoraggio`, MFA React e BFF dedicato con Origin canonico/16KiB, cookie HttpOnly/Secure/Strict massimo8h e grant legato alla sessione backend. Cookie login allineato a expires_in (massimo8h); resto utenti invariato. Proxy generico non inoltra monitoring. HTML statico della sola dashboard usa CSP script-src self per script locali; MFA/resto app conserva nonce strict-dynamic. Regole nella wiki11 backend, contratto wiki07, ADR-private-monitoring-20260926.
+
+Stato monitoraggio: pubblicato il27/09 su `release/v3-20260919`, FE `3d6cb79` / BE `71c09fa`; rapporto canonico backend `docs/releases/2026-09-27-monitoring-production.md`. Aggiornamenti documentali successivi non cambiano il codice verificato.
