@@ -10,6 +10,8 @@ Le regole funzionali hanno un solo proprietario nel backend. DOCX, vecchie speci
 
 Ogni cambiamento di comportamento/copy funzionale deve includere l'aggiornamento della pagina wiki proprietaria nel backend, dei contratti/permessi coinvolti e dei test pertinenti. Un cambiamento tecnico aggiorna il documento locale e, se necessario, contratto o ADR condiviso. Se la wiki non cambia, spiega perché. In un task BE/FE indica entrambi i ref e includi i documenti nei commit della slice.
 
+Gli schemi cloud/layer/componenti condivisi hanno un solo proprietario: `Socra-BE/docs/wiki/13-architettura-schemi.md`, da recuperare sul ref pertinente tramite la [guida locale](docs/agent/README.md). Quando cambiano componenti, collegamenti, confini o stato di attivazione, aggiornarli nello stesso lavoro anche per interventi soltanto FE/configurazione. Se invariati, riportare verifica e motivazione nella consegna/PR; non duplicarli nel frontend.
+
 Sessione HTTP-only e proxy server-side; nessun token in localStorage. Il backend resta autorevole su autorizzazioni, idoneità, ranking, saldo e lifecycle. Mantieni separati stato utente, cache e notifiche tra account; non esporre dati/algoritmi interni nel copy.
 
 Ogni nuovo sviluppo rispetta gli [standard web](docs/security-baseline.md) e la baseline wiki12 backend: Origin esatto, JSON/body limitati, errori no-store, bearer solo nel cookie, CSP/hydration e audit dipendenze. Le route auth usano handler dedicati; nessun bypass dal proxy generico. Verifica `npm run test:security` insieme ai controlli pertinenti; eccezioni motivate e provate.

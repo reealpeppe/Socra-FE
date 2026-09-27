@@ -1,6 +1,6 @@
 # Architettura frontend Socra
 
-Aggiornato: 26/09/2026. Proprietario dei confini tecnici locali; la [guida](../agent/README.md) risolve wiki e architettura condivisa del backend sul ref del task.
+Aggiornato: 27/09/2026. Proprietario dei confini tecnici locali; la [guida](../agent/README.md) risolve wiki e architettura condivisa del backend sul ref del task.
 
 ## Responsabilità e punti di ingresso
 
@@ -19,6 +19,8 @@ Aggiornato: 26/09/2026. Proprietario dei confini tecnici locali; la [guida](../a
 [Standard web obbligatori](../security-baseline.md): guardie Origin/JSON/body/cache centralizzate, auth dedicata e token solo cookie; CSP a nonce per richiesta e layout dinamico. Niente cache CDN condivisa HTML/RSC, asset statici conservano cache framework. Cambi a questi confini richiedono browser production e regressioni BFF, non bypass silenziosi.
 
 Stack e comandi sono in [package.json](../../package.json). Quando cambiano stack, sessione, cache o confini: aggiornare questa pagina; per un contratto condiviso aggiornare anche wiki 07 e, se la scelta lo richiede, ADR backend. Nessun valore di scoring client diventa autorevole.
+
+La wiki 13 backend (`docs/wiki/13-architettura-schemi.md`) possiede gli schemi cloud, layer e componenti. Modifiche FE a componenti, collegamenti, confini o attivazioni richiedono aggiornamento degli schemi nello stesso lavoro, con data/ref/evidenze e proposte separate dalla produzione; se invariati, motivare il controllo nella consegna/PR. Recuperare la fonte come da [guida](../agent/README.md), senza copiarla nel FE.
 
 Il codice di una slice account/email o registrazione non prova che sia pubblicato: verificare lo stato backend. Integrazioni, consenso, dati condivisi e permessi appartengono alle pagine wiki sul ref pertinente.
 
