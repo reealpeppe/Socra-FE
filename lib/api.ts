@@ -83,6 +83,12 @@ async function parseResponse<T>(response: Response): Promise<T> {
 }
 
 const ERROR_TRANSLATIONS: Record<string, string> = {
+  "Verify your email before searching profiles or using matching": "Conferma la tua email prima di cercare profili o usare il matching.",
+  "Username is already in use": "Questo username è già in uso. Scegline un altro.",
+  "Email is already in use": "Questa email è già associata a un account.",
+  "Email correction is only available before verification": "Puoi correggere l’email soltanto prima della verifica.",
+  "Email cannot be changed after sharing path contacts": "L’email non può essere modificata dopo la condivisione dei contatti di un percorso.",
+  "Passwords do not match": "Le password non coincidono.",
   "Invalid or expired token": "Link non valido, scaduto o già utilizzato. Richiedi un nuovo link e riprova.",
   "Invalid email address": "Inserisci un indirizzo email valido.",
   "Verify your email before proposing or accepting a path": "Verifica la tua email dalle impostazioni prima di proporre o accettare un percorso.",
@@ -263,6 +269,16 @@ export async function accountPost<T>(path: "email-verification/request" | "email
     if (typeof window !== "undefined") window.dispatchEvent(new Event("socra:session-refresh"));
   }
   return value;
+}
+
+export async function correctAccountEmail<T>(email: string): Promise<T> {
+  invalidate();
+  try {
+    return await request<T>("/api/auth/email", { method: "PATCH", headers: jsonHeaders, body: JSON.stringify({ email }) });
+  } finally {
+    invalidate();
+    if (typeof window !== "undefined") window.dispatchEvent(new Event("socra:session-refresh"));
+  }
 }
 
 async function mutate<T>(method: string, path: string, payload?: unknown): Promise<T> {

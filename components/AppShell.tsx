@@ -28,6 +28,7 @@ import { authPost, ClientApiError, clientGet, clientPost } from "@/lib/api";
 import { parseApiDate } from "@/lib/date";
 import type { MatchRequestItem, NotificationItem, UserMe } from "@/lib/types";
 import proposalStyles from "./ProposalBanner.module.css";
+import { EmailVerificationNotice } from "@/components/EmailVerificationNotice";
 
 type NavItem = {
   id: string;
@@ -168,6 +169,7 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
   const notificationsDialogRef = useRef<HTMLDivElement>(null);
   const accountDialogRef = useRef<HTMLDivElement>(null);
   const notificationOwnerRef = useRef<string | null>(null);
+  const canReadRequestsRef = useRef(false);
   const notificationGenerationRef = useRef(0);
   const unreadCount = useMemo(() => notifications.filter((notification) => !notification.read_at).length, [notifications]);
   const incomingProposals = useMemo(() => notifications.filter((notification) =>
@@ -198,7 +200,7 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
     try {
       const [items, requests] = await Promise.all([
         clientGet<NotificationItem[]>("/notifications/me"),
-        clientGet<MatchRequestItem[]>("/matching/requests/me?role=all"),
+        canReadRequestsRef.current ? clientGet<MatchRequestItem[]>("/matching/requests/me?role=all") : Promise.resolve([]),
       ]);
       if (owner !== notificationOwnerRef.current || generation !== notificationGenerationRef.current) return;
       setNotifications(Array.isArray(items) ? items : []);
@@ -236,6 +238,7 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
           setDismissedProposalIds(readDismissedProposals(currentUser.id));
         }
         setUser(currentUser);
+        canReadRequestsRef.current = currentUser.email_verified || !currentUser.email_verification_required;
         setSessionState("authenticated");
         if (!isOnboarding) void refreshNotifications();
       })
@@ -725,7 +728,10 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
           </div>
         </header>
 
-        <main className="main" id="main-content" tabIndex={-1}>{children}</main>
+        <main className="main" id="main-content" tabIndex={-1}>
+          {user ? <EmailVerificationNotice key={user.id} user={user} /> : null}
+          {children}
+        </main>
       </div>
 
       <nav className="mobile-nav" aria-label="Navigazione mobile">

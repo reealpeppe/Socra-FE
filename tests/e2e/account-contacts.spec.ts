@@ -27,7 +27,7 @@ async function session(page: Page, context: BrowserContext, baseURL: string) {
   await page.route("**/api/backend/calls/first-session/room?**", route => route.fulfill({ status: 404, json: { detail: "Call room not found" } }));
 }
 
-test("registration collects only email password and essential consent", async ({ page, context, baseURL }) => {
+test("registration collects identity and essential consent", async ({ page, context, baseURL }) => {
   await session(page, context, baseURL!);
   let posted: unknown;
   await page.route("**/api/auth/register", route => {
@@ -35,14 +35,17 @@ test("registration collects only email password and essential consent", async ({
     return route.fulfill({ json: { user_id: "u1" } });
   });
   await page.goto("/register");
-  await expect(page.getByLabel("Username", { exact: true })).toHaveCount(0);
+  await page.getByLabel("Nome", { exact: true }).fill("Giulia");
+  await page.getByLabel("Cognome", { exact: true }).fill("Rossi");
+  await page.getByLabel("Username", { exact: true }).fill("giulia_etf");
   await expect(page.getByLabel(/Nome visibile/)).toHaveCount(0);
   await page.getByLabel("Email", { exact: true }).fill("giulia@example.com");
   await page.getByLabel("Password", { exact: true }).fill("StrongPass123");
+  await page.getByLabel("Conferma password", { exact: true }).fill("StrongPass123");
   await page.getByLabel(/almeno 18 anni/).check();
   await page.getByRole("button", { name: "Crea account" }).click();
   await expect(page).toHaveURL(/\/onboarding/);
-  expect(posted).toEqual({ email: "giulia@example.com", password: "StrongPass123", consent_essential: true });
+  expect(posted).toEqual({ first_name: "Giulia", last_name: "Rossi", username: "giulia_etf", password_confirmation: "StrongPass123", email: "giulia@example.com", password: "StrongPass123", consent_essential: true });
 });
 
 test("verification uses fragment in memory and removes it before confirming", async ({ page }) => {
@@ -106,11 +109,11 @@ test("profile edits name bio and optional photo without claiming a disabled emai
     return route.fulfill({ json: profile });
   });
   await page.goto("/settings");
-  await page.getByLabel("Nome nella community").fill("Giulia ETF");
+  await page.getByLabel("Username", { exact: true }).fill("giulia_etf");
   await page.getByLabel("Presentazione breve").fill("Imparo confrontandomi con la community.");
   await page.getByRole("button", { name: "Salva profilo" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Profilo aggiornato" })).toBeVisible();
-  expect(patch).toEqual({ nickname: "Giulia ETF", bio: "Imparo confrontandomi con la community." });
+  expect(patch).toEqual({ username: "giulia_etf", bio: "Imparo confrontandomi con la community." });
   await page.getByLabel("Foto del profilo").setInputFiles({ name: "foto.png", mimeType: "image/png", buffer: Buffer.from("image-test") });
   await expect(page.getByRole("button", { name: "Rimuovi foto" })).toBeVisible();
   expect(avatar).toEqual({ image_data_url: "data:image/png;base64,aW1hZ2UtdGVzdA==" });

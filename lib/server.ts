@@ -95,6 +95,10 @@ export function requestEmailVerification(request: NextRequest): Promise<NextResp
   return proxyPrivateBackend(request, ["auth", "email-verification", "request"], true);
 }
 
+export function correctUnverifiedEmail(request: NextRequest): Promise<NextResponse> {
+  return proxyPrivateBackend(request, ["auth", "email"], true);
+}
+
 export async function authenticate(request: NextRequest, action: "login" | "register"): Promise<NextResponse> {
   const rejected = guardMutation(request);
   if (rejected) return rejected;

@@ -18,10 +18,11 @@ function compile(path, globals, imports = {}) {
 
 function fixture(action, body = { access_token: 'private-fixture-token', user_id: 'fixture-user' }, status = 200, proxyPath = ['profiles', 'me']) {
   let calls = 0;
+  let upstream;
   const globals = {
     process: { env: { NODE_ENV: 'production', SOCRA_PUBLIC_ORIGINS: 'https://www.socra.it,https://socra.it', SOCRA_API_BASE_URL: 'https://backend.invalid' } },
     AbortSignal, AbortController, setTimeout, clearTimeout, Headers, Response, TextDecoder, Uint8Array, Buffer,
-    fetch: async () => { calls++; return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }); },
+    fetch: async (url, options) => { calls++; upstream = { url, options }; return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } }); },
   };
   const securityPath = new URL('../lib/web-security.ts', import.meta.url);
   const security = existsSync(securityPath) ? compile('../lib/web-security.ts', globals) : {};
@@ -30,8 +31,26 @@ function fixture(action, body = { access_token: 'private-fixture-token', user_id
   const route = action === 'proxy' ? null : compile(`../app/api/auth/${action}/route.ts`, globals, {
     '@/lib/server': server, '@/lib/web-security': security, '@/lib/account-server': accountServer,
   });
-  return { invoke: request => action === 'proxy' ? server.proxyBackend(request, proxyPath) : route.POST(request), calls: () => calls };
+  return { invoke: request => action === 'proxy' ? server.proxyBackend(request, proxyPath) : (action === 'email' ? route.PATCH(request) : route.POST(request)), calls: () => calls, upstream: () => upstream };
 }
+
+test('email correction uses a fixed authenticated handler and forwards controlled upstream errors', async () => {
+  const anonymous = fixture('email');
+  assert.equal((await anonymous.invoke(request({ method: 'PATCH' }))).status, 401);
+  assert.equal(anonymous.calls(), 0);
+  for (const status of [200, 403, 409, 429]) {
+    const body = status === 200 ? { status: 'ok', email_delivery_enabled: true } : { detail: 'Controlled error' };
+    const f = fixture('email', body, status);
+    const response = await f.invoke(request({ method: 'PATCH', cookie: 'socra_session=private-test', body: JSON.stringify({ email: 'corrected@example.com' }) }));
+    assert.equal(response.status, status);
+    assert.deepEqual(await response.json(), body);
+    assert.equal(response.headers.get('Cache-Control'), 'private, no-store');
+    assert.equal(response.headers.get('set-cookie'), null);
+    assert.equal(f.upstream().url, 'https://backend.invalid/auth/email');
+    assert.equal(f.upstream().options.method, 'PATCH');
+    assert.equal(f.upstream().options.headers.Authorization, 'Bearer private-test');
+  }
+});
 
 function request({ origin = 'https://www.socra.it', type = 'application/json', body = '{}', cookie = '', fetchSite, method = 'POST' } = {}) {
   const headers = new Headers();
@@ -42,7 +61,7 @@ function request({ origin = 'https://www.socra.it', type = 'application/json', b
   return new NextRequest('https://www.socra.it/api/test', { method, headers, body: method === 'GET' ? undefined : body });
 }
 
-for (const action of ['login', 'register', 'logout', 'proxy', 'password-reset/request', 'password-reset/confirm', 'email-verification/confirm', 'email-verification/request']) {
+for (const action of ['email', 'login', 'register', 'logout', 'proxy', 'password-reset/request', 'password-reset/confirm', 'email-verification/confirm', 'email-verification/request']) {
   for (const origin of ['https://evil.invalid', 'https://www.socra.it.evil.invalid', null, 'null']) {
     test(`${action} rejects untrusted or missing Origin before touching upstream`, async () => {
       const f = fixture(action);
@@ -54,7 +73,7 @@ for (const action of ['login', 'register', 'logout', 'proxy', 'password-reset/re
   }
 }
 
-for (const action of ['login', 'register', 'proxy', 'password-reset/request', 'password-reset/confirm', 'email-verification/confirm', 'email-verification/request']) {
+for (const action of ['email', 'login', 'register', 'proxy', 'password-reset/request', 'password-reset/confirm', 'email-verification/confirm', 'email-verification/request']) {
   test(`${action} rejects text/plain forms, invalid JSON and oversized bodies`, async () => {
     for (const [params, wanted] of [
       [{ type: 'text/plain' }, 415], [{ body: '{' }, 400],

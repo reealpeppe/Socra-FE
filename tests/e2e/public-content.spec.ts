@@ -74,6 +74,8 @@ test("privacy explains optional profile data consented contacts and conditional 
   await expect(main.getByText("Documento in validazione")).toBeVisible();
   await expect(main.getByRole("heading", { name: "Condivisione dei contatti nel percorso" })).toBeVisible();
   await expect(main).toContainText(/presentazione breve.*foto facoltativa/i);
+  await expect(main).toContainText(/nome e cognome privati, username pubblico/i);
+  await expect(main).toContainText(/nome e cognome.*soltanto nel tuo account.*non vengono condivisi/i);
   await expect(main).toContainText(/email non è pubblica/i);
   await expect(main).toContainText(/entrambe le persone.*condivisione/i);
   await expect(main.getByRole("heading", { name: "Email operative e fornitori" })).toBeVisible();

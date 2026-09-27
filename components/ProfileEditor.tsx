@@ -9,7 +9,7 @@ export function ProfileEditor({ initialProfile, user, onUpdated }: {
   initialProfile: OwnProfile; user: UserMe; onUpdated: (profile: OwnProfile) => void;
 }) {
   const [profile, setProfile] = useState(initialProfile);
-  const [nickname, setNickname] = useState(initialProfile.nickname || "");
+  const [nickname, setNickname] = useState(initialProfile.username ?? initialProfile.nickname ?? "");
   const [bio, setBio] = useState(initialProfile.bio || "");
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +24,7 @@ export function ProfileEditor({ initialProfile, user, onUpdated }: {
     if (busy) return;
     setBusy("profile"); setError(null); setMessage(null);
     try {
-      updated(await clientPatch<OwnProfile>("/profiles/me", { nickname: nickname.trim(), bio: bio.trim() }));
+      updated(await clientPatch<OwnProfile>("/profiles/me", { username: nickname.trim(), bio: bio.trim() }));
       setMessage("Profilo aggiornato.");
     } catch (err) { fail(err); }
     finally { setBusy(null); }
@@ -76,15 +76,22 @@ export function ProfileEditor({ initialProfile, user, onUpdated }: {
     <h2 className="settings-section-title" id="profile-editor-title">Il tuo profilo nella community</h2>
     <div className="profile-editor-intro">
       <UserAvatar name={profile.nickname || "Utente Socra"} src={profile.avatar_url} size="lg" />
-      <p className="muted">Nome, presentazione e foto sono visibili agli altri membri. La tua email e le risposte della survey restano private.</p>
+      <p className="muted">Username, presentazione e foto sono visibili agli altri membri. Nome, cognome, email e risposte della survey restano privati.</p>
     </div>
     {error ? <p className="error" role="alert">{error}</p> : null}
     {message ? <p className="success" role="status">{message}</p> : null}
     <form className="stack" onSubmit={save}>
       <div className="stack" style={{ gap: 6 }}>
-        <label htmlFor="profile-nickname">Nome nella community</label>
-        <input className="input" id="profile-nickname" autoComplete="nickname" maxLength={80} required value={nickname} onChange={event => setNickname(event.target.value)} disabled={busy !== null} />
+        <label htmlFor="profile-nickname">Username</label>
+        <input className="input" id="profile-nickname" autoComplete="username" minLength={3} maxLength={80}
+          pattern="[A-Za-z0-9][A-Za-z0-9_.\-]{2,79}" required value={nickname} onChange={event => setNickname(event.target.value)} disabled={busy !== null} />
+        <small className="muted">È il tuo identificativo pubblico e può essere usato per accedere.</small>
       </div>
+      {profile.first_name || profile.last_name ? <div className="stack" style={{ gap: 6 }}>
+        <strong>Nome e cognome (privati)</strong>
+        <span>{profile.first_name} {profile.last_name}</span>
+        <small className="muted">Questi dati sono visibili solo a te.</small>
+      </div> : null}
       <div className="stack" style={{ gap: 6 }}>
         <label htmlFor="profile-bio">Presentazione breve</label>
         <textarea className="input" id="profile-bio" rows={4} maxLength={500} value={bio} onChange={event => setBio(event.target.value)} aria-describedby="profile-bio-hint" disabled={busy !== null} />
@@ -101,7 +108,7 @@ export function ProfileEditor({ initialProfile, user, onUpdated }: {
       {busy === "photo" ? <p role="status">Aggiornamento foto…</p> : null}
       {profile.avatar_url ? <button className="button secondary" type="button" disabled={busy !== null} onClick={() => void removePhoto()}>Rimuovi foto</button> : null}
     </div>
-    <div className="profile-editor-verification stack">
+    {!user.email_verification_required || user.email_verified ? <div className="profile-editor-verification stack">
       <h3>Verifica email</h3>
       <p style={{ overflowWrap: "anywhere" }}>{user.email}</p>
       {user.email_verified ? <span className="pill green">Email verificata</span> : <>
@@ -113,7 +120,7 @@ export function ProfileEditor({ initialProfile, user, onUpdated }: {
         <button className="button secondary" type="button" disabled={busy !== null || !user.email_delivery_enabled || verificationRequested} onClick={() => void requestVerification()}>{busy === "verification" ? "Richiesta…" : "Invia link di verifica"}</button>
         {verificationRequested ? <p className="muted">Per richiedere un altro link, attendi almeno 60 secondi e ricarica la pagina. Massimo 5 richieste all’ora.</p> : null}
       </>}
-    </div>
+    </div> : null}
     <style jsx>{`
       .profile-editor { display: grid; gap: 18px; }
       .profile-editor-intro { display: flex; align-items: center; gap: 14px; }

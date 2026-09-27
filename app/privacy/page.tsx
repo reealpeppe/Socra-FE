@@ -49,8 +49,8 @@ export default function PrivacyPage() {
           <section className={styles.section}>
             <h2>2. Quali dati trattiamo</h2>
             <ul>
-              <li>Account: email, password protetta, identificativo interno, nome nella community, stato account e verifica email. Lo username degli account precedenti resta utilizzabile per l’accesso.</li>
-              <li>Profilo: nome nella community, presentazione breve e foto facoltativa, modificabili dalle impostazioni.</li>
+              <li>Account: nome e cognome privati, username pubblico, email, password protetta, identificativo interno, stato account e verifica email. La conferma password serve soltanto a controllare l’inserimento e non viene conservata.</li>
+              <li>Profilo: username, presentazione breve e foto facoltativa, modificabili dalle impostazioni. Nome e cognome sono visibili soltanto nel tuo account e non vengono condivisi con gli altri membri.</li>
               <li>Onboarding: risposte alla survey, valutazioni interne per argomento ed esperienza pratica.</li>
               <li>Obiettivi e percorsi: argomento, descrizione generalizzata, proposte, stati, crediti interni e conferme per lo scambio dei contatti.</li>
               <li>Feedback e sicurezza: risposte strutturate, note private, badge e segnalazioni.</li>
@@ -95,7 +95,7 @@ export default function PrivacyPage() {
             <p>
               Le valutazioni per argomento e il matching servono a rendere più pertinenti gli incontri.
               La persona sceglie sempre se inviare o accettare una proposta. Il profilo
-              nella community può mostrare nome, presentazione breve, foto facoltativa, disponibilità mentor,
+              nella community può mostrare username, presentazione breve, foto facoltativa, disponibilità mentor,
               argomenti generalizzati, percorsi completati, badge e risultati aggregati.
             </p>
             <p>

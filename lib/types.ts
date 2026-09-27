@@ -20,6 +20,9 @@ export type UserMe = {
 
 export type OwnProfile = {
   user_id: string;
+  username?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
   nickname: string | null;
   bio: string | null;
   avatar_url: string | null;

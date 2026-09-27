@@ -12,8 +12,12 @@ import styles from "../login/auth.module.css";
 export default function RegisterPage() {
   const router = useRouter();
   const [form, setForm] = useState({
+    first_name: "",
+    last_name: "",
+    username: "",
     email: "",
     password: "",
+    password_confirmation: "",
     consent_essential: false,
   });
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +31,10 @@ export default function RegisterPage() {
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
+    if (form.password !== form.password_confirmation) {
+      setError("Le password non coincidono. Controlla la conferma password.");
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -66,6 +74,27 @@ export default function RegisterPage() {
             method="post"
             onSubmit={onSubmit}
           >
+            <div className={styles.twoColumns}>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="first_name">Nome</label>
+                <input className={styles.input} id="first_name" name="first_name" autoComplete="given-name"
+                  required maxLength={80} value={form.first_name} onChange={event => update("first_name", event.target.value)} />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="last_name">Cognome</label>
+                <input className={styles.input} id="last_name" name="last_name" autoComplete="family-name"
+                  required maxLength={80} value={form.last_name} onChange={event => update("last_name", event.target.value)} />
+              </div>
+            </div>
+            <p className={styles.hint}>Nome e cognome restano privati. Nella community sarà mostrato solo il tuo username.</p>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="username">Username</label>
+              <input className={styles.input} id="username" name="username" autoComplete="username"
+                autoCapitalize="none" spellCheck={false} required minLength={3} maxLength={80}
+                pattern="[A-Za-z0-9][A-Za-z0-9_.\-]{2,79}" aria-describedby="username-hint"
+                value={form.username} onChange={event => update("username", event.target.value)} />
+              <p className={styles.hint} id="username-hint">Da 3 a 80 caratteri: lettere, numeri, punto, trattino e underscore. Deve essere unico.</p>
+            </div>
             <div className={styles.field}>
               <label className={styles.label} htmlFor="email">Email</label>
               <input
@@ -114,6 +143,12 @@ export default function RegisterPage() {
               </p>
             </div>
 
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="password_confirmation">Conferma password</label>
+              <input className={styles.input} id="password_confirmation" name="password_confirmation"
+                autoComplete="new-password" type={showPassword ? "text" : "password"} required minLength={10}
+                value={form.password_confirmation} onChange={event => update("password_confirmation", event.target.value)} />
+            </div>
             <div className={styles.consentBox}>
               <input
                 checked={form.consent_essential}
@@ -149,7 +184,7 @@ export default function RegisterPage() {
           </form>
 
           <p className={styles.hint} style={{ marginTop: 18, textAlign: "center" }}>
-            Potrai scegliere il nome nella community e aggiungere una foto nelle impostazioni del profilo.
+            Dopo l’iscrizione potrai compilare subito la survey. Conferma la tua email per cercare persone e usare il matching.
           </p>
 
           <p className={styles.footerText}>

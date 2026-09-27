@@ -16,6 +16,10 @@ Aggiornato: 27/09/2026. Proprietario dei confini tecnici locali; la [guida](../a
 
 ## Vincoli e verifica
 
+Slice locale `feature/registration-identity-20260927`, non pubblicata: [EmailVerificationNotice](../../components/EmailVerificationNotice.tsx) nella shell e [EmailVerificationGate](../../components/EmailVerificationGate.tsx) prima delle pagine operative. Il gate attende `/auth/me`, impedisce il montaggio delle pagine matching/profili altrui e si aggiorna su refresh sessione/ritorno alla scheda. La survey conserva il flusso e le bozze. La shell non carica richieste matching per account non verificati. Permessi effettivi restano nel backend; wiki 09/06/07 e schema locale della wiki 13 possiedono le regole.
+
+[Correzione email](../../app/api/auth/email/route.ts) usa handler auth dedicato, cookie HttpOnly, Origin/JSON/16KiB/no-store; nessun ampliamento del proxy auth generico. Il client invalida la cache e aggiorna sessione dopo correzione/conferma; nessun valore di password/nomi privati persiste nel browser. Il form registra sei campi e spiega la visibilità; lo username è l'unica identità condivisa.
+
 [Standard web obbligatori](../security-baseline.md): guardie Origin/JSON/body/cache centralizzate, auth dedicata e token solo cookie; CSP a nonce per richiesta e layout dinamico. Niente cache CDN condivisa HTML/RSC, asset statici conservano cache framework. Cambi a questi confini richiedono browser production e regressioni BFF, non bypass silenziosi.
 
 Stack e comandi sono in [package.json](../../package.json). Quando cambiano stack, sessione, cache o confini: aggiornare questa pagina; per un contratto condiviso aggiornare anche wiki 07 e, se la scelta lo richiede, ADR backend. Nessun valore di scoring client diventa autorevole.

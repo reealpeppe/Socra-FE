@@ -60,7 +60,10 @@ test("registration form keeps legal documents available before acceptance", asyn
   await expect(page.getByRole("heading", { name: "Crea il tuo account" })).toBeVisible();
   await expect(page.locator("body")).not.toContainText(/per ora|codici SMS|\bV1\b/i);
   await expect(page.getByLabel("Email", { exact: true })).toBeVisible();
-  await expect(page.getByLabel("Username", { exact: true })).toHaveCount(0);
+  await expect(page.getByLabel("Username", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Nome", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Cognome", { exact: true })).toBeVisible();
+  await expect(page.getByLabel("Conferma password", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Password", { exact: true })).toBeVisible();
   const form = page.getByRole("form", { name: "Crea il tuo account" });
   const essentialConsent = page.getByLabel(/almeno 18 anni.*Termini.*privacy/i);
