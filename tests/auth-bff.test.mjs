@@ -55,3 +55,14 @@ for (const action of ["login", "register"]) {
     assert.equal(response.headers.get("set-cookie"), null);
   });
 }
+
+
+test('login preserves server-authorized eight-hour session and caps oversized expiry',async()=>{
+  for(const seconds of [28800,999999]){
+    const post=handler('login',{access_token:'fixture-session-bearer',user_id:'user-1',expires_in:seconds});
+    const result=await post(request({}));
+    assert.match(result.headers.get('set-cookie'),/socra_session=fixture-session-bearer/);
+    assert.match(result.headers.get('set-cookie'),/Max-Age=28800/i);
+    assert.deepEqual(await result.json(),{user_id:'user-1'});
+  }
+});

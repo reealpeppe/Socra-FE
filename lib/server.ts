@@ -14,17 +14,19 @@ export async function getSessionToken(): Promise<string | undefined> {
   return cookieStore.get(sessionCookie)?.value;
 }
 
-export function setSessionCookie(response: NextResponse, token: string): void {
+export function setSessionCookie(response: NextResponse, token: string, seconds = 3600): void {
+  clearStepUpCookie(response);
   response.cookies.set(sessionCookie, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60
+    maxAge: Math.min(28800, Math.max(0, Math.floor(seconds)))
   });
 }
 
 export function clearSessionCookie(response: NextResponse): void {
+  clearStepUpCookie(response);
   response.cookies.set(sessionCookie, "", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -34,11 +36,16 @@ export function clearSessionCookie(response: NextResponse): void {
   });
 }
 
+function clearStepUpCookie(response: NextResponse): void {
+  response.cookies.set("socra_monitoring", "", {httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"strict",path:"/",maxAge:0});
+}
+
 async function proxyPrivateBackend(request: NextRequest, path: string[], verificationRequest = false): Promise<NextResponse> {
   const rejected = guardMutation(request);
   if (rejected) return rejected;
   // Route segments are decoded by Next. Deny alternate URL spellings before fetch
   // normalizes them, and keep all token-producing auth routes in dedicated handlers.
+  if (path[0] === "monitoring") return privateJson({ detail: "Backend route unavailable" }, 403);
   if (!path.length || path.some(segment => !/^[A-Za-z0-9_-]+$/.test(segment)) ||
       (path[0] === "auth" && !(path.length === 2 && path[1] === "me" && request.method === "GET") && !verificationRequest)) {
     return privateJson({ detail: "Backend route unavailable" }, 404);
@@ -116,7 +123,8 @@ export async function authenticate(request: NextRequest, action: "login" | "regi
       return privateJson({ detail: "Invalid backend response" }, 502);
     }
     const response = privateJson({ user_id: body.user_id });
-    setSessionCookie(response, body.access_token);
+    const seconds=typeof body.expires_in==="number" && Number.isFinite(body.expires_in) ? body.expires_in : 3600;
+    setSessionCookie(response, body.access_token, seconds);
     return response;
   } catch { return privateJson({ detail: "Backend unavailable" }, 503); }
 }
