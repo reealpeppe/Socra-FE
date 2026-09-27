@@ -13,12 +13,15 @@ Aggiornato: 26/09/2026. Proprietario dei confini tecnici locali; la [guida](../a
 | Notifiche e proposte | Banner in [AppShell](../../components/AppShell.tsx), stile in [ProposalBanner.module.css](../../components/ProposalBanner.module.css) e route pertinenti: leggere stato operativo server; dismissione e lettura sono azioni distinte come da contratto |
 | Date e stati asincroni | [lib/date.ts](../../lib/date.ts): applicare il contratto UTC delle API; distinguere 401 da indisponibilità temporanea e timeout |
 | UI | [Ui.tsx](../../components/Ui.tsx), CSS locali e [globals.css](../../app/globals.css): primitive e layout responsive; evitare nuove copie di cataloghi o testi tecnici nel flusso utente |
-| Monitoraggio privato | [BFF dedicato](../../lib/monitoring-server.ts), [Route Handler](../../app/admin/monitoraggio/route.ts), [MFA](../../components/MonitoringMfa.tsx): gate server, grant solo cookie HttpOnly, Origin/whitelist, proxy generico chiuso. UI SVG riusata dal tool BE, asset rigenerabili con `scripts/sync-monitoring-assets.mjs`; nessuna formula client. Wiki 11/07 e ADR backend della slice `feature/private-monitoring-20260926` |
 
 ## Vincoli e verifica
+
+[Standard web obbligatori](../security-baseline.md): guardie Origin/JSON/body/cache centralizzate, auth dedicata e token solo cookie; CSP a nonce per richiesta e layout dinamico. Niente cache CDN condivisa HTML/RSC, asset statici conservano cache framework. Cambi a questi confini richiedono browser production e regressioni BFF, non bypass silenziosi.
 
 Stack e comandi sono in [package.json](../../package.json). Quando cambiano stack, sessione, cache o confini: aggiornare questa pagina; per un contratto condiviso aggiornare anche wiki 07 e, se la scelta lo richiede, ADR backend. Nessun valore di scoring client diventa autorevole.
 
 Il codice di una slice account/email o registrazione non prova che sia pubblicato: verificare lo stato backend. Integrazioni, consenso, dati condivisi e permessi appartengono alle pagine wiki sul ref pertinente.
 
-Test locali di riferimento su questa base: [monitoring BFF](../../tests/monitoring-bff.test.mjs), [cache](../../tests/request-cache.mjs), [date](../../tests/date.test.mjs), [browser](../../tests/e2e). Il test auth/BFF generale appartiene alla slice registrazione/email, non a questo ref release. Mock e API vere sono evidenze distinte.
+Test locali di riferimento: [auth/BFF](../../tests/auth-bff.test.mjs), [cache](../../tests/request-cache.mjs), [date](../../tests/date.test.mjs), [browser](../../tests/e2e). La configurazione e il runner distinguono mock e server esterno; i risultati browser con mock non verificano API/provider reali.
+
+Monitoraggio privato: route `/admin/monitoraggio`, MFA React e BFF dedicato con Origin canonico/16KiB, cookie HttpOnly/Secure/Strict massimo8h e grant legato alla sessione backend. Cookie login allineato a expires_in (massimo8h); resto utenti invariato. Proxy generico non inoltra monitoring. HTML statico della sola dashboard usa CSP script-src self per script locali; MFA/resto app conserva nonce strict-dynamic. Regole nella wiki11 backend, contratto wiki07, ADR-private-monitoring-20260926.

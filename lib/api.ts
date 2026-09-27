@@ -83,6 +83,17 @@ async function parseResponse<T>(response: Response): Promise<T> {
 }
 
 const ERROR_TRANSLATIONS: Record<string, string> = {
+  "Invalid or expired token": "Link non valido, scaduto o già utilizzato. Richiedi un nuovo link e riprova.",
+  "Invalid email address": "Inserisci un indirizzo email valido.",
+  "Verify your email before proposing or accepting a path": "Verifica la tua email dalle impostazioni prima di proporre o accettare un percorso.",
+  "Wait before requesting another verification email": "Attendi almeno 60 secondi prima di richiedere un altro link. Puoi richiederne al massimo 5 all’ora.",
+  "Avatar must be a base64 JPEG, PNG or WebP image": "Scegli una foto JPEG, PNG o WebP valida.",
+  "Avatar must not exceed 2 MiB": "La foto non può superare 2 MiB.",
+  "Invalid avatar image data": "La foto non è leggibile. Scegli un altro file JPEG, PNG o WebP.",
+  "Avatar content does not match its image type": "Il formato della foto non corrisponde al contenuto. Scegli un’altra immagine.",
+  "Avatar must not exceed 16 million pixels": "La foto è troppo grande: usa un’immagine con al massimo 16 milioni di pixel.",
+  "Animated avatars are not supported": "Le foto animate non sono ammesse. Scegli una foto statica.",
+  "Invalid or unsupported avatar image": "La foto non è valida o il formato non è supportato. Scegli un altro JPEG, PNG o WebP.",
   "Onboarding survey already completed": "Hai già completato la survey iniziale.",
   "section must be onboarding": "La survey inviata non è valida.",
   "A user cannot open a path with themself": "Non puoi aprire un percorso con te stesso.",
@@ -238,6 +249,20 @@ export async function clientPut<T>(path: string, payload?: unknown): Promise<T> 
 
 export async function clientPatch<T>(path: string, payload?: unknown): Promise<T> {
   return mutate<T>("PATCH", path, payload);
+}
+
+export async function clientDelete<T>(path: string): Promise<T> {
+  return mutate<T>("DELETE", path);
+}
+
+export async function accountPost<T>(path: "email-verification/request" | "email-verification/confirm" | "password-reset/request" | "password-reset/confirm", payload?: unknown): Promise<T> {
+  const value = await request<T>(`/api/auth/${path}`, { method: "POST", headers: jsonHeaders,
+    body: payload === undefined ? undefined : JSON.stringify(payload) });
+  if (path.endsWith("/confirm")) {
+    invalidate(path === "password-reset/confirm", path === "password-reset/confirm");
+    if (typeof window !== "undefined") window.dispatchEvent(new Event("socra:session-refresh"));
+  }
+  return value;
 }
 
 async function mutate<T>(method: string, path: string, payload?: unknown): Promise<T> {

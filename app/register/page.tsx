@@ -12,10 +12,8 @@ import styles from "../login/auth.module.css";
 export default function RegisterPage() {
   const router = useRouter();
   const [form, setForm] = useState({
-    username: "",
     email: "",
     password: "",
-    nickname: "",
     consent_essential: false,
   });
   const [error, setError] = useState<string | null>(null);
@@ -68,35 +66,6 @@ export default function RegisterPage() {
             method="post"
             onSubmit={onSubmit}
           >
-            <div className={styles.twoColumns}>
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="username">Username</label>
-                <input
-                  aria-invalid={error ? "true" : undefined}
-                  autoComplete="username"
-                  className={styles.input}
-                  id="username"
-                  minLength={3}
-                  name="username"
-                  onChange={(event) => update("username", event.target.value)}
-                  required
-                  spellCheck={false}
-                  value={form.username}
-                />
-              </div>
-              <div className={styles.field}>
-                <label className={styles.label} htmlFor="nickname">Nome visibile (facoltativo)</label>
-                <input
-                  autoComplete="nickname"
-                  className={styles.input}
-                  id="nickname"
-                  name="nickname"
-                  onChange={(event) => update("nickname", event.target.value)}
-                  value={form.nickname}
-                />
-              </div>
-            </div>
-
             <div className={styles.field}>
               <label className={styles.label} htmlFor="email">Email</label>
               <input
@@ -178,6 +147,10 @@ export default function RegisterPage() {
               {loading ? "Creazione…" : "Crea account"}
             </button>
           </form>
+
+          <p className={styles.hint} style={{ marginTop: 18, textAlign: "center" }}>
+            Potrai scegliere il nome nella community e aggiungere una foto nelle impostazioni del profilo.
+          </p>
 
           <p className={styles.footerText}>
             Hai già un account?{" "}

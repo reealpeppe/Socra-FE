@@ -41,7 +41,7 @@ export function MonitoringMfa({enrolled}:{enrolled:boolean}) {
     <p className={styles.eyebrow}>ACCESSO RISERVATO</p>
     <h1 id="monitor-title">{codes.length?"Conserva i codici di recupero.":enrolled?"Un ultimo passo per entrare.":"Proteggi il tuo accesso."}</h1>
     {codes.length?<><p>Questi dieci codici vengono mostrati una sola volta. Salvali nel tuo password manager: ognuno funziona una sola volta se perdi l’app autenticatore.</p><ul className={styles.codes}>{codes.map(value=><li key={value}><code>{value}</code></li>)}</ul><button onClick={()=>{setCodes([]);location.replace("/admin/monitoraggio");}}>Ho salvato i codici · Apri dashboard</button></>:<>
-      <p>{enrolled?"Inserisci il codice della tua app autenticatore. Lo sblocco dura al massimo 15 minuti.":setup?"Scansiona il QR con la tua app autenticatore, poi inserisci il primo codice per confermare.":"Configura la tua app autenticatore. Per iniziare, conferma la password dell’account Socra con cui hai effettuato l’accesso."}</p>
+      <p>{enrolled?"Inserisci il codice della tua app autenticatore. Lo sblocco dura al massimo 8 ore, entro la scadenza della sessione Socra.":setup?"Scansiona il QR con la tua app autenticatore, poi inserisci il primo codice per confermare.":"Configura la tua app autenticatore. Per iniziare, conferma la password dell’account Socra con cui hai effettuato l’accesso."}</p>
       {setup?<div className={styles.setup}>
         {/* Generated entirely on our backend, rendered as an image without HTML injection. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}

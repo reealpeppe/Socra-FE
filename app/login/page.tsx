@@ -115,14 +115,9 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <details className={styles.help}>
-            <summary>Non riesci ad accedere?</summary>
-            <p>
-              Il recupero automatico della password non è ancora disponibile. Non creare
-              un secondo account: chiedi assistenza attraverso il canale con cui hai
-              ricevuto l’accesso a Socra, indicando username o email ma mai la password.
-            </p>
-          </details>
+          <p className={styles.footerText}>
+            <Link className={styles.footerLink} href="/forgot-password">Password dimenticata?</Link>
+          </p>
 
           <p className={styles.footerText}>
             Non hai un account?{" "}

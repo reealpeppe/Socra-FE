@@ -83,7 +83,7 @@ function kpis() {
   return `<div class="section-label">INDICATORI ESSENZIALI <span>Nessun target automatico</span></div><div class="kpi-grid">${dashboard.kpis.map((k,index)=>{
     let detail;
     if (k.unit==="percent") detail=k.denominator?`${num(k.numerator)} / ${num(k.denominator)} ${k.denominator<5?'· campione ridotto':''}`:"Nessuna base di confronto";
-    else if (k.previous!==undefined) detail=k.change==null?`Periodo precedente: ${num(k.previous)}`:`<span class="${k.change>=0?'change-up':'change-down'}">${k.change>=0?'↗ +':'↘ '}${num(k.change)}%</span> <span>vs periodo precedente</span>`;
+    else if (k.previous!==undefined) detail=k.change==null?`Periodo precedente: ${num(k.previous)}`:`<span class="${k.change>=0?'change-up':'change-down'}">${k.change>=0?'↗ +':'↘ '}${num(k.change)}%</span> <span>vs pari tempo osservato</span>`;
     else detail=index===0?`${num(k.people)} apprendisti distinti`:"Conteggio nel periodo";
     return `<article class="kpi ${index===0?'featured':''}"><div class="kpi-head"><span>${esc(k.label)}</span><button class="info-button" type="button" data-info="${esc(k.key)}" aria-label="Definizione: ${esc(k.label)}">i</button></div><div class="kpi-value">${num(k.value)}${k.unit==='percent'&&k.value!=null?'<small>%</small>':''}</div><div class="kpi-change ${k.denominator<5?'small-sample':''}">${detail}</div><div class="kpi-scope">${esc(k.scope)}</div></article>`;
   }).join("")}</div>`;

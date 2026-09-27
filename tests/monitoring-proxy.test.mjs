@@ -3,14 +3,15 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import ts from 'typescript';
+import {randomBytes} from 'node:crypto';
 
 function load(){
   const exports={};
   const NextResponse={next:()=>new Response(null),redirect:url=>new Response(null,{status:307,headers:{Location:url.toString()}})};
-  vm.runInNewContext(ts.transpileModule(fs.readFileSync('proxy.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports,require:()=>({NextResponse}),URL});
+  vm.runInNewContext(ts.transpileModule(fs.readFileSync('proxy.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS}}).outputText,{exports,require:name=>name==='node:crypto'?{randomBytes}:{NextResponse},URL,Headers,process:{env:{NODE_ENV:'production'}}});
   return exports;
 }
-function request(path,session=false){return {nextUrl:new URL('https://www.socra.it'+path),url:'https://www.socra.it'+path,cookies:{get:()=>session?{value:'test-session'}:undefined}};}
+function request(path,session=false){return {nextUrl:new URL('https://www.socra.it'+path),url:'https://www.socra.it'+path,headers:new Headers(),cookies:{get:()=>session?{value:'test-session'}:undefined}};}
 test('existing private routes still redirect anonymous users',()=>{
   for(const path of ['/dashboard','/matching','/admin','/settings']){
     const response=load().proxy(request(path));assert.equal(response.status,307,path);

@@ -328,10 +328,12 @@ export function UserAvatar({
   name,
   size = "md",
   standaloneLabel,
+  src,
 }: {
   name: string;
   size?: "sm" | "md" | "lg" | "xl";
   standaloneLabel?: string;
+  src?: string | null;
 }) {
   const initials =
     name
@@ -352,7 +354,11 @@ export function UserAvatar({
       aria-label={standaloneLabel}
       aria-hidden={standaloneLabel ? undefined : true}
     >
-      {initials}
+      {src ?
+        // Backend supplies a sanitized, small data URL; no optimizer or external image request is needed.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt="" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "inherit" }} />
+        : initials}
     </span>
   );
 }

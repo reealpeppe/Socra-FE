@@ -32,7 +32,7 @@ export default function CompetencesPage() {
     <section className="card stack">
       <h2>Hai imparato qualcosa di nuovo?</h2>
       <p>Rivedi conoscenze ed esperienza pratica. Le risposte restano private e ci aiutano a proporti confronti pertinenti, argomento per argomento.</p>
-      <p className="muted">Un aggiornamento non abilita automaticamente nuovi tipi di mentorship: contano anche le esperienze svolte e le eventuali verifiche.</p>
+      <p className="muted">Puoi scegliere gli strumenti su cui condividere la tua esperienza. Per confronti più approfonditi contano anche i percorsi svolti, i feedback e le eventuali verifiche.</p>
       <button className="button dark" onClick={() => setEditing(true)}>Rivedi le risposte</button>
     </section>
     <form className="card stack" onSubmit={async (event) => {

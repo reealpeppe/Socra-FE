@@ -116,18 +116,19 @@ function RequestsContent() {
     const request = requests.find((item) => item.id === id);
     if (!request) return;
     if (accept) {
+      if (request.email_sharing_accepted !== true) return;
       const cost = request.initiator_role === "mentor" ? request.cost_at_request : 0;
       const costCopy = typeof cost === "number" && cost > 0
         ? ` Il percorso costerà ${cost} ${cost === 1 ? "credito" : "crediti"}. Crediti disponibili: ${wallet?.balance ?? "non disponibili"}.`
         : "";
-      if (!await confirm(`Vuoi accettare e aprire questo percorso?${costCopy}`)) return;
+      if (!await confirm(`Vuoi accettare e aprire questo percorso?${costCopy}`, { emailSharing: true })) return;
     }
     if (!accept && !await confirm("Vuoi rifiutare questa proposta? L'altra persona potrà continuare la ricerca.")) return;
     setError(null);
     setMessage(null);
     setPendingResponses((current) => new Set(current).add(id));
     try {
-      const result = await clientPost<MatchRespondResult>(`/matching/requests/${id}/respond`, { accept });
+      const result = await clientPost<MatchRespondResult>(`/matching/requests/${id}/respond`, accept ? { accept: true, email_sharing_accepted: true } : { accept: false });
       if (result.status === "expired" || result.status === "expired_by_timeout") {
         setMessage("La richiesta è scaduta prima della risposta. Nessun percorso è stato aperto.");
       } else if (accept && result.status === "open") {
@@ -152,6 +153,17 @@ function RequestsContent() {
         return next;
       });
     }
+  }
+
+  async function confirmSenderSharing(id: string) {
+    if (pendingResponses.has(id)) return;
+    if (!await confirm("Confermi la condivisione email per questa proposta già inviata? La persona destinataria potrà poi accettarla.", { emailSharing: true })) return;
+    setPendingResponses(current => new Set(current).add(id)); setError(null); setMessage(null);
+    try {
+      await clientPost(`/matching/requests/${id}/email-sharing`, { accepted: true });
+      await load(); setMessage("Condivisione email confermata per la proposta.");
+    } catch (err) { setError(err instanceof ClientApiError ? err.message : "Conferma non salvata."); }
+    finally { setPendingResponses(current => { const next = new Set(current); next.delete(id); return next; }); }
   }
 
   function selectTab(next: "received" | "sent") {
@@ -236,6 +248,8 @@ function RequestsContent() {
               canRespond={request.initiator_role === "mentor" || me?.is_coach === true}
               pending={pendingResponses.has(request.id)}
               onRespond={respond}
+              onConfirmSharing={confirmSenderSharing}
+              verificationBlocked={me?.email_verification_required === true && !me.email_verified}
             />
           ))}
         </div>
@@ -261,13 +275,17 @@ function RequestRow({
   isReceived,
   canRespond,
   pending,
-  onRespond
+  onRespond,
+  onConfirmSharing,
+  verificationBlocked
 }: {
   request: RequestWithCost;
   isReceived: boolean;
   canRespond: boolean;
   pending: boolean;
   onRespond: (id: string, accept: boolean) => void;
+  onConfirmSharing: (id: string) => void;
+  verificationBlocked: boolean;
 }) {
   const initiatedByMentor = request.initiator_role === "mentor";
   const person = isReceived
@@ -310,9 +328,15 @@ function RequestRow({
         {request.status === "accepted" && request.path_id ? (
           <Link className="button secondary" href={`/paths/${request.path_id}`}>Apri il percorso</Link>
         ) : null}
+        {!isReceived && request.status === "pending" && request.email_sharing_accepted !== true ? <div className="stack">
+          <p className="muted">Per questa proposta precedente serve la tua conferma di condivisione email prima che l’altra persona possa accettare.</p>
+          <button className="button secondary" type="button" disabled={pending} onClick={() => onConfirmSharing(request.id)}>Conferma condivisione email</button>
+        </div> : null}
+        {isReceived && request.status === "pending" && request.email_sharing_accepted !== true ? <p className="muted">Il mittente deve confermare la condivisione email prima che tu possa accettare. Puoi comunque rifiutare la proposta.</p> : null}
+        {isReceived && request.status === "pending" && verificationBlocked ? <p className="muted">Verifica la tua email prima di accettare. <Link href="/settings">Vai alle impostazioni</Link></p> : null}
         {isReceived && request.status === "pending" && canRespond ? (
           <div className="requests-actions">
-            <button className="button dark" type="button" disabled={pending} onClick={() => onRespond(request.id, true)}>
+            <button className="button dark" type="button" disabled={pending || request.email_sharing_accepted !== true || verificationBlocked} onClick={() => onRespond(request.id, true)}>
               <CheckCircle2 size={16} aria-hidden /> {pending ? "Salvataggio…" : "Accetta"}
             </button>
             <button className="button secondary" type="button" disabled={pending} onClick={() => onRespond(request.id, false)}>

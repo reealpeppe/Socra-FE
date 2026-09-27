@@ -68,6 +68,31 @@ test("terms and privacy are public, linked and transparent about pending validat
   await expect(page.getByRole("link", { name: "Termini", exact: true }).last()).toHaveAttribute("href", "/termini");
 });
 
+test("privacy explains optional profile data consented contacts and conditional operational email", async ({ page }) => {
+  await page.goto("/privacy");
+  const main = page.getByRole("main");
+  await expect(main.getByText("Documento in validazione")).toBeVisible();
+  await expect(main.getByRole("heading", { name: "Condivisione dei contatti nel percorso" })).toBeVisible();
+  await expect(main).toContainText(/presentazione breve.*foto facoltativa/i);
+  await expect(main).toContainText(/email non è pubblica/i);
+  await expect(main).toContainText(/entrambe le persone.*condivisione/i);
+  await expect(main.getByRole("heading", { name: "Email operative e fornitori" })).toBeVisible();
+  await expect(main).toContainText(/Resend/);
+  await expect(main).toContainText(/quando l’invio è attivo/i);
+  await expect(main).toContainText(/verifica.*recupero.*accettazione/i);
+  await expect(main).toContainText(/non.*marketing/i);
+});
+
+test("terms explain explicit email sharing without promising an always available Meet integration", async ({ page }) => {
+  await page.goto("/termini");
+  const main = page.getByRole("main");
+  await expect(main.getByText("Documento in validazione")).toBeVisible();
+  await expect(main).toContainText(/entrambe le persone.*condivisione.*email/i);
+  await expect(main).toContainText(/quando Google Meet è disponibile/i);
+  await expect(main).not.toContainText("La prima sessione usa una stanza Google Meet collegata al percorso.");
+  await expect(main.getByRole("link", { name: "Leggi la Privacy" })).toHaveAttribute("href", "/privacy");
+});
+
 test("FAQ category is reflected in the URL and answers expose their open state", async ({ page }) => {
   await page.goto("/faq");
   await page.getByRole("tab", { name: "Crediti" }).click();
@@ -82,6 +107,11 @@ test("FAQ category is reflected in the URL and answers expose their open state",
 test("public pages contain no placeholder hash links or unsupported population claims", async ({ page }) => {
   for (const path of ["/", "/come-funziona", "/community", "/livelli", "/sicurezza", "/faq", "/termini", "/privacy"]) {
     await page.goto(path);
+    // Dynamic rendering can deliver this legacy redirect in the streamed HTML.
+    if (path === "/livelli") {
+      await page.waitForURL('**/come-funziona', { waitUntil: 'load' });
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    }
     await expect(page.locator('a[href="#"]')).toHaveCount(0);
     await expect(page.locator("body")).not.toContainText(/oltre 10\.000|18\.547 percorsi/i);
     const viewport = await page.evaluate(() => ({

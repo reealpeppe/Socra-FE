@@ -79,6 +79,15 @@ export default function TermsPage() {
               Ogni percorso si apre solo dopo l’accettazione di chi riceve la proposta.
             </p>
             <p>
+              Per avviare un nuovo percorso, entrambe le persone devono accettare
+              esplicitamente la condivisione della propria email per organizzare gli
+              incontri. Il recapito non è pubblico: diventa disponibile alla coppia
+              nel percorso dopo l’accettazione, non nelle proposte in attesa o rifiutate.
+              I percorsi già aperti richiedono entrambe le conferme prima di mostrare
+              i contatti, senza nuovi addebiti. Questa scelta non autorizza marketing,
+              usi commerciali o diffusione dei recapiti.
+            </p>
+            <p>
               I crediti sono unità interne di partecipazione. Non sono denaro, non si
               acquistano, non si trasferiscono fuori dalla piattaforma e non attribuiscono
               diritti patrimoniali.
@@ -88,9 +97,12 @@ export default function TermsPage() {
           <section className={styles.section}>
             <h2>5. Incontri e feedback</h2>
             <p>
-              La prima sessione usa una stanza Google Meet collegata al percorso. Socra può
-              conservare presenza e durata per gestire il percorso e rilevare anomalie.
-              Non registra audio o video e oggi non acquisisce trascrizioni.
+              Quando Google Meet è disponibile, puoi preparare la stanza della prima
+              sessione dal percorso. Se l’integrazione non è disponibile, segui le
+              indicazioni nel percorso o usa “Segnala un problema” per concordare con
+              l’amministrazione i passaggi di verifica del primo incontro. Socra può
+              conservare presenza e durata quando disponibili per gestire il percorso
+              e rilevare anomalie. Non registra audio o video e oggi non acquisisce trascrizioni.
             </p>
             <p>
               Entrambe le persone inviano il proprio feedback senza vedere prima quello
@@ -105,6 +117,13 @@ export default function TermsPage() {
               Puoi segnalare un problema dal dettaglio del percorso. Socra può esaminare
               la segnalazione, chiedere chiarimenti e adottare misure proporzionate quando
               necessario. Non controlla preventivamente tutte le conversazioni.
+            </p>
+            <p>
+              Le email operative di verifica indirizzo, recupero password richiesto
+              dall’utente e accettazione di un nuovo percorso vengono gestite tramite
+              Resend solo quando l’invio è attivo; non sono comunicazioni marketing.
+              L’invio può essere disattivato e non equivale a una garanzia di consegna.
+              I contatti autorizzati rimangono disponibili nel percorso anche senza email.
             </p>
             <p>
               La procedura di contestazione, i contatti di supporto e le regole definitive

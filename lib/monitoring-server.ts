@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getBackendUrl } from "@/lib/server";
+import { readJsonBody, bodyError } from "@/lib/web-security";
 
 export const monitoringCookie = "socra_monitoring";
 export const privateHeaders = { "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex, nofollow", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" };
@@ -35,13 +36,16 @@ export async function monitoringProxy(request: NextRequest, path: string): Promi
   if (request.method!==routes[path]) return fail(405,"Metodo non consentito");
   const origin=monitoringOrigin(request.nextUrl.origin);
   if (!origin) return fail(503,"Monitoraggio non configurato");
-  if (request.method==="POST" && request.headers.get("origin")!==origin) return fail(403,"Origine non consentita");
+  if (request.method==="POST" && (request.headers.get("origin")!==origin || request.headers.get("Sec-Fetch-Site")==="cross-site")) return fail(403,"Origine non consentita");
   const token=request.cookies.get("socra_session")?.value;
   if (!token) return fail(401,"Accedi a Socra per continuare");
   const grant=request.cookies.get(monitoringCookie)?.value;
+  let requestBody: string | undefined;
+  try {if(request.method==="POST") requestBody=await readJsonBody(request,16*1024);}
+  catch(error){const response=bodyError(error);for(const [name,value] of Object.entries(privateHeaders)) response.headers.set(name,value);return response;}
   const upstream=await fetch(getBackendUrl(`/monitoring/${path}${request.nextUrl.search}`), {
     method:request.method,headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`,...(grant?{"X-Monitoring-Grant":grant}:{})},
-    body:request.method==="POST"?await request.text():undefined,cache:"no-store",signal:AbortSignal.timeout(15_000)
+    body:requestBody,cache:"no-store",signal:AbortSignal.timeout(15_000)
   }).catch(()=>null);
   if (!upstream) return fail(503,"Monitoraggio temporaneamente non disponibile");
   let proof: string | undefined;
@@ -51,7 +55,7 @@ export async function monitoringProxy(request: NextRequest, path: string): Promi
   if (kind.includes("application/json")) {
     const payload=await upstream.json();
     if (upstream.ok && typeof payload.grant_token==="string") {
-      proof=payload.grant_token;seconds=Math.min(900,Math.max(0,Number(payload.expires_in)||0));
+      proof=payload.grant_token;seconds=Math.min(28800,Math.max(0,Number(payload.expires_in)||0));
     }
     delete payload.grant_token;
     body=JSON.stringify(payload);

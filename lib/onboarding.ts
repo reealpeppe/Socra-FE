@@ -1,11 +1,6 @@
-import { instrumentOptions, sectionDQuestions } from "@/lib/options";
+import { instrumentOptions, sectionDQuestions, topicExperienceDurationOptions, sharingAutonomyOptions } from "@/lib/options";
 import type { TopicCompetenceDraft, TopicCompetencePayload } from "@/lib/types";
-import {
-  isMentorEligible,
-  mentorChoiceIsComplete,
-} from "@/components/TopicCompetenceMatrix";
-
-export const ONBOARDING_POLICY = "onboarding-essential-context-2026-09";
+export const ONBOARDING_POLICY = "onboarding-sharing-2026-09-26";
 export type EssentialAnswers = {
   topics: Record<string, TopicCompetenceDraft>;
   selected: string[];
@@ -33,7 +28,8 @@ export function topicComplete(
   return (
     !!row?.knowledge_level &&
     !!row.invested_amount_band &&
-    (!isMentorEligible(row) || mentorChoiceIsComplete(topic, row))
+    typeof row.wants_to_mentor === "boolean" &&
+    topicExperienceDurationOptions.some(option => option.value === row.experience_duration)
   );
 }
 export function surveyComplete(answers: EssentialAnswers): boolean {
@@ -43,9 +39,10 @@ export function surveyComplete(answers: EssentialAnswers): boolean {
     answers.selected.every((topic) =>
       topicComplete(topic, answers.topics[topic]),
     ) &&
-    (!hasInvestment(answers) || !!answers.autonomy) &&
+    sharingAutonomyOptions.some(option => option.value === answers.autonomy) &&
     sectionDQuestions.every((question) =>
-      question.options.some((option) => option.value === answers.context[question.key]),
+      question.options.some((option) => option.value === answers.context[question.key]) ||
+      (question.key === "D2" && answers.context.D2 === "gt_75k"),
     )
   );
 }
@@ -60,35 +57,42 @@ export function submittedAnswers(answers: EssentialAnswers) {
       };
     const row = answers.topics[topic];
     return {
-      ...row,
+      knowledge_level: row.knowledge_level,
+      invested_amount_band: row.invested_amount_band,
+      experience_duration: row.experience_duration,
       topic,
-      wants_to_mentor: isMentorEligible(row) && row.wants_to_mentor === true,
+      wants_to_mentor: row.wants_to_mentor === true,
     };
   });
   return {
     onboarding_policy: ONBOARDING_POLICY,
     topic_competences_v2: { instruments } as TopicCompetencePayload,
     section_d: answers.context,
-    ...(hasInvestment(answers) ? { D5: answers.autonomy } : {}),
+    D5: answers.autonomy,
   };
 }
 export function restoreAnswers(raw: Record<string, unknown>): {
   answers: EssentialAnswers;
   screen: string;
+  reviewVisited?: boolean;
 } {
   const flow = raw.essential_flow as
-    { answers?: EssentialAnswers; screen?: string } | undefined;
-  if ([ONBOARDING_POLICY, "onboarding-essential-2026-09"].includes(String(raw.onboarding_policy)) && flow?.answers) {
+    { answers?: EssentialAnswers; screen?: string; reviewVisited?: boolean } | undefined;
+  if ([ONBOARDING_POLICY, "onboarding-essential-context-2026-09", "onboarding-essential-2026-09"].includes(String(raw.onboarding_policy)) && flow?.answers) {
     const valid = new Set(instrumentOptions.map((row) => row.value));
     const context = restoreContext(flow.answers.context);
     const missingContext = sectionDQuestions.find((question) => !context[question.key]);
+    const missingTopic = flow.answers.selected.find(topic => !topicComplete(topic, flow.answers?.topics[topic]));
     return {
+      reviewVisited: flow.reviewVisited === true || flow.screen === "review",
       answers: {
         ...flow.answers,
         selected: flow.answers.selected.filter((topic) => valid.has(topic)),
         context,
       },
-      screen: flow.screen === "review" && missingContext ? `context:${missingContext.key}` : flow.screen || "selection",
+      screen: flow.screen === "review"
+        ? missingTopic ? `topic:${missingTopic}` : !flow.answers.autonomy ? "autonomy" : missingContext ? `context:${missingContext.key}` : "review"
+        : flow.screen || "selection",
     };
   }
   const matrix = raw.topic_competences_v2 as
@@ -102,13 +106,14 @@ export function restoreAnswers(raw: Record<string, unknown>): {
       const row = rows[value];
       return (
         row &&
-        (row.knowledge_level !== "K0" || row.invested_amount_band !== "A0")
+        (row.knowledge_level !== "K0" || row.invested_amount_band !== "A0" || row.wants_to_mentor === true || !!row.experience_duration)
       );
     })
     .map(({ value }) => value);
-  const confirmed = instrumentOptions.every(({ value }) =>
-    topicComplete(value, rows[value]),
-  );
+  const confirmed = instrumentOptions.every(({ value }) => {
+    const row = rows[value];
+    return !!row?.knowledge_level && !!row.invested_amount_band && typeof row.wants_to_mentor === "boolean";
+  });
   return {
     answers: {
       topics: rows,
@@ -127,7 +132,7 @@ function restoreContext(raw: unknown): Record<string, string> {
   const values = raw as Record<string, unknown>;
   return Object.fromEntries(sectionDQuestions.flatMap((question) => {
     const value = values[question.key];
-    return question.options.some((option) => option.value === value)
+    return (question.options.some((option) => option.value === value) || (question.key === "D2" && value === "gt_75k"))
       ? [[question.key, value as string]] : [];
   }));
 }

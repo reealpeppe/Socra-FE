@@ -46,3 +46,30 @@ Cache privata solo in memoria del browser: profilo e stato survey 30 secondi,
 catalogo obiettivi 5 minuti, obiettivi e richieste inviate 5 secondi (prefetch
 parallelo al controllo di ingresso nel matching). Mutazioni e cambio sessione
 invalidano la cache; non si condividono risposte personali tra utenti o server.
+
+## Account, profilo e contatti — 26 settembre 2026
+
+Proprietario canonico: [wiki backend 09 — Account, contatti e email](../../backend/docs/wiki/09-account-email.md),
+con i rimandi a contratti e permessi della wiki. Lo sviluppo rimane su
+`feature/email-contacts-20260926`; non implica pubblicazione o attivazione degli invii.
+
+La registrazione raccoglie email, password e consenso essenziale. Nome nella
+community, presentazione breve e foto facoltativa si modificano in `/settings`;
+email, survey e valutazioni interne non compaiono nel profilo pubblico.
+Verifica indirizzo e recupero password usano link monouso con token nel fragment,
+eliminato dalla barra e conservato solo in memoria durante la conferma.
+Le risposte BFF di login e registrazione non espongono il bearer: la sessione
+resta in cookie HttpOnly.
+
+Invio e accettazione di nuovi percorsi richiedono una scelta esplicita di
+condivisione email per ciascuna persona. Proposte storiche pendenti e percorsi
+già aperti richiedono conferme separate: nessuna esposizione retroattiva dei
+contatti. Il dettaglio percorso mostra gli indirizzi soltanto dopo il doppio
+accordo; nessuna email nei profili, nei risultati matching o nelle proposte pendenti.
+
+Le email operative sono condizionate dall’abilitazione dell’invio e non sono
+marketing. Privacy e Termini descrivono foto/bio, scambio contatti, verifica/reset
+e Resend senza dichiarare approvazione legale; le bozze restano in validazione.
+Google Meet viene presentato solo come integrazione disponibile quando configurata,
+non come garanzia di una stanza sempre pronta. Le condizioni canoniche e i punti
+aperti restano nella wiki, non vengono duplicati in questo documento.

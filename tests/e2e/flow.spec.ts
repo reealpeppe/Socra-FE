@@ -21,6 +21,7 @@ test.beforeEach(async ({ baseURL, context, page }) => {
   await page.route("**/api/backend/matching/alternatives?**", (route) => route.fulfill({ json: [] }));
   await context.addCookies([{ name: "socra_session", value: "test-token", url: baseURL!, httpOnly: true, sameSite: "Lax" }]);
   await page.route("**/api/backend/auth/me", async (route) => route.fulfill({ json: { id: "u1", username: "mentee", email: "mentee@example.com", nickname: "Apprendista", level: "L1", is_coach: true, role: "user", account_status: "active" } }));
+  await page.route("**/api/backend/profiles/me", route => route.fulfill({ json: { user_id: "u1", nickname: "Apprendista", bio: null, avatar_url: null } }));
   await page.route("**/api/backend/surveys/onboarding/me", async (route) => route.fulfill({ json: { user_id: "u1", level: "L1", is_coach: true, latest_answer_id: "a1" } }));
   await page.route("**/api/backend/surveys/onboarding/me/draft", async (route) => {
     if (route.request().method() === "GET") {
@@ -335,7 +336,7 @@ test("settings treats a missing Forex safety answer as a completable preference"
   await expect(page.getByText("Non risultano ancora strumenti disponibili per la mentorship.")).toHaveCount(0);
 });
 
-type EssentialSubmission = { onboarding_policy?: string; D5?: string; section_d?: Record<string, string>; topic_competences_v2?: { instruments: Array<{ topic: string; knowledge_level: string; invested_amount_band: string; wants_to_mentor: boolean }> } };
+type EssentialSubmission = { onboarding_policy?: string; D5?: string; section_d?: Record<string, string>; topic_competences_v2?: { instruments: Array<{ topic: string; knowledge_level: string; invested_amount_band: string; wants_to_mentor: boolean; experience_duration?: string }> } };
 
 async function completeContext(page: import("@playwright/test").Page, privateAnswers = false) {
   const responses = { D1: "employee_permanent", D2: "25k_35k", D3: "100_300", D4: "mortgage", D5: "partial" };
@@ -363,17 +364,18 @@ test("essential onboarding asks only chosen instruments and submits no generic q
   for (const topic of ["etf_funds", "forex"]) {
     await page.locator('input[name="knowledge-' + topic + '"][value="K3"]').check();
     await page.locator('input[name="investment-' + topic + '"][value="A3"]').check();
+    await page.locator('input[name="duration-' + topic + '"][value="1y_3y"]').check();
     await page.locator('input[name="mentor-' + topic + '"][value="yes"]').check();
-    if (topic === "forex") await page.getByLabel("La leva può amplificare le perdite fino a esaurire il capitale esposto.").check();
+    await expect(page.locator('.topic-safety-scenario')).toHaveCount(0);
     await page.getByRole("button", { name: "Continua", exact: true }).click();
   }
-  await page.getByLabel("Decido in autonomia dopo ricerche personali").check();
+  await page.getByLabel("Faccio le mie valutazioni in autonomia").check();
   await page.getByRole("button", { name: "Continua", exact: true }).click();
   await completeContext(page);
   await expect(page.getByRole("heading", { name: "Ti riconosci in queste risposte?" })).toBeVisible();
   await page.getByRole("button", { name: "Conferma le risposte" }).click();
-  await expect(page.getByRole("heading", { name: "Il tuo punto di partenza è pronto" })).toBeVisible();
-  expect(submitted.onboarding_policy).toBe("onboarding-essential-context-2026-09");
+  await expect(page.getByRole("heading", { name: "Il tuo punto di partenza è chiaro" })).toBeVisible();
+  expect(submitted.onboarding_policy).toBe("onboarding-sharing-2026-09-26");
   expect(submitted.D5).toBe("independent");
   for (const key of ["D4", "D7", "D8", "D9"]) expect(submitted).not.toHaveProperty(key);
   expect(submitted.section_d).toEqual({ D1: "employee_permanent", D2: "25k_35k", D3: "100_300", D4: "mortgage", D5: "partial" });
@@ -381,7 +383,7 @@ test("essential onboarding asks only chosen instruments and submits no generic q
   expect(submitted.topic_competences_v2?.instruments.find(row => row.topic === "stocks")).toMatchObject({ knowledge_level: "K0", invested_amount_band: "A0", wants_to_mentor: false });
 });
 
-test("onboarding zero-experience route has no autonomy or quiz", async ({ page }) => {
+test("onboarding zero-experience route collects explicit no-decision autonomy without quiz", async ({ page }) => {
   await page.route("**/api/backend/surveys/onboarding/me", route => route.fulfill({ json: { user_id: "u1", latest_answer_id: null } }));
   let submitted: EssentialSubmission = {};
   await page.route("**/api/backend/surveys/onboarding/me/answers", route => {
@@ -392,11 +394,13 @@ test("onboarding zero-experience route has no autonomy or quiz", async ({ page }
   await page.getByRole("button", { name: "Cominciamo" }).click();
   await page.getByRole("button", { name: "Continua", exact: true }).click();
   await expect(page.getByRole("alert").filter({ hasText: "Scegli almeno" })).toBeVisible();
-  await page.getByLabel("Non conosco e non ho mai usato questi strumenti", { exact: true }).check();
+  await page.getByLabel("Nessuno di questi / Sto partendo da zero", { exact: true }).check();
   await page.getByRole("button", { name: "Continua", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Situazione professionale" })).toBeVisible();
-  await expect(page.getByText("Situazione professionale", { exact: true })).toHaveCount(1);
-  await expect(page.getByRole("group", { name: "Situazione professionale", exact: true })).toBeVisible();
+  await page.getByLabel("Non ho ancora preso decisioni di investimento", { exact: true }).check();
+  await page.getByRole("button", { name: "Continua", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Qual è la tua situazione professionale?" })).toBeVisible();
+  await expect(page.getByText("Qual è la tua situazione professionale?", { exact: true })).toHaveCount(1);
+  await expect(page.getByRole("group", { name: "Qual è la tua situazione professionale?", exact: true })).toBeVisible();
   await expect(page.getByRole("radio", { checked: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Continua", exact: true }).click();
   await expect(page.getByRole("alert").filter({ hasText: "Preferisco non rispondere" })).toBeVisible();
@@ -404,8 +408,8 @@ test("onboarding zero-experience route has no autonomy or quiz", async ({ page }
   await expect(page.getByRole("heading", { name: "Ti riconosci in queste risposte?" })).toBeVisible();
   await expect(page.getByRole("radio")).toHaveCount(0);
   await page.getByRole("button", { name: "Conferma le risposte" }).click();
-  await expect(page.getByRole("heading", { name: "Il tuo punto di partenza è pronto" })).toBeVisible();
-  expect(submitted).not.toHaveProperty("D5");
+  await expect(page.getByRole("heading", { name: "Il tuo punto di partenza è chiaro" })).toBeVisible();
+  expect(submitted.D5).toBe("not_yet");
   expect(submitted.section_d).toEqual({ D1: "undisclosed", D2: "undisclosed", D3: "undisclosed", D4: "undisclosed", D5: "undisclosed" });
   expect(submitted.topic_competences_v2?.instruments.every(row => row.knowledge_level === "K0" && row.invested_amount_band === "A0" && !row.wants_to_mentor)).toBe(true);
 });
@@ -437,7 +441,7 @@ test("old essential draft must collect context before final confirmation", async
     } },
   } }));
   await page.goto("/onboarding");
-  await expect(page.getByRole("heading", { name: "Situazione professionale" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Come prendi le tue decisioni?" })).toBeVisible();
   await expect(page.getByRole("radio", { checked: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Conferma le risposte" })).toHaveCount(0);
 });
@@ -451,19 +455,21 @@ test("financial context draft survives reload without replacing answers with und
   });
   await page.goto("/onboarding");
   await page.getByRole("button", { name: "Cominciamo" }).click();
-  await page.getByLabel("Non conosco e non ho mai usato questi strumenti", { exact: true }).check();
+  await page.getByLabel("Nessuno di questi / Sto partendo da zero", { exact: true }).check();
+  await page.getByRole("button", { name: "Continua", exact: true }).click();
+  await page.getByLabel("Non ho ancora preso decisioni di investimento", { exact: true }).check();
   await page.getByRole("button", { name: "Continua", exact: true }).click();
   await page.getByLabel("Lavoratore autonomo / freelance", { exact: true }).check();
   await page.getByRole("button", { name: "Continua", exact: true }).click();
-  await page.getByLabel("Tra 25.000 EUR e 35.000 EUR", { exact: true }).check();
+  await page.getByLabel("25.000 – 35.000 €", { exact: true }).check();
   await expect(page.getByRole("status").filter({ hasText: "Bozza salvata" })).toBeVisible();
   await page.reload();
-  await expect(page.getByLabel("Tra 25.000 EUR e 35.000 EUR", { exact: true })).toBeChecked();
+  await expect(page.getByLabel("25.000 – 35.000 €", { exact: true })).toBeChecked();
   await page.getByRole("button", { name: "Indietro", exact: true }).click();
   await expect(page.getByLabel("Lavoratore autonomo / freelance", { exact: true })).toBeChecked();
 });
 
-test("onboarding clears an opt-in after competence becomes ineligible", async ({ page }) => {
+test("onboarding preserves a sharing choice when knowledge is revised", async ({ page }) => {
   await page.route("**/api/backend/surveys/onboarding/me", route => route.fulfill({ json: { user_id: "u1", latest_answer_id: null } }));
   await page.goto("/onboarding");
   await page.getByRole("button", { name: "Cominciamo" }).click();
@@ -473,9 +479,9 @@ test("onboarding clears an opt-in after competence becomes ineligible", async ({
   await page.locator('input[name="investment-etf_funds"][value="A3"]').check();
   await page.locator('input[name="mentor-etf_funds"][value="yes"]').check();
   await page.locator('input[name="knowledge-etf_funds"][value="K1"]').check();
-  await expect(page.locator('input[name="mentor-etf_funds"]')).toHaveCount(0);
+  await expect(page.locator('input[name="mentor-etf_funds"][value="yes"]')).toBeChecked();
   await page.locator('input[name="knowledge-etf_funds"][value="K2"]').check();
-  await expect(page.locator('input[name="mentor-etf_funds"]:checked')).toHaveCount(0);
+  await expect(page.locator('input[name="mentor-etf_funds"][value="yes"]')).toBeChecked();
 });
 
 test("onboarding never restores a draft from another account", async ({ page }) => {
@@ -493,7 +499,7 @@ test("onboarding never restores a draft from another account", async ({ page }) 
 
 test("completed onboarding cannot be restarted", async ({ page }) => {
   await page.goto("/onboarding");
-  await expect(page.getByRole("heading", { name: "Il tuo punto di partenza è pronto" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Il tuo punto di partenza è chiaro" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Scegli cosa vuoi imparare" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Cominciamo" })).toHaveCount(0);
 });
@@ -657,8 +663,9 @@ test("matching shows reasons and can create request", async ({ page }) => {
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("button", { name: "Invia", exact: true })).toBeDisabled();
   await page.getByLabel("Il tuo messaggio", { exact: true }).fill("Vorrei capire come funziona un primo PAC in ETF.");
+  await page.getByRole("checkbox", { name: /condivisione.*email/i }).check();
   await page.getByRole("button", { name: "Invia", exact: true }).click();
-  expect(requestPayload).toEqual({ mentor_id: "mentor1", goal_id: "g1", alignment_message: "Vorrei capire come funziona un primo PAC in ETF." });
+  expect(requestPayload).toEqual({ mentor_id: "mentor1", goal_id: "g1", alignment_message: "Vorrei capire come funziona un primo PAC in ETF.", email_sharing_accepted: true });
   await expect(page.getByRole("status").filter({ hasText: "48 ore per rispondere" })).toBeVisible();
 });
 
@@ -695,9 +702,10 @@ test("V3 mentor proposal requires the same alignment message", async ({ page }) 
   await page.goto("/matching/mentees");
   await page.getByRole("button", { name: "Proponi un percorso" }).click();
   await page.getByLabel("Il tuo messaggio", { exact: true }).fill("Posso condividere i miei primi passi con un PAC in ETF.");
+  await page.getByRole("checkbox", { name: /condivisione.*email/i }).check();
   await page.getByRole("button", { name: "Invia", exact: true }).click();
   await expect(page.getByRole("button", { name: "Proposta inviata" })).toBeVisible();
-  expect(sent).toMatchObject({ mentee_id: "learner", goal_id: "learn", alignment_message: "Posso condividere i miei primi passi con un PAC in ETF." });
+  expect(sent).toMatchObject({ mentee_id: "learner", goal_id: "learn", alignment_message: "Posso condividere i miei primi passi con un PAC in ETF.", email_sharing_accepted: true });
 });
 
 test("V3 alternative needs an explicit goal replacement confirmation", async ({ page }) => {
@@ -800,6 +808,7 @@ test("request expiry during accept never reports an opened path", async ({ page 
   let status = "pending";
   const request = {
     id: "request-1",
+    email_sharing_accepted: true,
     status,
     mentor_id: "u1",
     mentee_id: "u2",
@@ -824,6 +833,7 @@ test("request expiry during accept never reports an opened path", async ({ page 
   await page.goto("/requests?tab=received");
   await page.getByRole("button", { name: "Accetta" }).click();
   await expect(page.getByRole("dialog")).toContainText("Vuoi accettare e aprire questo percorso?");
+  await page.getByRole("checkbox", { name: /condivisione.*email/i }).check();
   await page.getByRole("button", { name: "Conferma", exact: true }).click();
 
   const outcome = page.getByText(/Nessun percorso è stato aperto/);
@@ -835,6 +845,7 @@ test("accepting a mentor proposal confirms both path cost and available credits"
   let responseCalled = false;
   await page.route("**/api/backend/matching/requests/me?role=all", async (route) => route.fulfill({ json: [{
     id: "mentor-proposal",
+    email_sharing_accepted: true,
     status: "pending",
     initiator_role: "mentor",
     mentor_id: "mentor1",

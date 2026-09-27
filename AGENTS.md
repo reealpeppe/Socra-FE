@@ -12,4 +12,6 @@ Ogni cambiamento di comportamento/copy funzionale deve includere l'aggiornamento
 
 Sessione HTTP-only e proxy server-side; nessun token in localStorage. Il backend resta autorevole su autorizzazioni, idoneità, ranking, saldo e lifecycle. Mantieni separati stato utente, cache e notifiche tra account; non esporre dati/algoritmi interni nel copy.
 
+Ogni nuovo sviluppo rispetta gli [standard web](docs/security-baseline.md) e la baseline wiki12 backend: Origin esatto, JSON/body limitati, errori no-store, bearer solo nel cookie, CSP/hydration e audit dipendenze. Le route auth usano handler dedicati; nessun bypass dal proxy generico. Verifica `npm run test:security` insieme ai controlli pertinenti; eccezioni motivate e provate.
+
 Usa i comandi pertinenti di [package.json](package.json) e la guida locale. Test mock, API vere e provider reale sono prove diverse. Aggiorna la consegna/stato quando necessario; nessun deploy implicito e nessun ampliamento di call/email o altra integrazione fuori scope.

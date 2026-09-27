@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
+import { guardMutation, privateJson, readJsonBody, bodyError } from "@/lib/web-security";
 
 const sessionCookie = "socra_session";
 const backendBaseUrl = process.env.SOCRA_API_BASE_URL || "http://127.0.0.1:8000";
@@ -13,14 +14,14 @@ export async function getSessionToken(): Promise<string | undefined> {
   return cookieStore.get(sessionCookie)?.value;
 }
 
-export function setSessionCookie(response: NextResponse, token: string): void {
+export function setSessionCookie(response: NextResponse, token: string, seconds = 3600): void {
   clearStepUpCookie(response);
   response.cookies.set(sessionCookie, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60
+    maxAge: Math.min(28800, Math.max(0, Math.floor(seconds)))
   });
 }
 
@@ -39,16 +40,27 @@ function clearStepUpCookie(response: NextResponse): void {
   response.cookies.set("socra_monitoring", "", {httpOnly:true,secure:process.env.NODE_ENV==="production",sameSite:"strict",path:"/",maxAge:0});
 }
 
-export async function proxyBackend(request: NextRequest, path: string[]): Promise<NextResponse> {
-  // Private monitoring has its own BFF. Never expose its grants via this proxy.
-  let decoded: string;
-  try { decoded=decodeURIComponent(path.join("/")).replaceAll("\\", "/"); }
-  catch { return NextResponse.json({detail:"Risorsa non disponibile"},{status:403,headers:{"Cache-Control":"private, no-store"}}); }
-  if (/[\u0000-\u0020\u007f?#]/.test(decoded) || decoded.split("/").some(segment=>segment==="monitoring" || segment==="." || segment==="..")) return NextResponse.json({detail:"Risorsa non disponibile"},{status:403,headers:{"Cache-Control":"private, no-store"}});
+async function proxyPrivateBackend(request: NextRequest, path: string[], verificationRequest = false): Promise<NextResponse> {
+  const rejected = guardMutation(request);
+  if (rejected) return rejected;
+  // Route segments are decoded by Next. Deny alternate URL spellings before fetch
+  // normalizes them, and keep all token-producing auth routes in dedicated handlers.
+  if (path[0] === "monitoring") return privateJson({ detail: "Backend route unavailable" }, 403);
+  if (!path.length || path.some(segment => !/^[A-Za-z0-9_-]+$/.test(segment)) ||
+      (path[0] === "auth" && !(path.length === 2 && path[1] === "me" && request.method === "GET") && !verificationRequest)) {
+    return privateJson({ detail: "Backend route unavailable" }, 404);
+  }
   const token = request.cookies.get(sessionCookie)?.value;
   if (!token) {
-    return NextResponse.json({ detail: "Authentication required" }, { status: 401 });
+    return privateJson({ detail: "Authentication required" }, 401);
   }
+
+  let body: string | undefined;
+  // The profile UI accepts 2 MiB images; base64 expands them to about 2.8 MiB.
+  const avatarUpload = request.method === "PUT" && path.join("/") === "profiles/me/avatar";
+  const bodyLimit = verificationRequest ? 16 * 1024 : avatarUpload ? 3 * 1024 * 1024 : 256 * 1024;
+  try { if (!["GET", "HEAD"].includes(request.method)) body = await readJsonBody(request, bodyLimit, true); }
+  catch (error) { return bodyError(error); }
 
   const search = request.nextUrl.search || "";
   const controller = new AbortController();
@@ -62,13 +74,13 @@ export async function proxyBackend(request: NextRequest, path: string[]): Promis
         "Content-Type": request.headers.get("Content-Type") || "application/json",
         Authorization: `Bearer ${token}`
       },
-      body: ["GET", "HEAD"].includes(request.method) ? undefined : await request.text(),
+      body,
       cache: "no-store",
       signal: controller.signal
     });
     text = await response.text();
   } catch {
-    return NextResponse.json({ detail: controller.signal.aborted ? "Backend timeout" : "Backend unavailable" }, { status: controller.signal.aborted ? 504 : 503 });
+    return privateJson({ detail: controller.signal.aborted ? "Backend timeout" : "Backend unavailable" }, controller.signal.aborted ? 504 : 503);
   } finally { clearTimeout(timer); }
   const proxiedResponse = new NextResponse(text, {
     status: response.status,
@@ -79,4 +91,36 @@ export async function proxyBackend(request: NextRequest, path: string[]): Promis
   });
   if (response.status === 401) clearSessionCookie(proxiedResponse);
   return proxiedResponse;
+}
+
+export function proxyBackend(request: NextRequest, path: string[]): Promise<NextResponse> {
+  return proxyPrivateBackend(request, path);
+}
+
+export function requestEmailVerification(request: NextRequest): Promise<NextResponse> {
+  // Fixed authenticated action; it never creates or returns a session token.
+  return proxyPrivateBackend(request, ["auth", "email-verification", "request"], true);
+}
+
+export async function authenticate(request: NextRequest, action: "login" | "register"): Promise<NextResponse> {
+  const rejected = guardMutation(request);
+  if (rejected) return rejected;
+  let payload: string | undefined;
+  try { payload = await readJsonBody(request, 16 * 1024); }
+  catch (error) { return bodyError(error); }
+  try {
+    const upstream = await fetch(getBackendUrl(`/auth/${action}`), {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: payload,
+      cache: "no-store", signal: AbortSignal.timeout(12_000)
+    });
+    const body = await upstream.json();
+    if (!upstream.ok) return privateJson({ detail: body.detail || "Authentication failed" }, upstream.status);
+    if (typeof body.access_token !== "string" || !body.access_token || typeof body.user_id !== "string") {
+      return privateJson({ detail: "Invalid backend response" }, 502);
+    }
+    const response = privateJson({ user_id: body.user_id });
+    const seconds=typeof body.expires_in==="number" && Number.isFinite(body.expires_in) ? body.expires_in : 3600;
+    setSessionCookie(response, body.access_token, seconds);
+    return response;
+  } catch { return privateJson({ detail: "Backend unavailable" }, 503); }
 }

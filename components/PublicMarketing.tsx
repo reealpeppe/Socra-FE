@@ -47,7 +47,7 @@ export function PublicAuthShell({
             <div>
               <span>01</span>
               <strong>Il tuo account</strong>
-              <p>Scegli un nickname e accedi con email o username e password.</p>
+              <p>Crea l’account con email e password, poi scegli il nome con cui presentarti alla community.</p>
             </div>
             <div>
               <span>02</span>
