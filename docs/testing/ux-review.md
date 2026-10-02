@@ -51,6 +51,8 @@ mancanti, cambiate, review incompleta o sorgenti successivamente modificati.
 Non è un job CI con un provider LLM esterno: cattura e gate sono script,
 la fase semantica viene eseguita da Codex e registrata esplicitamente. Prima
 di consegnare una variazione UX, ripetere questa fase anche se pytest passa.
+La CI esegue tutti gli E2E desktop/mobile e i test del gate UX; non assegna
+automaticamente un giudizio semantico alle schermate.
 
 ## Istruzioni per il reviewer LLM
 

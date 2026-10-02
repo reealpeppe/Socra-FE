@@ -17,8 +17,10 @@ jobs:
       - run: npm ci
       - run: npm audit --audit-level=high
       - run: npm run test:security
+      - run: npm run test:ux:gate
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run build
       - run: npx playwright install --with-deps chrome
-      - run: node scripts/run-e2e.mjs tests/e2e/web-security.spec.ts tests/e2e/auth.spec.ts tests/e2e/public-content.spec.ts tests/e2e/account-contacts.spec.ts tests/e2e/registration-flow.spec.ts
+      - name: Desktop and mobile user journeys
+        run: node scripts/run-e2e.mjs
