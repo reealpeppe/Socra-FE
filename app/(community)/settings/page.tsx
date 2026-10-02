@@ -365,8 +365,10 @@ export default function SettingsPage() {
           margin: 0 auto;
           padding: 0;
           display: grid;
+          grid-template-columns: minmax(0, 1fr);
           gap: 24px;
           width: 100%;
+          overflow-wrap: anywhere;
         }
         .settings-heading {
           font-size: 1.75rem;
@@ -414,6 +416,7 @@ export default function SettingsPage() {
         }
         .settings-profile-name {
           display: flex;
+          min-width: 0;
           flex-direction: column;
           gap: 2px;
         }
@@ -449,6 +452,7 @@ export default function SettingsPage() {
           color: var(--muted);
         }
         .settings-field-value {
+          min-width: 0;
           font-size: 0.9375rem;
           color: var(--ink);
           font-weight: 500;

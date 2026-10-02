@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Locator, type Page } from "@playwright/test";
 import type { OwnProfile, UserMe } from "../../lib/types";
 
 const user: UserMe = { id: "u1", username: "giulia_skills", email: "giulia@example.com", nickname: "Giulia", level: "L0", is_coach: true, role: "user", account_status: "active", email_verified: true, email_verification_required: true, email_delivery_enabled: false };
@@ -321,6 +321,48 @@ test("dashboard shows explicit objectives, preparation and mentor paths while pa
   await expect(page.getByRole("progressbar", { name: "Preparazione su ETF" })).toHaveAttribute("value", "3");
   await expect(page.getByRole("link", { name: "Vedi i percorsi" })).toHaveAttribute("href", "/paths?tab=mentor");
 });
+
+async function expectHorizontalContainment(locator: Locator) {
+  const clipped = await locator.evaluateAll(elements => elements.flatMap(element => {
+    let left = 0;
+    let right = document.documentElement.clientWidth;
+    for (let parent = element.parentElement; parent; parent = parent.parentElement) {
+      if (["hidden", "clip", "auto", "scroll"].includes(getComputedStyle(parent).overflowX)) {
+        const box = parent.getBoundingClientRect();
+        left = Math.max(left, box.left); right = Math.min(right, box.right);
+      }
+    }
+    const boxes = [element.getBoundingClientRect()];
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      if (!walker.currentNode.textContent?.trim() || walker.currentNode.parentElement?.closest('[aria-hidden="true"]')) continue;
+      const range = document.createRange();
+      range.selectNodeContents(walker.currentNode);
+      boxes.push(...Array.from(range.getClientRects()));
+    }
+    return boxes.some(box => box.width > 0 && (box.left < left - 1 || box.right > right + 1))
+      ? [`${element.tagName}: ${element.textContent?.trim().slice(0, 90)}`] : [];
+  }));
+  expect(clipped, "Elements and text must fit the viewport and clipping ancestors").toEqual([]);
+}
+
+for (const username of ["qa.release.6f51e4f909ba", "q".repeat(80)]) {
+  test(`long identity remains readable on dashboard and settings (${username.length} characters)`, async ({ page }) => {
+    const email = `${username.slice(0, 64)}@example.invalid`;
+    await page.route("**/api/backend/auth/me", route => route.fulfill({ json: { ...user, username, nickname: username, email, is_coach: false } }));
+    await page.route("**/api/backend/profiles/me", route => route.fulfill({ json: { ...ownProfile, username, nickname: username } }));
+    await page.goto("/dashboard");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(username);
+    await expect(page.getByRole("progressbar", { name: "Preparazione su ETF" })).toBeVisible();
+    await page.evaluate(() => document.fonts.ready);
+    await expectHorizontalContainment(page.locator("main h1, main header > div, main section[aria-labelledby], main section a, main progress, main progress + small"));
+    await page.goto("/settings");
+    await expect(page.getByRole("textbox", { name: "Username", exact: true })).toHaveValue(username);
+    await page.getByText("Contesto personale", { exact: true }).click();
+    await expect(page.locator('select[name="D1"]')).toBeVisible();
+    await expectHorizontalContainment(page.locator(".settings-page > .card, .settings-profile-name, .settings-field-value, #personal-context, #personal-context select"));
+  });
+}
 
 test("dashboard active paths show agreed snapshots even when the goal changes", async ({ page }) => {
   await page.route("**/api/backend/paths/me", route => route.fulfill({ json: [{ ...path, agreed_objective_labels: ["Obiettivo già concordato"] }] }));

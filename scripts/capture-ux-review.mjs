@@ -11,7 +11,7 @@ assert.equal(runtime.kind, "managed_fresh");
 assert.equal(runtime.frontend_url, baseURL);
 assert.equal(runtime.source_fingerprint, await fingerprint());
 const fixture = JSON.parse(await readFile(path.join(backend, ".local", "ux-review-fixture.json"), "utf8"));
-assert.equal(fixture.fixture, "socra-local-ux-v1");
+assert.equal(fixture.fixture, "socra-local-ux-v2-long-names");
 assert.equal(path.resolve(fixture.database), path.join(backend, ".local", "skills-preview.sqlite3"));
 const runId = new Date().toISOString().replace(/[:.]/g, "-");
 const directory = path.join(root, "output", "playwright", "ux-review", runId);
@@ -72,10 +72,31 @@ try {
       await writeFile(path.join(directory, `${file}-viewport.png`), viewportBytes);
       manifest.artifacts.push({ file: `${file}-viewport.png`, sha256: hash(viewportBytes) });
       const overflow = await page.evaluate(() => ({ viewport: innerWidth, content: document.documentElement.scrollWidth }));
+      const clipped = await page.evaluate(() => {
+        const issues = [];
+        const visible = element => element.getClientRects().length && getComputedStyle(element).visibility !== "hidden" && !element.closest('[aria-hidden="true"]');
+        for (const element of document.querySelectorAll('main h1, main section, main form, main details, main .card, main button, main a.button, main progress, main .settings-field-value')) {
+          if (!visible(element)) continue;
+          const rect = element.getBoundingClientRect();
+          if (rect.left < -1 || rect.right > innerWidth + 1) issues.push({ element: element.tagName, label: element.textContent?.trim().slice(0, 80), left: rect.left, right: rect.right });
+        }
+        for (const heading of document.querySelectorAll('main h1')) {
+          const walker = document.createTreeWalker(heading, NodeFilter.SHOW_TEXT);
+          while (walker.nextNode()) {
+            const node = walker.currentNode;
+            if (!node.textContent.trim() || !visible(node.parentElement)) continue;
+            const range = document.createRange(); range.selectNodeContents(node);
+            for (const rect of range.getClientRects()) if (rect.left < -1 || rect.right > innerWidth + 1) issues.push({ element: 'heading-text', left: rect.left, right: rect.right });
+          }
+        }
+        return issues;
+      });
       const entry = { scenario, intent, viewport, url: page.url(), facts, actions: [...trace], overflow,
+        clipped_elements: clipped,
         visible_text: await page.locator("body").innerText(), accessibility: await page.locator("body").ariaSnapshot() };
       await json(`${file}.json`, entry);
       assert.ok(overflow.content <= overflow.viewport + 1, `Horizontal overflow: ${file}`);
+      assert.deepEqual(clipped, [], `Clipped content despite hidden document overflow: ${file}`);
       manifest.checks.push({ viewport: viewportName, scenario, status: "passed" });
       console.log(`${viewportName}: ${scenario}`);
     }
