@@ -479,6 +479,10 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
           <span>Mentorship peer-to-peer</span>
         </div>
         <nav className="nav-list" aria-label="Navigazione principale">
+          <Link href="/dashboard" className={`nav-link ${pathname === "/dashboard" ? "active" : ""}`} aria-current={pathname === "/dashboard" ? "page" : undefined}>
+            <Home size={18} aria-hidden />
+            <span>Dashboard</span>
+          </Link>
           {navGroups.map((group) => (
             <div className="nav-group" key={group.label}>
               <p>{group.label}</p>

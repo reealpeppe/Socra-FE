@@ -1,5 +1,6 @@
 "use client";
 import { DiscussionPreferences } from "@/components/DiscussionPreferences";
+import { CoverageSummary, ObjectiveSummary } from "@/components/SkillSummary";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -141,10 +142,10 @@ function MatchingContent() {
     : candidates;
   const discoveryRoot = useDiscoveryImpressions(filteredCandidates.map((candidate) => candidate.discovery_offer_id || "").join(","));
   const hasRecommendedCandidates = candidates.some((candidate) => candidate.is_recommended);
-  const hasAvailabilityFallback = candidates.some((candidate) => candidate.availability_fallback);
+  const hasAvailabilityFallback = candidates.some((candidate) => !candidate.skill_model && candidate.availability_fallback);
   const goalFallbackActive = !!goalIdFromQuery && !!activeGoal && activeGoal.id !== goalIdFromQuery;
 
-  async function requestMentor(candidate: MatchCandidate, alignmentMessage: string) {
+  async function requestMentor(candidate: MatchCandidate, alignmentMessage: string, agreedObjectives?: string[]) {
     if (!activeGoal?.id || !requestStateReady || candidate.mentor_id === me?.id || pendingMentors.size > 0 || requestedMentors.size > 0) return;
     setError(null);
     setMessage(null);
@@ -154,6 +155,7 @@ function MatchingContent() {
         mentor_id: candidate.mentor_id,
         goal_id: activeGoal.id,
         alignment_message: alignmentMessage,
+        ...(candidate.skill_model ? { agreed_objective_codes: agreedObjectives } : {}),
         email_sharing_accepted: true
       });
       setRequestedMentors((prev) => new Set(prev).add(candidate.mentor_id));
@@ -180,7 +182,7 @@ function MatchingContent() {
 
   return (
     <div className="matching-page" ref={discoveryRoot}>
-      {selected ? <AlignmentDialog name={selected.nickname || "il mentor"} onClose={() => setSelected(null)} onSend={(text) => requestMentor(selected, text)} /> : null}
+      {selected ? <AlignmentDialog name={selected.nickname || "il mentor"} coverage={selected} onClose={() => setSelected(null)} onSend={(text, agreed) => requestMentor(selected, text, agreed)} /> : null}
       <div className="matching-header">
         <div>
           <p className="eyebrow">Matching mentor</p>
@@ -278,7 +280,7 @@ function MatchingContent() {
               <strong>Nessun mentor disponibile ora</strong>
               <p className="muted">Riprova più tardi o aggiorna il tuo obiettivo per ampliare le possibilità.</p>
               <Link href="/goal?edit=1" className="button secondary">Modifica obiettivo</Link>
-              {requestedMentors.size === 0 ? <GoalAlternatives key={activeGoal.id} goalId={activeGoal.id} /> : <Link href="/requests">Vedi la richiesta in attesa</Link>}
+              {requestedMentors.size === 0 ? !activeGoal.skill_model && <GoalAlternatives key={activeGoal.id} goalId={activeGoal.id} /> : <Link href="/requests">Vedi la richiesta in attesa</Link>}
             </div>
           ) : (
             <div className="matching-list">
@@ -297,12 +299,12 @@ function MatchingContent() {
           )}
         </div>
 
-        <aside className="matching-sidebar">
-          <div className="card stack">
+        <aside className={`matching-sidebar${activeGoal?.skill_model ? " matching-sidebar-skills" : ""}`}>
+          <div className="card stack matching-explainer">
             <p className="eyebrow">Una lettura semplice</p>
             <h3>Come leggere il match</h3>
             <p className="muted">
-              La percentuale riassume quanto il profilo è coerente con il tuo obiettivo. Leggi anche la motivazione e scegli sempre con il tuo giudizio.
+              {activeGoal?.skill_model ? "La compatibilità riassume l’affinità con il tuo obiettivo. Apri “Su cosa potete lavorare” per vedere le attività proposte e scegli quelle da concordare prima dell’invio." : "La percentuale riassume quanto il profilo è coerente con il tuo obiettivo. Leggi anche la motivazione e scegli sempre con il tuo giudizio."}
             </p>
             <Link href="/come-funziona" className="matching-sidebar-link">
               Approfondisci <ArrowRight size={14} aria-hidden />
@@ -312,9 +314,7 @@ function MatchingContent() {
           {activeGoal ? (
             <div className="card stack">
               <p className="eyebrow">Obiettivo attivo</p>
-              <h3>{activeGoal.goal_tag}</h3>
-              <DiscussionPreferences labels={activeGoal.discussion_type_labels} />
-              <p className="muted">{activeGoal.topic}</p>
+              {activeGoal.skill_model ? <ObjectiveSummary topic={activeGoal.topic} title="Cosa vuoi imparare" labels={activeGoal.objective_labels} mode={activeGoal.discussion_mode_label} /> : <><h3>{activeGoal.goal_tag}</h3><DiscussionPreferences labels={activeGoal.discussion_type_labels} /><p className="muted">{activeGoal.topic}</p></>}
               <Link href="/goal?edit=1" className="matching-sidebar-link">
                 Modifica <ArrowRight size={14} aria-hidden />
               </Link>
@@ -390,17 +390,18 @@ function MentorCandidateCard({
             <h2>{displayName}</h2>
             <div className="mcc-title-row">
               {candidate.discovery_label ? <span>{candidate.discovery_label}</span> : null}
-              {candidate.availability_fallback ? <span className="pill amber">Disponibilità limitata</span> : null}
+              {!candidate.skill_model && candidate.availability_fallback ? <span className="pill amber">Disponibilità limitata</span> : null}
               {candidate.is_recommended ? <span className="pill green">Consigliato</span> : null}
             </div>
           </div>
           <div className="mcc-score-block">
             <strong>{score}%</strong>
-            <span>compatibilità</span>
+            <span>Compatibilità</span>
           </div>
         </div>
 
-        <p className="mcc-reason">{reason}</p>
+        {!candidate.skill_model ? <p className="mcc-reason">{reason}</p> : null}
+        <CoverageSummary coverage={candidate} />
 
         {candidate.public_badges?.length ? (
           <div className="mcc-badge-row" aria-label="Badge mentor">
@@ -718,6 +719,15 @@ function MatchingStyles() {
         }
 
         .matching-sidebar {
+          display: none;
+        }
+
+        .matching-sidebar-skills {
+          display: grid;
+          order: -1;
+        }
+
+        .matching-sidebar-skills > .matching-explainer {
           display: none;
         }
       }

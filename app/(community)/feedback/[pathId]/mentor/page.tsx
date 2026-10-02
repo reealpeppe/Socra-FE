@@ -8,8 +8,13 @@ import { OnboardingGate } from "@/components/OnboardingGate";
 import { ClientApiError, clientGet, clientPost } from "@/lib/api";
 import type { PathItem, UserMe } from "@/lib/types";
 import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes-guard";
+import { PathFeedbackBoundary } from "@/components/SkillFeedback";
 
 export default function MentorFeedbackPage() {
+  return <PathFeedbackBoundary actor="mentor" legacy={<LegacyMentorFeedbackPage />} />;
+}
+
+function LegacyMentorFeedbackPage() {
   const { pathId } = useParams<{ pathId: string }>();
   const router = useRouter();
   const [effort, setEffort] = useState<number | null>(null);

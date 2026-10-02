@@ -1,5 +1,6 @@
 "use client";
 import { DiscussionPreferences } from "@/components/DiscussionPreferences";
+import { CoverageSummary, ObjectiveSummary } from "@/components/SkillSummary";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -94,7 +95,7 @@ function MenteeMatchingContent() {
     [requests]
   );
 
-  async function propose(candidate: MenteeCandidate, alignmentMessage: string) {
+  async function propose(candidate: MenteeCandidate, alignmentMessage: string, agreedObjectives?: string[]) {
     if (!requestsReady || activeMentorPaths === null || activeMentorPaths >= 3 || sending.has(candidate.goal_id) || proposedGoalIds.has(candidate.goal_id)) return;
     setError(null);
     setMessage(null);
@@ -104,6 +105,7 @@ function MenteeMatchingContent() {
         mentee_id: candidate.mentee_id,
         goal_id: candidate.goal_id,
         alignment_message: alignmentMessage,
+        ...(candidate.skill_model ? { agreed_objective_codes: agreedObjectives } : {}),
         email_sharing_accepted: true
       });
       setRequests((current) => [request, ...current]);
@@ -122,7 +124,7 @@ function MenteeMatchingContent() {
 
   return (
     <div className="mentee-search-page" ref={discoveryRoot}>
-      {selected ? <AlignmentDialog name={selected.nickname || "l’apprendista"} mentorProposal onClose={() => setSelected(null)} onSend={(text) => propose(selected, text)} /> : null}
+      {selected ? <AlignmentDialog name={selected.nickname || "l’apprendista"} mentorProposal coverage={selected} onClose={() => setSelected(null)} onSend={(text, agreed) => propose(selected, text, agreed)} /> : null}
       <Link href="/matching" className="mentee-search-back">
         <ArrowLeft size={16} aria-hidden /> Torna alla ricerca mentor
       </Link>
@@ -192,21 +194,20 @@ function MenteeMatchingContent() {
                   </div>
                   <div className="mentee-goal-score">
                     <strong>{Math.round(candidate.match_score)}%</strong>
-                    <span>compatibilità</span>
+                    <span>Compatibilità</span>
                   </div>
                 </div>
 
                 <div className="mentee-goal-focus">
-                  <span>Obiettivo</span>
-                  <h3>{candidate.goal_tag}</h3>
-                  <p>{candidate.goal_topic}</p>
+                  {candidate.skill_model ? <ObjectiveSummary topic={candidate.goal_topic} labels={candidate.objective_labels} mode={candidate.discussion_mode_label} title="Cosa vuole imparare" modeTitle="Come vuole lavorare" /> : <><span>Obiettivo</span><h3>{candidate.goal_tag}</h3><p>{candidate.goal_topic}</p></>}
                 </div>
 
-                <p className="mentee-goal-reason">{candidate.reason_summary || "Obiettivo coerente con le competenze che puoi condividere."}</p>
-                <DiscussionPreferences labels={candidate.discussion_type_labels} />
+                {!candidate.skill_model ? <p className="mentee-goal-reason">{candidate.reason_summary || "Obiettivo coerente con le competenze che puoi condividere."}</p> : null}
+                <CoverageSummary coverage={candidate} />
+                {!candidate.skill_model ? <DiscussionPreferences labels={candidate.discussion_type_labels} /> : null}
 
                 <div className="mentee-goal-tags">
-                  {candidate.availability_fallback ? (
+                  {!candidate.skill_model && candidate.availability_fallback ? (
                     <span className="pill amber">Disponibilità limitata</span>
                   ) : null}
                   {candidate.is_recommended ? <span className="pill green">Buona affinità</span> : null}

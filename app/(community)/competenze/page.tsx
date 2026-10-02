@@ -7,10 +7,16 @@ import { OnboardingGate } from "@/components/OnboardingGate";
 import OnboardingSurvey from "@/components/OnboardingSurvey";
 import { clientGet, clientPost } from "@/lib/api";
 import { instrumentOptions } from "@/lib/options";
+import { SkillCatalogBoundary } from "@/components/SkillCatalogBoundary";
+import { SkillSurvey } from "@/components/SkillSurvey";
 
 type Review = { id: string; topic: string; status: string; approved: boolean | null; reason?: string };
 
 export default function CompetencesPage() {
+  return <SkillCatalogBoundary legacy={<LegacyCompetencesPage />}>{catalog => <SkillSurvey catalog={catalog} reassessment />}</SkillCatalogBoundary>;
+}
+
+function LegacyCompetencesPage() {
   const [editing, setEditing] = useState(false);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [topic, setTopic] = useState("");

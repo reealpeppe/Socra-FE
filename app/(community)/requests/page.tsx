@@ -1,5 +1,6 @@
 "use client";
 import { DiscussionPreferences } from "@/components/DiscussionPreferences";
+import { ObjectiveSummary } from "@/components/SkillSummary";
 import { useConfirmation } from "@/components/ConfirmationDialog";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
@@ -296,10 +297,21 @@ function RequestRow({
     ? (initiatedByMentor ? request.mentor_id : request.mentee_id)
     : (initiatedByMentor ? request.mentee_id : request.mentor_id);
   const direction = isReceived
-    ? (initiatedByMentor ? "Ti propone di essere il tuo mentor" : "Ti chiede di essere il suo mentor")
+    ? (initiatedByMentor
+      ? request.status === "pending" ? "Ti propone di essere il tuo mentor" : "Ti ha proposto di essere il tuo mentor"
+      : request.status === "pending" ? "Ti chiede di essere il suo mentor" : "Ti ha chiesto di essere il suo mentor")
     : (initiatedByMentor ? "Gli hai proposto di essere il suo mentor" : "Gli hai chiesto di essere il tuo mentor");
   const status = STATUS_LABELS[request.status] || { label: request.status, className: "" };
   const timing = requestTiming(request);
+  const agreementCopy = request.status === "pending"
+    ? isReceived ? "Accettando confermi tutte le attività di questo elenco." : "Hai proposto queste attività. Il destinatario potrà accettare l’intero elenco."
+    : request.status === "accepted"
+      ? "La richiesta è stata accettata: queste sono le attività concordate per il percorso."
+      : request.status === "rejected"
+        ? "La richiesta è stata rifiutata. Questo elenco conserva le attività proposte."
+        : request.status.startsWith("expired")
+          ? "La richiesta è scaduta. Questo elenco conserva le attività proposte."
+          : "Questo elenco conserva le attività proposte nella richiesta.";
 
   return (
     <article className="requests-row">
@@ -315,12 +327,11 @@ function RequestRow({
         </div>
         <div className="requests-goal">
           {request.goal?.topic ? <p><span>Tema</span><strong>{request.goal.topic}</strong></p> : null}
-          <p><span>Risultato</span><strong>{request.goal?.goal_tag || "Obiettivo Socra"}</strong></p>
-          <DiscussionPreferences labels={request.goal?.discussion_type_labels} />
+          {request.skill_model ? <><ObjectiveSummary labels={request.agreed_objective_labels} mode={request.discussion_mode_label} title={request.status === "accepted" ? "Obiettivi concordati" : "Obiettivi proposti"} modeTitle={request.status === "accepted" ? "Modalità concordata" : "Modalità proposta"} /><p className="muted">{agreementCopy}</p></> : <><p><span>Risultato</span><strong>{request.goal?.goal_tag || "Obiettivo Socra"}</strong></p><DiscussionPreferences labels={request.goal?.discussion_type_labels} /></>}
           {request.alignment_message ? <p className="requests-message"><span>Messaggio iniziale</span><span>{request.alignment_message}</span></p> : null}
           {isReceived && initiatedByMentor && typeof request.cost_at_request === "number" ? (
             <span>
-              Costo all&apos;accettazione: {request.cost_at_request} {request.cost_at_request === 1 ? "credito" : "crediti"}
+              {request.status === "pending" ? "Costo all’accettazione" : request.status === "accepted" ? "Costo del percorso" : "Costo proposto"}: {request.cost_at_request} {request.cost_at_request === 1 ? "credito" : "crediti"}
             </span>
           ) : null}
         </div>

@@ -59,6 +59,11 @@ export type WalletTransaction = {
 };
 
 export type Goal = {
+  skill_model?: boolean;
+  objective_codes?: string[];
+  objective_labels?: string[];
+  discussion_mode?: string | null;
+  discussion_mode_label?: string | null;
   discussion_types?: string[];
   discussion_type_labels?: string[];
   id: string;
@@ -79,7 +84,7 @@ export type GoalsMe = {
   goals: Goal[];
 };
 
-export type MatchCandidate = {
+export type MatchCandidate = SkillCoverage & {
   discovery_offer_id?: string;
   discovery_label?: string | null;
   mentor_id: string;
@@ -93,7 +98,10 @@ export type MatchCandidate = {
   reason_summary: string;
 };
 
-export type MenteeCandidate = {
+export type MenteeCandidate = SkillCoverage & {
+  objective_codes?: string[];
+  objective_labels?: string[];
+  discussion_mode_label?: string | null;
   discussion_types?: string[];
   discussion_type_labels?: string[];
   discovery_offer_id?: string;
@@ -111,6 +119,11 @@ export type MenteeCandidate = {
 };
 
 export type PublicProfile = {
+  skill_model?: boolean;
+  skill_groups?: SkillGroup[];
+  public_reviews?: PublicReview[];
+  mentor_completion_rate?: number | null;
+  mentor_started_paths?: number;
   user_id: string;
   nickname: string | null;
   bio?: string | null;
@@ -125,6 +138,12 @@ export type PublicProfile = {
 };
 
 export type MatchRequestItem = {
+  skill_model?: boolean;
+  agreed_objective_codes?: string[];
+  agreed_objective_labels?: string[];
+  requested_objective_codes?: string[];
+  requested_objective_labels?: string[];
+  discussion_mode_label?: string | null;
   email_sharing_accepted?: boolean;
   alignment_message?: string | null;
   response_reason?: string | null;
@@ -154,6 +173,10 @@ export type UserSummary = {
 };
 
 export type PathItem = {
+  skill_model?: boolean;
+  agreed_objective_codes?: string[];
+  agreed_objective_labels?: string[];
+  discussion_mode_label?: string | null;
   contacts?: {
     mentor: { user_id: string; display_name: string; email: string };
     mentee: { user_id: string; display_name: string; email: string };
@@ -251,4 +274,36 @@ export type TopicCompetenceSnapshot = {
   eligible_mentor_topics?: string[];
   consistency_flags?: string[];
   is_coach: boolean;
+};
+
+export type SkillCatalog = {
+  version: string;
+  topics: Array<{ code: string; label: string; skills: Array<{ code: string; label: string }> }>;
+  discussion_modes: Array<{ code: string; label: string; description: string }>;
+  max_objectives: number;
+};
+export type SkillProfile = {
+  version: number;
+  known_skills: string[];
+  mentor_skills: string[];
+  section_d: Record<string, string>;
+  mentor_available: boolean;
+};
+export type SkillCoverage = {
+  skill_model?: boolean;
+  covered_objective_codes?: string[];
+  covered_objective_labels?: string[];
+  missing_objective_codes?: string[];
+  missing_objective_labels?: string[];
+  coverage_count?: number;
+  requested_count?: number;
+};
+export type SkillGroup = {
+  topic: string; label: string; offered_count: number; total_count: number; coverage_percent: number;
+  known_count: number; preparation_percent: number; confirmed_count: number;
+  skills: Array<{ code: string; label: string; source: "declared" | "path" }>;
+};
+export type PublicReview = {
+  id: string; author_id: string; author_name: string; comment: string; created_at: string;
+  topic_label: string; objective_labels: string[];
 };

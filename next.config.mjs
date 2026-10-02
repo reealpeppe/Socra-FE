@@ -8,7 +8,8 @@ const nextConfig = {
       { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
       { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" }
     ] }];
-  }
+  },
+  ...(process.env.SOCRA_UX_CAPTURE === "1" ? { distDir: ".next-ux", typescript: { tsconfigPath: "tsconfig.ux.json" } } : {})
 };
 
 export default nextConfig;

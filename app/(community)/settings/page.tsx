@@ -10,7 +10,10 @@ import { UserAvatar } from "@/components/Ui";
 import { ProfileEditor } from "@/components/ProfileEditor";
 import { authPost, ClientApiError, clientGet, clientPatch, clientPut } from "@/lib/api";
 import { instrumentOptions } from "@/lib/options";
-import type { OwnProfile, TopicCompetenceSnapshot, TopicCompetenceSnapshotItem, UserMe } from "@/lib/types";
+import type { OwnProfile, SkillProfile, TopicCompetenceSnapshot, TopicCompetenceSnapshotItem, UserMe } from "@/lib/types";
+import { SkillCatalogBoundary } from "@/components/SkillCatalogBoundary";
+import { SkillMentorPreferences } from "@/components/SkillMentorPreferences";
+import { PersonalContext } from "@/components/PersonalContext";
 import { ONBOARDING_POLICY } from "@/lib/onboarding";
 
 const GENERAL_MENTOR_GUARDRAIL_FLAGS = new Set([
@@ -27,6 +30,7 @@ export default function SettingsPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [savingMentorStatus, setSavingMentorStatus] = useState(false);
   const [competences, setCompetences] = useState<TopicCompetenceSnapshot | null>(null);
+  const [skills, setSkills] = useState<SkillProfile | null | undefined>(undefined);
   const [savingTopic, setSavingTopic] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -43,13 +47,15 @@ export default function SettingsPage() {
     });
     Promise.all([
       clientGet<UserMe>("/auth/me"),
-      clientGet<TopicCompetenceSnapshot | null>("/surveys/competences-v2/me"),
+      clientGet<SkillProfile | null>("/skills/me").catch(err => { if (err instanceof ClientApiError && err.status === 404) return undefined; throw err; }),
       clientGet<OwnProfile>("/profiles/me").catch(() => null),
     ])
-      .then(([user, topicSnapshot, ownProfile]) => {
+      .then(async ([user, skillProfile, ownProfile]) => {
+        const topicSnapshot = skillProfile === undefined ? await clientGet<TopicCompetenceSnapshot | null>("/surveys/competences-v2/me") : null;
         if (active) {
           setMe(user);
           setCompetences(topicSnapshot);
+          setSkills(skillProfile);
           setProfile(ownProfile);
         }
       })
@@ -165,7 +171,7 @@ export default function SettingsPage() {
         : me?.account_status
           ? "Da verificare"
           : "—";
-  const canEnableMentor = competences
+  const canEnableMentor = skills ? skills.mentor_skills.length > 0 : competences
     ? competences.instruments.some((item) => item.wants_to_mentor && item.mentor_eligible !== false)
     : false;
   const generalMentorGuardrailBlocked = competences?.consistency_flags?.some(
@@ -229,7 +235,7 @@ export default function SettingsPage() {
           <h2 className="settings-section-title">La tua esperienza</h2>
           <div className="settings-level-row">
             <p className="settings-level-text">
-              Le risposte private e i percorsi svolti aiutano a trovare confronti pertinenti per ogni argomento.
+              Le attività che conosci e i percorsi svolti raccontano la tua preparazione per ogni argomento.
               {me?.is_coach && " Sei attivo come mentor."}
             </p>
           </div>
@@ -246,7 +252,7 @@ export default function SettingsPage() {
               <strong>Ricevi richieste compatibili</strong>
               <p id="mentor-availability-hint" className="settings-account-note">
                 {!me?.is_coach && !canEnableMentor
-                     ? "Seleziona prima almeno uno strumento disponibile."
+                     ? "Seleziona prima almeno un’attività su cui vuoi aiutare."
                     : !me?.is_coach
                       ? "Attivala per ricevere richieste sugli strumenti che hai selezionato."
                     : "Puoi disattivarla in qualsiasi momento. I percorsi già aperti non vengono interrotti."}
@@ -267,6 +273,7 @@ export default function SettingsPage() {
             </label>
           </div>
           {savingMentorStatus ? <p className="settings-account-note" role="status">Salvataggio preferenza…</p> : null}
+          {skills ? <SkillCatalogBoundary legacy={null}>{catalog => <SkillMentorPreferences catalog={catalog} profile={skills} onSaved={next => { setSkills(next); setMe(current => current ? { ...current, is_coach: next.mentor_available } : current); }} />}</SkillCatalogBoundary> : skills === null ? <p className="settings-account-note">Indica le attività che sai svolgere per scegliere quelle da offrire. <Link href="/competenze">Aggiorna la tua esperienza</Link></p> : null}
           {competences ? (
             <div className="settings-topic-preferences">
               <div>
@@ -335,6 +342,8 @@ export default function SettingsPage() {
             </div>
           ) : null}
         </div>
+
+        {skills !== undefined ? <PersonalContext profile={skills} onSaved={setSkills} /> : null}
 
         <div className="card settings-card">
           <h2 className="settings-section-title">Account</h2>

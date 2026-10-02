@@ -4,6 +4,7 @@ import { cachedRequest, clearRequestCache, peekRequestCache } from "@/lib/reques
 export function cachedClientValue<T>(path: string): T | undefined { return peekRequestCache<T>(path); }
 
 const CACHE_TTL: Record<string, number> = {
+  "/skills/catalog": 300_000,
   "/auth/me": 30_000, "/surveys/onboarding/me": 30_000,
   "/surveys/goal/catalog": 300_000,
   "/goals/me": 5_000, "/matching/requests/me?role=mentee": 5_000,
@@ -89,6 +90,14 @@ const ERROR_TRANSLATIONS: Record<string, string> = {
   "Email correction is only available before verification": "Puoi correggere l’email soltanto prima della verifica.",
   "Email cannot be changed after sharing path contacts": "L’email non può essere modificata dopo la condivisione dei contatti di un percorso.",
   "Passwords do not match": "Le password non coincidono.",
+  "Choose one to three objectives from the same topic": "Scegli da uno a tre obiettivi dello stesso tema.",
+  "Choose exactly one discussion mode": "Scegli una sola modalità di confronto.",
+  "Complete your skill profile before choosing objectives": "Indica prima le attività che sai svolgere nella pagina La mia esperienza, anche se parti senza capacità da offrire.",
+  "Mentor skills must be a subset of known skills": "Puoi offrire solo attività che hai indicato di saper svolgere.",
+  "section_d requires all five explicit answers": "Completa le cinque risposte del contesto privato; puoi scegliere Preferisco non rispondere.",
+  "Objective outcomes must match the agreed objectives": "Completa una risposta per ciascun obiettivo concordato nel percorso.",
+  "Public comment must contain 1 to 2000 characters": "Il commento pubblico può contenere da 1 a 2000 caratteri.",
+  "Report reason must contain 1 to 2000 characters": "Indica il motivo della segnalazione, da 1 a 2000 caratteri.",
   "Invalid or expired token": "Link non valido, scaduto o già utilizzato. Richiedi un nuovo link e riprova.",
   "Invalid email address": "Inserisci un indirizzo email valido.",
   "Verify your email before proposing or accepting a path": "Verifica la tua email dalle impostazioni prima di proporre o accettare un percorso.",
@@ -289,7 +298,7 @@ async function mutate<T>(method: string, path: string, payload?: unknown): Promi
       body: payload === undefined ? undefined : JSON.stringify(payload) });
   } finally {
     if (affectsCachedData) invalidate();
-    if (typeof window !== "undefined" && (path.includes("/reassessment") || path.includes("/onboarding/me/answers") || path.includes("/mentor") || path.includes("/profile")))
+    if (typeof window !== "undefined" && (path === "/skills/me" || path.includes("/reassessment") || path.includes("/onboarding/me/answers") || path.includes("/mentor") || path.includes("/profile")))
       window.dispatchEvent(new Event("socra:session-refresh"));
     if (typeof window !== "undefined" && /^\/matching\/requests(?:\/|$)/.test(path))
       window.dispatchEvent(new Event("socra:proposals-refresh"));

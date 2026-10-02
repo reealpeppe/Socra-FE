@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { goalOptionsByLevelTopic, topicOptions } from "../../lib/options";
+import { goalOptionsByLevelTopic, instrumentOptions, topicOptions } from "../../lib/options";
 
 const discussionTypes = [
   ["start_from_basics", "Partire dalle basi"], ["deepen_topic", "Approfondire un argomento"],
@@ -8,6 +8,11 @@ const discussionTypes = [
   ["compare_approaches", "Confrontare approcci diversi"], ["organize_knowledge", "Mettere ordine nelle mie conoscenze"],
   ["check_understanding", "Verificare ciò che ho capito"],
 ].map(([code, label]) => ({ code, label, description: `Preferenza: ${label}.` }));
+
+// These fixtures exercise historical snapshots; the legacy backend has no task catalog.
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/backend/skills/**", route => route.fulfill({ status: 404, json: { detail: "Not Found" } }));
+});
 
 test.beforeEach(async ({ baseURL, context, page }) => {
   await page.route("**/api/backend/calls/capabilities", route => route.fulfill({ json: { google_meet_available: true } }));
@@ -90,11 +95,32 @@ test("backend proxy accepts the V2 preference PUT method", async ({ page }) => {
 test("dashboard renders responsive operational state", async ({ page }) => {
   await page.goto("/dashboard");
   await expect(page.getByRole("heading", { name: /Ciao Apprendista/ })).toBeVisible();
+  await expect(page.locator('nav.nav-list a[href="/dashboard"]')).toHaveAttribute("aria-current", "page");
+  await expect(page.getByRole("heading", { name: "Il tuo percorso di apprendimento" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "I tuoi percorsi come mentor" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Il tuo obiettivo" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Competenze e disponibilità" })).toBeVisible();
   await expect(page.getByRole("main").getByText("Crediti").first()).toBeVisible();
   await expect(page.getByRole("main").getByText("10").first()).toBeVisible();
   await expect(page.getByRole("main").getByRole("link", { name: "Trova un mentor", exact: true })).toBeVisible();
   await expect(page.getByLabel("Topic di competenza").getByText("ETF e fondi")).toBeVisible();
-  await expect(page.getByLabel("Badge qualitativi più ricevuti").getByText("Chiaro")).toBeVisible();
+  await expect(page.getByLabel("Badge qualitativi più ricevuti")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Mentor compatibili" })).toHaveCount(0);
+});
+
+test("dashboard shows real mentor paths and opens the selected path", async ({ page }) => {
+  await page.route("**/api/backend/paths/me", route => route.fulfill({ json: [{
+    id: "mentor-path-1", status: "open", mentee_id: "other", mentor_id: "u1", goal_id: "g2",
+    mentee: { user_id: "other", nickname: "Marta", level: "L1", is_coach: false },
+    goal: { id: "g2", topic: "etf_funds", goal_tag: "Diversificazione tra ETF", is_active: true }
+  }] }));
+
+  await page.goto("/dashboard");
+
+  const mentorCard = page.getByRole("region", { name: "I tuoi percorsi come mentor" });
+  await expect(mentorCard.getByText("1 percorso attivo su 3")).toBeVisible();
+  await expect(mentorCard.getByRole("link", { name: /Diversificazione tra ETF/ })).toHaveAttribute("href", "/paths/mentor-path-1");
+  await expect(mentorCard.getByText("Marta")).toBeVisible();
 });
 
 test("dashboard routes a completed apprendista path to goal review before matching", async ({ page }) => {
@@ -141,7 +167,7 @@ test("dashboard treats an active apprendista path as progress, not a matching er
 
   await page.goto("/dashboard");
 
-  await expect(page.getByText("Percorso in corso", { exact: true })).toBeVisible();
+  await expect(page.getByText("Percorso in corso", { exact: true })).toHaveCount(0);
   await expect(page.getByText("Hai già un percorso attivo come apprendista.")).toBeVisible();
   await expect(page.getByRole("main").getByRole("link", { name: "Apri il percorso", exact: true })).toHaveAttribute("href", "/paths/path-active");
   await expect(page.locator(".topbar-shortcut")).toHaveAttribute("href", "/paths/path-active");
@@ -549,9 +575,13 @@ test("discussion preferences require one choice, cap at three and preserve priva
   for (const name of ["Approfondire un argomento", "Capire il metodo", "Verificare ciò che ho capito"]) {
     await page.getByRole("checkbox", { name, exact: true }).check();
   }
-  await expect(page.getByRole("checkbox", { name: "Partire dalle basi", exact: true })).toBeDisabled();
+  const fourthChoice = page.getByRole("checkbox", { name: "Partire dalle basi", exact: true });
+  await expect(fourthChoice).toBeEnabled();
+  await fourthChoice.click();
+  await expect(fourthChoice).not.toBeChecked();
+  await expect(page.getByText("Per selezionarne un altro, deseleziona prima una delle tre scelte: puoi indicarne al massimo 3.")).toBeVisible();
   await page.getByRole("checkbox", { name: "Capire il metodo", exact: true }).uncheck();
-  await expect(page.getByRole("checkbox", { name: "Partire dalle basi", exact: true })).toBeEnabled();
+  await expect(page.getByText("Per selezionarne un altro, deseleziona prima una delle tre scelte: puoi indicarne al massimo 3.")).toHaveCount(0);
   await page.getByRole("checkbox", { name: "Confrontare approcci diversi", exact: true }).check();
   await page.getByRole("button", { name: "Aggiorna e vedi i mentor" }).click();
   await expect(page).toHaveURL(/matching.*saved-pref/);
@@ -574,6 +604,32 @@ test("discussion selections preload and remain visible in received requests", as
   await page.goto("/requests");
   await expect(page.getByText("Chiarire dubbi", { exact: true })).toBeVisible();
   await expect(page.getByText("Confrontarmi su un caso concreto", { exact: true })).toBeVisible();
+});
+
+test("experience review opens saved answers and edits only the chosen item", async ({ page }) => {
+  const instruments = instrumentOptions.map(({ value }) => value === "etf_funds"
+    ? { topic: value, knowledge_level: "K2", invested_amount_band: "A3", experience_duration: "1y_3y", wants_to_mentor: true }
+    : { topic: value, knowledge_level: "K0", invested_amount_band: "A0", wants_to_mentor: false });
+  await page.route("**/api/backend/competences-v3/me", route => route.fulfill({ json: {
+    survey_id: "saved-survey",
+    answers: { onboarding_policy: "onboarding-sharing-2026-09-26", topic_competences_v2: { instruments }, D5: "not_yet", section_d: { D1: "undisclosed", D2: "undisclosed", D3: "undisclosed", D4: "undisclosed", D5: "undisclosed" } }
+  } }));
+  await page.route("**/api/backend/competences-v3/me/external-experience", route => route.fulfill({ json: [] }));
+
+  await page.goto("/competenze");
+  await page.getByRole("button", { name: "Rivedi le risposte" }).click();
+
+  await expect(page.getByRole("heading", { name: "Ti riconosci in queste risposte?" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Cominciamo" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Modifica ETF" }).click();
+  await expect(page.locator('input[name="knowledge-etf_funds"][value="K2"]')).toBeChecked();
+  await expect(page.locator('input[name="investment-etf_funds"][value="A3"]')).toBeChecked();
+  await expect(page.locator('input[name="duration-etf_funds"][value="1y_3y"]')).toBeChecked();
+  await expect(page.locator('input[name="mentor-etf_funds"][value="yes"]')).toBeChecked();
+  await page.getByRole("button", { name: "Torna al riepilogo" }).click();
+  await page.getByRole("button", { name: "Rivedi strumenti" }).click();
+  await expect(page.getByRole("checkbox", { name: "ETF", exact: true })).toBeChecked();
+  await expect(page.getByRole("checkbox", { name: "Forex", exact: true })).not.toBeChecked();
 });
 
 test("L4 goal flow uses the advanced catalog and keeps V2 topics coherent", async ({ page }) => {
@@ -778,30 +834,18 @@ test("matching ignores an inactive goal passed in the URL", async ({ page }) => 
   await expect(page.getByText("old_goal")).toHaveCount(0);
 });
 
-test("dashboard distinguishes a matching outage and retries", async ({ page }) => {
-  let attempts = 0;
-  await page.route("**/api/backend/matching/candidates", async (route) => {
-    attempts += 1;
-    if (attempts === 1) {
-      await route.fulfill({ status: 503, json: { detail: "Servizio temporaneamente non disponibile" } });
-      return;
-    }
-    await route.fulfill({ json: [{
-      mentor_id: "mentor1",
-      nickname: "Anna",
-      level: "L2",
-      match_score: 84,
-      is_recommended: true,
-      reason_summary: "Compatibile con il tuo obiettivo."
-    }] });
+test("dashboard keeps mentor discovery behind its dedicated page", async ({ page }) => {
+  let candidatesCalled = false;
+  await page.route("**/api/backend/matching/candidates", route => {
+    candidatesCalled = true;
+    return route.fulfill({ json: [] });
   });
-
   await page.goto("/dashboard");
-  await expect(page.getByText("Non riusciamo ad aggiornare i mentor compatibili.")).toBeVisible();
-  await expect(page.getByText("Nessun mentor compatibile è disponibile ora.")).toHaveCount(0);
-  await page.getByRole("button", { name: "Riprova" }).click();
-  await expect(page.getByText("Anna")).toBeVisible();
-  expect(attempts).toBe(2);
+  await expect(page.getByRole("heading", { name: "Il tuo obiettivo" })).toBeVisible();
+  await page.waitForLoadState("networkidle");
+  expect(candidatesCalled).toBe(false);
+  await expect(page.getByRole("heading", { name: "Mentor compatibili" })).toHaveCount(0);
+  await expect(page.getByRole("main").getByRole("link", { name: "Trova un mentor" })).toHaveAttribute("href", "/matching?goalId=g1");
 });
 
 test("request expiry during accept never reports an opened path", async ({ page }) => {

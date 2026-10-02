@@ -1,5 +1,10 @@
 import { expect, test } from "@playwright/test";
 
+// These fixtures exercise historical snapshots; the legacy backend has no task catalog.
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/backend/skills/**", route => route.fulfill({ status: 404, json: { detail: "Not Found" } }));
+});
+
 test.beforeEach(async ({ context, baseURL, page }) => {
   await context.addCookies([{ name: "socra_session", value: "test", url: baseURL!, httpOnly: true }]);
   await page.route("**/api/backend/auth/me", route => route.fulfill({ json: { id: "registration-user", account_status: "active" } }));

@@ -7,8 +7,10 @@ import { ArrowLeft, CheckCircle2, Shield, ThumbsUp } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { UserAvatar, MetricStat } from "@/components/Ui";
 import { AlignmentDialog } from "@/components/AlignmentDialog";
+import { CoverageSummary, ObjectiveSummary } from "@/components/SkillSummary";
+import { SkillPublicProfile } from "@/components/SkillPublicProfile";
 import { ClientApiError, clientGet, clientPost } from "@/lib/api";
-import type { GoalsMe, MatchCandidate, MatchRequestItem, PublicProfile, UserMe } from "@/lib/types";
+import type { Goal, GoalsMe, MatchCandidate, MatchRequestItem, PublicProfile, UserMe } from "@/lib/types";
 
 export default function ProfilePage() {
   return (
@@ -32,7 +34,7 @@ function ProfileContent() {
   const [showAlignment, setShowAlignment] = useState(false);
   const [requestLoading, setRequestLoading] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
-  const [activeGoal, setActiveGoal] = useState<{ id: string; goal_tag: string } | null>(null);
+  const [activeGoal, setActiveGoal] = useState<Goal | null>(null);
   const [candidate, setCandidate] = useState<MatchCandidate | null>(null);
   const [candidateLoading, setCandidateLoading] = useState(false);
   const [candidateError, setCandidateError] = useState<string | null>(null);
@@ -68,7 +70,7 @@ function ProfileContent() {
       if (goalsResult.status === "fulfilled") {
         const goal = goalsResult.value?.active_goal || goalsResult.value?.current;
         if (goal && goal.is_active !== false) {
-          setActiveGoal({ id: goal.id, goal_tag: goal.goal_tag });
+          setActiveGoal(goal);
           if (requestsResult.status === "fulfilled") {
             const sent = (Array.isArray(requestsResult.value) ? requestsResult.value : []).some(
               (request) => request.status === "pending"
@@ -133,7 +135,7 @@ function ProfileContent() {
     };
   }, [activeGoal?.id, candidateRetryVersion, isOwnProfile, me, profile?.is_coach, requestSent, userId]);
 
-  async function sendMatchRequest(alignmentMessage: string) {
+  async function sendMatchRequest(alignmentMessage: string, agreedObjectives?: string[]) {
     if (!activeGoal || isOwnProfile || !me || !profile?.is_coach || !requestStateReady) return;
     setRequestLoading(true);
     setRequestError(null);
@@ -142,6 +144,7 @@ function ProfileContent() {
         mentor_id: userId,
         goal_id: activeGoal.id,
         alignment_message: alignmentMessage,
+        ...(candidate?.skill_model ? { agreed_objective_codes: agreedObjectives } : {}),
         email_sharing_accepted: true
       });
       setRequestSent(true);
@@ -156,7 +159,7 @@ function ProfileContent() {
 	  return (
 	    <>
 	      <div className="profile-page">
-        {showAlignment ? <AlignmentDialog name={profile?.nickname || "il mentor"} onClose={() => setShowAlignment(false)} onSend={sendMatchRequest} /> : null}
+        {showAlignment ? <AlignmentDialog name={profile?.nickname || "il mentor"} coverage={candidate} onClose={() => setShowAlignment(false)} onSend={sendMatchRequest} /> : null}
         <Link href={isOwnProfile ? "/dashboard" : fromRequests ? "/requests" : "/matching"} className="profile-back">
           <ArrowLeft size={16} aria-hidden />
           {isOwnProfile ? "Torna alla dashboard" : fromRequests ? "Torna alle proposte" : "Torna alla lista dei mentor"}
@@ -192,13 +195,13 @@ function ProfileContent() {
 
               <div className="profile-hero-stats">
                 <MetricStat value={completedPaths} label="Percorsi completati" />
-                <MetricStat value={badges.length} label="Badge pubblici" />
+                {!profile?.skill_model ? <MetricStat value={badges.length} label="Badge pubblici" /> : null}
               </div>
             </section>
 
             <div className="profile-body">
               <div className="profile-left">
-                <section className="card">
+                {profile?.skill_model ? <SkillPublicProfile profile={profile} ownProfile={isOwnProfile} /> : <section className="card">
                   <p className="profile-section-label">
                     {topTopics.length && !competences.length
                       ? "Argomenti su cui può aiutare"
@@ -219,16 +222,16 @@ function ProfileContent() {
                       Le competenze verranno mostrate quando saranno supportate da percorsi e feedback.
                     </p>
                   )}
-                </section>
+                </section>}
 
                 {!isOwnProfile && candidate ? (
                   <section className="card profile-match-card">
                     <p className="profile-section-label">Compatibilità con il tuo obiettivo</p>
                     <div className="profile-match-score">
                       <span className="profile-match-pct">{Math.round(candidate.match_score)}%</span>
-                      <span className="profile-muted-text">{candidate.is_recommended ? "match consigliato" : "profilo da valutare"}</span>
+                      <span className="profile-muted-text">Compatibilità</span>
                     </div>
-                    <p className="profile-muted-text">{candidate.reason_summary}</p>
+                    {candidate.skill_model ? <CoverageSummary coverage={candidate} /> : <p className="profile-muted-text">{candidate.reason_summary}</p>}
                   </section>
                 ) : null}
 
@@ -342,7 +345,7 @@ function RequestCard({
   requestError,
   onRequest
 }: {
-  activeGoal: { id: string; goal_tag: string } | null;
+  activeGoal: Goal | null;
   pathCost: number;
   requestSent: boolean;
   requestLoading: boolean;
@@ -372,9 +375,9 @@ function RequestCard({
   return (
     <section className="card profile-request-card">
       <p className="profile-card-title">Invia richiesta al mentor</p>
-      <p className="profile-muted-text">
-        Obiettivo: <strong>{activeGoal.goal_tag}</strong>
-      </p>
+      <div className="profile-muted-text">
+        {activeGoal.skill_model ? <ObjectiveSummary topic={activeGoal.topic} title="Cosa vuoi imparare" labels={activeGoal.objective_labels} mode={activeGoal.discussion_mode_label} /> : <>Obiettivo: <strong>{activeGoal.goal_tag}</strong></>}
+      </div>
       <p className="profile-muted-text">
         Costo del percorso per te: {pathCost} {pathCost === 1 ? "credito" : "crediti"}.
       </p>

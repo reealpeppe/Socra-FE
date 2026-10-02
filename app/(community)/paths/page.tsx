@@ -181,7 +181,7 @@ function PathsContent() {
             const counterpart = tab === "mentee"
               ? (path.mentor?.nickname || "Mentor Socra")
               : (path.mentee?.nickname || "Apprendista Socra");
-            const goalTag = path.goal?.goal_tag || "Percorso";
+            const goalTag = path.skill_model ? path.goal?.topic || "Percorso" : path.goal?.goal_tag || "Percorso";
             const initial = typeof counterpart === "string" ? counterpart.slice(0, 1).toUpperCase() : "?";
 
             return (
@@ -226,6 +226,7 @@ function PathsContent() {
                         {counterpart}
                       </p>
                       <p style={{ color: "var(--muted)", fontSize: "0.8rem", margin: 0 }}>{goalTag}</p>
+                      {path.skill_model ? <ul aria-label="Obiettivi concordati" style={{ color: "var(--muted)", fontSize: ".8rem", lineHeight: 1.5, margin: "6px 0 0", paddingLeft: 16 }}>{path.agreed_objective_labels?.map(label => <li key={label}>{label}</li>)}</ul> : null}
                     </div>
                   </div>
 

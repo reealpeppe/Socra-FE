@@ -30,6 +30,8 @@ import type {
   TopicKnowledgeLevel,
 } from "@/lib/types";
 import styles from "./OnboardingSurvey.module.css";
+import { SkillCatalogBoundary } from "./SkillCatalogBoundary";
+import { SkillSurvey } from "./SkillSurvey";
 
 type OnboardingState = {
   user_id: string;
@@ -41,7 +43,13 @@ type LocalDraft = { answers: Record<string, unknown>; savedAt: number };
 const label = (topic: string) =>
   instrumentOptions.find((row) => row.value === topic)?.label || topic;
 
-export default function OnboardingSurvey({
+export default function OnboardingSurvey({ reassessment = false }: { reassessment?: boolean }) {
+  return <SkillCatalogBoundary legacy={<LegacyOnboardingSurvey reassessment={reassessment} />}>
+    {catalog => <SkillSurvey catalog={catalog} reassessment={reassessment} />}
+  </SkillCatalogBoundary>;
+}
+
+function LegacyOnboardingSurvey({
   reassessment = false,
 }: {
   reassessment?: boolean;
@@ -82,7 +90,9 @@ export default function OnboardingSurvey({
           const restored = restoreAnswers(snapshot.answers || {});
           setAnswers(restored.answers);
           setInitial(JSON.stringify(restored.answers));
-          setScreen("welcome");
+          const hasSavedAnswers = !!snapshot.answers && Object.keys(snapshot.answers).length > 0;
+          setScreen(hasSavedAnswers ? "review" : "welcome");
+          setEditingReview(hasSavedAnswers);
         } else {
           const [stateResult, draftResult] = await Promise.allSettled([
             clientGet<OnboardingState>("/surveys/onboarding/me"),
@@ -594,10 +604,9 @@ export default function OnboardingSurvey({
                     </div>
                   ) : (
                     <div className={styles.body}>
-                      <p>
-                        Non devono essere risposte perfette: devono descrivere
-                        la tua esperienza di oggi.
-                      </p>
+                      <p>{reassessment
+                        ? "Qui trovi le risposte già salvate. Modifica solo quelle che sono cambiate, poi conferma il riepilogo."
+                        : "Non devono essere risposte perfette: devono descrivere la tua esperienza di oggi."}</p>
                       {answers.selected.map((topic) => {
                         const item = answers.topics[topic] || {};
                         return (

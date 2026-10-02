@@ -1,5 +1,6 @@
 "use client";
 import { DiscussionPreferences } from "@/components/DiscussionPreferences";
+import { ObjectiveSummary } from "@/components/SkillSummary";
 import { useConfirmation } from "@/components/ConfirmationDialog";
 import { EmailSharingNotice } from "@/components/EmailSharingNotice";
 
@@ -306,7 +307,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                 <PersonCard role="Mentor" name={path.mentor?.nickname || "Mentor Socra"} />
                 <PersonCard role="Apprendista" name={path.mentee?.nickname || "Apprendista Socra"} />
               </div>
-              <DiscussionPreferences labels={path.goal?.discussion_type_labels} />
+              {path.skill_model ? <ObjectiveSummary labels={path.agreed_objective_labels} mode={path.discussion_mode_label} title="Obiettivi concordati" /> : <DiscussionPreferences labels={path.goal?.discussion_type_labels} />}
 
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                 <ClosePill label="Apprendista" closed={!!path.mentee_closed_at} />

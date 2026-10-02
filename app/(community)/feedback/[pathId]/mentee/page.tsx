@@ -8,6 +8,7 @@ import { OnboardingGate } from "@/components/OnboardingGate";
 import { ClientApiError, clientGet, clientPost } from "@/lib/api";
 import type { PathItem, UserMe } from "@/lib/types";
 import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes-guard";
+import { PathFeedbackBoundary } from "@/components/SkillFeedback";
 
 const QUESTIONS = [
   {
@@ -90,6 +91,10 @@ const BADGES = [
 ] as const;
 
 export default function MenteeFeedbackPage() {
+  return <PathFeedbackBoundary actor="mentee" legacy={<LegacyMenteeFeedbackPage />} />;
+}
+
+function LegacyMenteeFeedbackPage() {
   const { pathId } = useParams<{ pathId: string }>();
   const router = useRouter();
   const [answers, setAnswers] = useState<Record<string, string>>({});

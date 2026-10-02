@@ -18,6 +18,11 @@ const catalog = {
   max_discussion_types: 3,
 };
 
+// These fixtures exercise historical snapshots; the legacy backend has no task catalog.
+test.beforeEach(async ({ page }) => {
+  await page.route("**/api/backend/skills/**", route => route.fulfill({ status: 404, json: { detail: "Not Found" } }));
+});
+
 test.beforeEach(async ({ baseURL, context, page }) => {
   await context.addCookies([{ name: "socra_session", value: "test-token", url: baseURL!, httpOnly: true, sameSite: "Lax" }]);
   await page.route("**/api/backend/auth/me", route => route.fulfill({ json: {

@@ -14,6 +14,7 @@ const path = {
 };
 
 async function session(page: Page, context: BrowserContext, baseURL: string) {
+  await page.route("**/api/backend/skills/**", route => route.fulfill({ status: 404, json: { detail: "Not Found" } }));
   await context.addCookies([{ name: "socra_session", value: "test-token", url: baseURL, httpOnly: true }]);
   await page.route("**/api/backend/auth/me", route => route.fulfill({ json: user }));
   await page.route("**/api/backend/surveys/onboarding/me", route => route.fulfill({ json: { latest_answer_id: "a1" } }));

@@ -10,6 +10,8 @@ import { clientGet, clientPost, ClientApiError } from "@/lib/api";
 import { type SelectOption } from "@/lib/options";
 import type { Goal, GoalsMe } from "@/lib/types";
 import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes-guard";
+import { SkillCatalogBoundary } from "@/components/SkillCatalogBoundary";
+import { SkillGoalForm } from "@/components/SkillGoalForm";
 
 type GoalCatalog = {
   topics: Array<{ code: string; label: string; goals: Array<{ code: string; label: string; recommended?: boolean }> }>;
@@ -22,7 +24,7 @@ export default function GoalPage() {
     <AppShell>
       <OnboardingGate>
         <Suspense fallback={<div className="card" role="status">Caricamento obiettivo…</div>}>
-          <GoalForm />
+          <SkillCatalogBoundary legacy={<GoalForm />}>{catalog => <SkillGoalForm catalog={catalog} />}</SkillCatalogBoundary>
         </Suspense>
       </OnboardingGate>
     </AppShell>
@@ -45,6 +47,7 @@ function GoalForm() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [dirty, setDirty] = useState(false);
+  const [discussionLimitNotice, setDiscussionLimitNotice] = useState(false);
 
   const availableTopics = useMemo(() => {
     const options = catalog?.topics.map((topic) => ({ value: topic.code, label: topic.label })) || [];
@@ -117,6 +120,11 @@ function GoalForm() {
   }
 
   function toggleDiscussion(code: string) {
+    if (!form.discussion_types.includes(code) && form.discussion_types.length >= (catalog?.max_discussion_types || 3)) {
+      setDiscussionLimitNotice(true);
+      return;
+    }
+    setDiscussionLimitNotice(false);
     setDirty(true);
     setForm((current) => ({ ...current, discussion_types: current.discussion_types.includes(code)
       ? current.discussion_types.filter((item) => item !== code)
@@ -261,11 +269,10 @@ function GoalForm() {
                 <div className="discussion-options">
                   {catalog.discussion_types.map((option) => {
                     const checked = form.discussion_types.includes(option.code);
-                    const disabled = !checked && form.discussion_types.length >= catalog.max_discussion_types;
                     return (
-                      <label className="discussion-option" key={option.code} data-selected={checked} data-disabled={disabled}>
+                      <label className="discussion-option" key={option.code} data-selected={checked}>
                         <input type="checkbox" name="discussion_types" value={option.code} checked={checked}
-                          disabled={disabled} onChange={() => toggleDiscussion(option.code)} aria-label={option.label} />
+                          onChange={() => toggleDiscussion(option.code)} aria-label={option.label} />
                         <span><strong>{option.label}</strong><span>{option.description}</span></span>
                       </label>
                     );
@@ -275,6 +282,7 @@ function GoalForm() {
                   {form.discussion_types.length} di {catalog.max_discussion_types} selezionati.
                   {form.discussion_types.length >= catalog.max_discussion_types ? " Deseleziona una voce per cambiarla." : " Almeno una scelta richiesta."}
                 </p>
+                {discussionLimitNotice ? <p className="discussion-limit-notice" role="alert">Per selezionarne un altro, deseleziona prima una delle tre scelte: puoi indicarne al massimo 3.</p> : null}
               </fieldset>
             </div>
           </div>
@@ -306,7 +314,7 @@ function GoalForm() {
             .discussion-options { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .discussion-option { display: flex; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; }
             .discussion-option[data-selected="true"] { border-color: var(--navy-950); background: var(--paper); box-shadow: inset 0 0 0 1px var(--navy-950); }
-            .discussion-option[data-disabled="true"] { opacity: .65; cursor: not-allowed; }
+            .discussion-limit-notice { background: #fff8e8; border: 1px solid #efcb70; border-radius: 9px; color: #744d06; font-weight: 750; margin: 2px 0 0; padding: 10px 12px; }
             .discussion-option:focus-within { outline: 3px solid var(--gold-500); outline-offset: 3px; }
             .discussion-option input { width: 18px; height: 18px; flex-shrink: 0; margin-top: 3px; accent-color: var(--navy-950); }
             .discussion-option strong { display: block; margin-bottom: 5px; font-size: .91rem; }
