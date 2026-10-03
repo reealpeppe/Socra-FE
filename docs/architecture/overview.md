@@ -2,7 +2,7 @@
 
 Aggiornato: 03/10/2026. Proprietario dei confini tecnici locali; la [guida](../agent/README.md) risolve wiki e architettura condivisa del backend sul ref del task.
 
-La slice V4 del 02/10 è in integrazione sul branch BE/FE `release/skills-20261003`, dalle basi release FE `dc7cb34` e BE `64f7ef3`. Pubblicazione autorizzata il 03/10; QA in corso, nessun rilascio V4 ancora attestato. Stato operativo e regole restano nel backend; registrazione/verifica email, confine BFF, CSP e monitoraggio già pubblicati sono parte della base da preservare.
+La V4 è pubblicata dal 03/10 su `release/v3-20260919`: BE `f53226aab35c93722c0fad8dbee4efef31d66e28`, FE `996fb361167132b7667a4fc4df79626159a0b411`. Backend e frontend corretto verificati: il clipping mobile con username lunghi rilevato nella prima review live è stato corretto e ricollaudato il 03/10. Deployment ed evidenze nel [rapporto backend del 03/10](https://github.com/reealpeppe/Socra-BE/blob/release/v3-20260919/docs/releases/2026-10-03-skills-production.md). Stato operativo e regole restano nel backend; registrazione/verifica email, confine BFF, CSP e monitoraggio sono preservati.
 
 ## Responsabilità e punti di ingresso
 
@@ -12,7 +12,7 @@ La slice V4 del 02/10 è in integrazione sul branch BE/FE `release/skills-202610
 | Sessione e BFF | [lib/server.ts](../../lib/server.ts) e [route API](../../app/api): token nel cookie HTTP-only, chiamate server-side al backend; la configurazione viene da `SOCRA_API_BASE_URL` |
 | API client e cache | [lib/api.ts](../../lib/api.ts), [request-cache](../../lib/request-cache.ts): deduplica/cache e invalidazione coerenti con mutazioni, logout e cambio account. Il backend resta autorevole |
 | Survey e obiettivo | [OnboardingSurvey](../../components/OnboardingSurvey.tsx), [onboarding](../../lib/onboarding.ts), [DiscussionPreferences](../../components/DiscussionPreferences.tsx): rendering/draft e scelte; cataloghi e regole della wiki/backend, non una nuova formula FE |
-| Attività e matching per capacità (integrazione V4 del 03/10/2026) | [SkillSurvey](../../components/SkillSurvey.tsx), [SkillGoalForm](../../components/SkillGoalForm.tsx), [SkillSummary](../../components/SkillSummary.tsx), [SkillFeedback](../../components/SkillFeedback.tsx), [SkillPublicProfile](../../components/SkillPublicProfile.tsx), [SkillMentorPreferences](../../components/SkillMentorPreferences.tsx): catalogo autenticato `/skills/catalog`, tipi condivisi, sottoinsieme concordato e snapshot dal backend. [SkillCatalogBoundary](../../components/SkillCatalogBoundary.tsx) usa il ramo storico solo su 404 esplicito; errori temporanei mantengono una vista di errore recuperabile |
+| Attività e matching per capacità (V4 pubblicata il 03/10/2026) | [SkillSurvey](../../components/SkillSurvey.tsx), [SkillGoalForm](../../components/SkillGoalForm.tsx), [SkillSummary](../../components/SkillSummary.tsx), [SkillFeedback](../../components/SkillFeedback.tsx), [SkillPublicProfile](../../components/SkillPublicProfile.tsx), [SkillMentorPreferences](../../components/SkillMentorPreferences.tsx): catalogo autenticato `/skills/catalog`, tipi condivisi, sottoinsieme concordato e snapshot dal backend. [SkillCatalogBoundary](../../components/SkillCatalogBoundary.tsx) usa il ramo storico solo su 404 esplicito; errori temporanei mantengono una vista di errore recuperabile |
 | Notifiche e proposte | Banner in [AppShell](../../components/AppShell.tsx), stile in [ProposalBanner.module.css](../../components/ProposalBanner.module.css) e route pertinenti: leggere stato operativo server; dismissione e lettura sono azioni distinte come da contratto |
 | Date e stati asincroni | [lib/date.ts](../../lib/date.ts): applicare il contratto UTC delle API; distinguere 401 da indisponibilità temporanea e timeout |
 | UI | [Ui.tsx](../../components/Ui.tsx), CSS locali e [globals.css](../../app/globals.css): primitive e layout responsive; evitare nuove copie di cataloghi o testi tecnici nel flusso utente |
@@ -49,3 +49,5 @@ La [suite UX](../testing/ux-review.md) cattura desktop/mobile con API locali ver
 richiede una review LLM indipendente su immagini e azioni. Il gate verifica
 completezza, esito e attualità delle evidenze; i test tecnici non assegnano il
 giudizio semantico.
+
+Le griglie di dashboard e impostazioni contengono anche username lunghi e indirizzi email senza spazi: le colonne possono restringersi e il testo va a capo. Le regressioni browser controllano i rettangoli degli elementi e delle righe di testo rispetto al viewport e agli antenati che tagliano il contenuto; il solo `scrollWidth` non rileva un overflow nascosto. La correzione non cambia schede, collegamenti, permessi o contratti della wiki 13.

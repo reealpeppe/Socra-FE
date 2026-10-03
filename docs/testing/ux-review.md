@@ -6,12 +6,17 @@ Una cattura riuscita lascia sempre la review **pending**. Nessun mock, provider
 email/call, deploy, chiave LLM o chiamata a un nuovo servizio esterno eseguiti
 dal runner di cattura.
 
-La pubblicazione V4 è stata autorizzata il 03/10; sul branch BE/FE
-`release/skills-20261003` integrazione e QA sono in corso, senza rilascio ancora
-attestato. Questa suite verifica la build indicata nel manifest e non esegue
-la pubblicazione. Stato ed evidenze del rilascio restano nei documenti backend
-risolti dalla [guida locale](../agent/README.md); una review di un vecchio run
-feature non vale come verifica della nuova build integrata.
+La V4 è pubblicata su autorizzazione del 03/10: backend e frontend corretto
+verificati. Il clipping mobile emerso nella prima review live è stato corretto
+e ricollaudato. Questa suite verifica la build indicata nel manifest e non
+esegue la pubblicazione. Stato, revisioni ed evidenze sono nel
+[rapporto backend del 03/10](https://github.com/reealpeppe/Socra-BE/blob/release/v3-20260919/docs/releases/2026-10-03-skills-production.md).
+La prima review locale con fixture v1 era passata ma non copriva username
+allungati; non attesta la correzione successiva. La cattura con fixture v2
+`2026-10-03T06-46-59-839Z` su FE `996fb361` ha ottenuto 16/16 criteri a 2/2
+e gate superato. La successiva review sul dominio pubblico ha esaminato
+14 schermate desktop/mobile senza nuovi difetti bloccanti; copertura e limiti
+restano distinti nel rapporto, senza attestare l'intera applicazione.
 
 ## Riprodurre
 
@@ -20,7 +25,9 @@ feature non vale come verifica della nuova build integrata.
 2. Nel frontend: `npm run test:ux:capture`. Richiede Chrome. Il runner esegue
    `backend/scripts/seed_ux_review.py`, che accetta esclusivamente il DB
    `.local/skills-preview.sqlite3`, disabilita le integrazioni prima degli
-   import e crea tre account sintetici `ux.review.*`, conservando le demo.
+   import e crea tre account sintetici con fixture `socra-local-ux-v2-long-names`,
+   username `ux.review.{learner,mentor,peer}.long.username` e email lunghe.
+   Conserva le demo e la precedente fixture v1.
 3. Il runner crea una build fresca in `.next-ux` e avvia entrambi i server su
    loopback (3141 frontend, 8141 backend), poi li arresta. Non riusa server già
    avviati: un listener esistente blocca la prova. Il manifest lega immagini,
@@ -64,6 +71,12 @@ mobile, appaiono dentro la pagina intera: controlla il viewport prima di
 interpretarli come una sovrapposizione persistente al contenuto.
 Non leggere l'implementazione prima della valutazione. Per ciascun criterio
 chiediti cosa capirebbe o farebbe una persona; non cercare soltanto parole.
+Controlla saluto, nomi pubblici e indirizzi email lunghi: nessuna parte deve
+essere tagliata o perdere i margini su mobile. Il solo `document.scrollWidth`
+non rileva contenuto nascosto da `overflow:hidden`; confronta immagini,
+rettangoli degli elementi e righe di testo con viewport e antenati che tagliano.
+Le schermate di percorsi e matching devono mostrare i dati finali, oppure lo
+stato vuoto finale: uno skeleton o un caricamento non dimostra il risultato.
 Una schermata non dimostra che un pulsante porti nel posto giusto: per questo
 sono incluse le destinazioni osservate e le letture successive delle API.
 
@@ -74,13 +87,13 @@ motivo. Se l'evidenza manca, non attribuire 2. Registrare i difetti con gravità
 
 | ID | Domanda da verificare |
 |---|---|
-| objectives | Dashboard: numero/contenuto degli obiettivi comprensibili, abbreviazioni spiegate, sezioni inferiori compatte? |
-| private-context | Esperienza centrata sulle capacità; contesto privato facoltativo nelle impostazioni e salvabile separatamente? |
+| objectives | Dashboard: numero/contenuto degli obiettivi comprensibili, abbreviazioni spiegate, sezioni inferiori compatte e saluto/username lungo interamente leggibile senza tagli o margini persi su mobile? |
+| private-context | Esperienza centrata sulle capacità; contesto privato facoltativo nelle impostazioni e salvabile separatamente; nome pubblico/email lunghi leggibili senza tagli o margini persi? |
 | experience-save | Risposte precompilate, modifica persistita, conferma e ritorno dashboard; pausa e contesto conservati? |
 | goal-hierarchy | Tema, obiettivi e modalità distinguibili velocemente, anche su mobile? |
-| matching-score | Percentuale di compatibilità reale visibile, distinta da copertura e disponibilità? |
+| matching-score | Percentuale di compatibilità reale visibile, distinta da copertura e disponibilità, nel risultato finale caricato? |
 | partial-agreement | Attività incluse/escluse comprensibili e stessa selezione nella richiesta salvata? |
-| mentor-paths | “Vedi i percorsi” apre davvero i propri percorsi anche in pausa, senza riattivare la disponibilità? |
+| mentor-paths | “Vedi i percorsi” apre davvero i propri percorsi anche in pausa, senza riattivare la disponibilità, con contenuto finale caricato? |
 | preparation | Barre per singolo tema con numeratore/denominatore, capacità conosciute distinte dalle offerte e dalle conferme? |
 
 Fixture discriminanti: il learner ha un percorso attivo come mentor ma è in
