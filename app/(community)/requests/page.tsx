@@ -370,6 +370,7 @@ function RequestsStyles() {
     <style jsx global>{`
       .requests-page {
         display: grid;
+        grid-template-columns: minmax(0, 1fr);
         gap: 20px;
         margin: 0 auto;
         max-width: 980px;
@@ -463,7 +464,10 @@ function RequestsStyles() {
         justify-content: space-between;
       }
 
+      .requests-row-head > div { min-width: 0; }
+
       .requests-row-head h2 {
+        overflow-wrap: anywhere;
         color: var(--navy-950, #07172d);
         font-size: 1rem;
         margin: 0 0 2px;

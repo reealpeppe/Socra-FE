@@ -21,11 +21,11 @@ export function AlignmentDialog({ name, mentorProposal = false, coverage, onSend
   const [agreed, setAgreed] = useState<string[]>([]);
   const needsAgreement = coverage?.skill_model === true;
   useEffect(() => { dialog.current?.showModal(); }, []);
-  return <dialog ref={dialog} aria-labelledby="alignment-title" onCancel={(event) => {
+  return <dialog ref={dialog} className={styles.alignmentDialog} aria-labelledby="alignment-title" onCancel={(event) => {
     event.preventDefault();
     if (!busy) onClose();
   }} style={{ width: "min(560px, calc(100% - 32px))", border: "1px solid var(--line)", borderRadius: 20, padding: 28, color: "var(--navy-950)" }}>
-    <form className="stack" onSubmit={async (event) => {
+    <form className={`stack ${styles.alignmentForm}`} onSubmit={async (event) => {
       event.preventDefault();
       if (busy || message.trim().length < 20 || !emailSharing || (needsAgreement && !agreed.length)) return;
       setBusy(true);

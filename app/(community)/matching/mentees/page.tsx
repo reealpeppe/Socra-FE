@@ -351,6 +351,8 @@ function MenteeMatchingContent() {
           border-radius: 20px;
           box-shadow: var(--shadow-tight, 0 10px 26px rgba(18, 35, 61, 0.06));
           display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          min-width: 0;
           gap: 16px;
           padding: 22px;
         }
@@ -373,10 +375,13 @@ function MenteeMatchingContent() {
         }
 
         .mentee-goal-person h2 {
+          overflow-wrap: anywhere;
           color: var(--navy-950, #07172d);
           font-size: 1rem;
           margin: 0 0 5px;
         }
+
+        .mentee-goal-person > div { min-width: 0; }
 
         .mentee-goal-score {
           display: grid;

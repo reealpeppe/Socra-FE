@@ -431,6 +431,8 @@ function ProfileStyles() {
     <style jsx global>{`
       .profile-page {
         display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        overflow-wrap: anywhere;
         gap: 20px;
         margin: 0 auto;
         max-width: 1100px;
@@ -478,6 +480,8 @@ function ProfileStyles() {
 
       .profile-hero-info {
         display: grid;
+        min-width: 0;
+        grid-template-columns: minmax(0, 1fr);
         gap: 8px;
       }
 

@@ -598,7 +598,10 @@ function MatchingStyles() {
         justify-content: space-between;
       }
 
+      .mcc-head > div { min-width: 0; }
+
       .mcc-head h2 {
+        overflow-wrap: anywhere;
         color: var(--navy-950, #07172d);
         font-size: 1.1rem;
         margin: 0 0 6px;

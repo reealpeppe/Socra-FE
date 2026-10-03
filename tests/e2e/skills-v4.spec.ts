@@ -364,6 +364,56 @@ for (const username of ["qa.release.6f51e4f909ba", "q".repeat(80)]) {
   });
 }
 
+for (const nickname of ["ux.review.mentor.long.username", "m".repeat(80)]) {
+  test(`long mentor identity fits candidate and agreement (${nickname.length} characters)`, async ({ page }) => {
+    await page.route("**/api/backend/matching/candidates", route => route.fulfill({ json: [{ ...candidate, nickname }] }));
+    await page.goto("/matching");
+    await expect(page.getByRole("heading", { name: nickname, exact: true })).toBeVisible();
+    await expectHorizontalContainment(page.locator(".mentor-candidate-card, .mentor-candidate-card h2, .mentor-candidate-card button"));
+    await page.getByRole("button", { name: "Invia richiesta al mentor", exact: true }).first().click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await dialog.getByText("Su cosa potete lavorare", { exact: true }).click();
+    await expectHorizontalContainment(dialog.locator("form, h2, fieldset, details, textarea, button"));
+    await dialog.getByRole("checkbox", { name: "Leggere la scheda di un ETF", exact: true }).check();
+    await dialog.getByLabel("Il tuo messaggio").fill("Vorrei leggere insieme una scheda ETF e comprenderne i dati principali.");
+    await dialog.getByRole("checkbox", { name: /email/ }).check();
+    await dialog.getByRole("button", { name: "Invia", exact: true }).scrollIntoViewIfNeeded();
+    await expect(dialog.getByRole("button", { name: "Invia", exact: true })).toBeEnabled();
+    await expectHorizontalContainment(dialog.locator("form, h2, fieldset, details, textarea, button"));
+    await dialog.getByRole("button", { name: "Annulla", exact: true }).click();
+    await expect(dialog).not.toBeVisible();
+  });
+
+  test(`long learner identity fits reverse matching (${nickname.length} characters)`, async ({ page }) => {
+    await page.route("**/api/backend/matching/mentee-candidates", route => route.fulfill({ json: [{ ...candidate, nickname, mentee_id: "learner", goal_id: "g1", goal_topic: "ETF", goal_tag: goal.goal_tag, objective_labels: goal.objective_labels, discussion_mode_label: goal.discussion_mode_label }] }));
+    await page.goto("/matching/mentees");
+    await expect(page.getByRole("heading", { name: nickname, exact: true })).toBeVisible();
+    await expectHorizontalContainment(page.locator(".mentee-goal-card, .mentee-goal-person h2, .mentee-goal-card button"));
+  });
+
+  test(`long public identity fits profile and review (${nickname.length} characters)`, async ({ page }) => {
+    await page.route("**/api/backend/profiles/mentor", route => route.fulfill({ json: {
+      skill_model: true, user_id: "mentor", nickname, completed_paths: 1, public_badges: [], aggregate_metrics: {}, path_cost: 1, is_coach: true,
+      skill_groups: [preparation], public_reviews: [{ id: "long-review", author_id: "author", author_name: nickname, comment: "Un confronto utile e chiaro.", created_at: "2026-10-01T10:00:00Z", topic_label: "ETF", objective_labels: [goal.objective_labels[0]] }],
+    } }));
+    await page.goto("/profiles/mentor");
+    await expect(page.getByRole("heading", { name: nickname, exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Invia richiesta al mentor", exact: true })).toBeVisible();
+    await expectHorizontalContainment(page.locator(".profile-hero, .profile-name, .profile-body, .profile-body section, .profile-body article, .profile-body button"));
+  });
+
+  test(`long counterpart identity fits requests (${nickname.length} characters)`, async ({ page }) => {
+    await page.route("**/api/backend/matching/requests/me?**", route => route.fulfill({ json: [{
+      ...path, id: "long-request", status: "pending", goal, initiator_role: "mentor", expires_at: "2099-01-01T00:00:00Z", mentor: { nickname }, email_sharing_accepted: true,
+    }] }));
+    await page.goto("/requests");
+    await expect(page.getByRole("heading", { name: nickname, exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Accetta", exact: true })).toBeVisible();
+    await expectHorizontalContainment(page.locator(".requests-row, .requests-row h2, .requests-row-head, .requests-goal, .requests-row button"));
+  });
+}
+
 test("dashboard active paths show agreed snapshots even when the goal changes", async ({ page }) => {
   await page.route("**/api/backend/paths/me", route => route.fulfill({ json: [{ ...path, agreed_objective_labels: ["Obiettivo già concordato"] }] }));
   await page.goto("/dashboard");

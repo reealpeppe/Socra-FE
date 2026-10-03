@@ -75,12 +75,12 @@ try {
       const clipped = await page.evaluate(() => {
         const issues = [];
         const visible = element => element.getClientRects().length && getComputedStyle(element).visibility !== "hidden" && !element.closest('[aria-hidden="true"]');
-        for (const element of document.querySelectorAll('main h1, main section, main form, main details, main .card, main button, main a.button, main progress, main .settings-field-value')) {
+        for (const element of document.querySelectorAll('main h1, main section, main article, main form, main details, main .card, main button, main a.button, main progress, main input, main select, main textarea, main .settings-field-value')) {
           if (!visible(element)) continue;
           const rect = element.getBoundingClientRect();
           if (rect.left < -1 || rect.right > innerWidth + 1) issues.push({ element: element.tagName, label: element.textContent?.trim().slice(0, 80), left: rect.left, right: rect.right });
         }
-        for (const heading of document.querySelectorAll('main h1')) {
+        for (const heading of document.querySelectorAll('main h1, main h2, main h3')) {
           const walker = document.createTreeWalker(heading, NodeFilter.SHOW_TEXT);
           while (walker.nextNode()) {
             const node = walker.currentNode;
