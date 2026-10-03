@@ -15,7 +15,15 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: npm audit --audit-level=high
+      - run: npm run audit:security
+      - name: Preserve dependency audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-dependency-audit
+          path: .local/security-audit/
+          include-hidden-files: true
+          retention-days: 14
       - run: npm run test:security
       - run: npm run test:ux:gate
       - run: npm run typecheck

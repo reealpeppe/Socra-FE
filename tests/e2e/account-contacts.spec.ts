@@ -58,7 +58,7 @@ test("verification uses fragment in memory and removes it before confirming", as
   await page.goto("/verify-email#token=local-verification-token");
   await expect.poll(() => new URL(page.url()).hash).toBe("");
   await page.getByRole("button", { name: "Conferma email" }).click();
-  await expect(page.getByRole("status")).toContainText("Email verificata");
+  await expect(page.getByRole("status").filter({ hasText: "Email verificata" })).toBeVisible();
   expect(posted).toEqual({ token: "local-verification-token" });
   expect(await page.evaluate(() => JSON.stringify({ ...localStorage }))).not.toContain("local-verification-token");
 });
