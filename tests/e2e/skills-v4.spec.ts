@@ -112,6 +112,31 @@ for (const source of ["settings", "experience"] as const) {
   });
 }
 
+test("dashboard waits for preparation and retries a profile error without showing an empty profile", async ({ page }) => {
+  let releaseProfile!: () => void;
+  const pending = new Promise<void>(resolve => { releaseProfile = resolve; });
+  let requests = 0;
+  await page.route("**/api/backend/profiles/u1", async route => {
+    requests++;
+    if (requests === 1) {
+      await pending;
+      return route.fulfill({ status: 503, json: { detail: "Profile temporarily unavailable" } });
+    }
+    return route.fulfill({ json: { skill_model: true, skill_groups: [preparation], is_coach: true } });
+  });
+  await page.goto("/dashboard");
+  await expect.poll(() => requests).toBe(1);
+  await expect(page.getByText("Nessun argomento ancora disponibile.", { exact: true })).toHaveCount(0);
+  await expect(page.getByRole("status").filter({ hasText: "Caricamento dashboard" })).toBeVisible();
+  releaseProfile();
+  await expect(page.getByText("La tua esperienza non è disponibile. Usa “Riprova” in alto.", { exact: true })).toBeVisible();
+  await expect(page.getByText("Nessun argomento ancora disponibile.", { exact: true })).toHaveCount(0);
+  await page.getByRole("button", { name: "Riprova", exact: true }).click();
+  await expect(page.getByRole("progressbar", { name: "Preparazione su ETF" })).toHaveAttribute("value", "3");
+  await expect(page.getByText("La tua esperienza non è disponibile. Usa “Riprova” in alto.", { exact: true })).toHaveCount(0);
+  expect(requests).toBe(2);
+});
+
 test("survey removes offered skill when knowledge is removed and submits explicit empty profile", async ({ page }, testInfo) => {
   let sent: Record<string, unknown> | undefined;
   await page.route("**/api/backend/skills/me", route => {

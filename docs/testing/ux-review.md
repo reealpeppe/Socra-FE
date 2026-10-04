@@ -30,6 +30,10 @@ Il successivo controllo live ha rilevato l'etichetta corta «Email» spezzata
 internamente con indirizzi lunghi: corretta la contrazione della label,
 mantenendo il valore completo e a capo entro i margini; regressione geometrica
 sul testo con identità da 23 e 80 caratteri in entrambe le viewport.
+Un ulteriore controllo live ha rilevato lo stato vuoto della preparazione
+durante il caricamento del profilo: ora la dashboard attende il risultato,
+mostra l'errore in modo distinto e «Riprova» rilegge anche il profilo.
+Regressione con risposta ritardata, errore 503 e recupero, desktop/mobile.
 
 ## Riprodurre
 
