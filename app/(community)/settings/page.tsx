@@ -273,7 +273,12 @@ export default function SettingsPage() {
             </label>
           </div>
           {savingMentorStatus ? <p className="settings-account-note" role="status">Salvataggio preferenza…</p> : null}
-          {skills ? <SkillCatalogBoundary legacy={null}>{catalog => <SkillMentorPreferences catalog={catalog} profile={skills} onSaved={next => { setSkills(next); setMe(current => current ? { ...current, is_coach: next.mentor_available } : current); }} />}</SkillCatalogBoundary> : skills === null ? <p className="settings-account-note">Indica le attività che sai svolgere per scegliere quelle da offrire. <Link href="/competenze">Aggiorna la tua esperienza</Link></p> : null}
+          {skills ? <SkillCatalogBoundary legacy={null}>{catalog => <SkillMentorPreferences catalog={catalog} profile={skills} onSaved={next => {
+            setSkills(next);
+            setMessage(me?.is_coach && !next.mentor_available ? "Disponibilità come mentor disattivata." : null);
+            setError(null);
+            setMe(current => current ? { ...current, is_coach: next.mentor_available } : current);
+          }} />}</SkillCatalogBoundary> : skills === null ? <p className="settings-account-note">Indica le attività che sai svolgere per scegliere quelle da offrire. <Link href="/competenze">Aggiorna la tua esperienza</Link></p> : null}
           {competences ? (
             <div className="settings-topic-preferences">
               <div>

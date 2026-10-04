@@ -131,11 +131,13 @@ export default function DashboardPage() {
                 {errors.paths ? <p className={styles.cardMessage}>I percorsi non sono disponibili. Usa “Riprova” in alto.</p>
                   : activeMenteePath ? <>
                     <p className={styles.featureTitle}>{activeMenteePath.skill_model ? activeMenteePath.goal?.topic || "Il tuo percorso" : activeMenteePath.goal?.goal_tag || goalTitle || "Il tuo percorso"}</p>
+                    {activeMenteePath.skill_model ? <DashboardTopicExplanation topic={activeMenteePath.goal?.topic} /> : null}
                     {activeMenteePath.skill_model ? <DashboardObjectives labels={activeMenteePath.agreed_objective_labels || []} agreed /> : null}
                     <div className={styles.person}><UserAvatar name={activeMenteePath.mentor?.nickname || "Mentor Socra"} size="sm" /><span><strong>{activeMenteePath.mentor?.nickname || "Mentor Socra"}</strong><small>Il tuo mentor</small></span></div>
                     <p className={styles.supporting}>Hai già un percorso attivo come apprendista.</p>
                   </> : <>
                     <p className={styles.featureTitle}>{errors.goals ? "Il tuo prossimo passo" : goalTitle || "Inizia da un obiettivo"}</p>
+                    {!errors.goals && activeGoal?.skill_model ? <DashboardTopicExplanation topic={activeGoal.topic} /> : null}
                     {!errors.goals && goalObjectives.length ? <DashboardObjectives labels={goalObjectives} /> : null}
                     <p className={styles.supporting}>{pendingGoalReview ? "Rivedi l’obiettivo prima di cercare un nuovo mentor." : activeGoal ? "Nessun percorso attivo come apprendista. Trova la persona giusta per iniziare." : "Scegli cosa desideri imparare e costruisci il tuo percorso."}</p>
                   </>}
@@ -207,4 +209,8 @@ export default function DashboardPage() {
 
 function DashboardObjectives({ labels, agreed = false }: { labels: string[]; agreed?: boolean }) {
   return <div className={styles.objectives}><small>{labels.length} {labels.length === 1 ? "obiettivo" : "obiettivi"}{agreed ? " concordati" : ""}</small><ul>{labels.map(label => <li key={label}>{label}</li>)}</ul></div>;
+}
+
+function DashboardTopicExplanation({ topic }: { topic?: string | null }) {
+  return topic === "ETF" ? <p className={styles.topicExplanation}>ETF significa Exchange Traded Fund: un fondo quotato in borsa.</p> : null;
 }

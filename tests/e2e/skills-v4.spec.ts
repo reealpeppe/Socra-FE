@@ -54,6 +54,64 @@ async function privateContext(page: Page) {
   for (const key of ["D1", "D2", "D3", "D4", "D5"]) await page.locator(`select[name="${key}"]`).selectOption("undisclosed");
 }
 
+for (const source of ["settings", "experience"] as const) {
+  test(`last mentor offer removal requires confirmation in ${source} and disables availability`, async ({ page }, testInfo) => {
+    let profile = { version: 1, known_skills: ["etf_read"], mentor_skills: ["etf_read"], section_d: context, mentor_available: true };
+    let writes = 0;
+    await page.route("**/api/backend/auth/me", route => route.fulfill({ json: { ...user, is_coach: profile.mentor_available } }));
+    await page.route("**/api/backend/skills/me", route => {
+      if (route.request().method() === "PUT") {
+        writes++;
+        profile = { ...profile, ...route.request().postDataJSON(), version: profile.version + 1, mentor_available: false };
+      }
+      return route.fulfill({ json: profile });
+    });
+    await page.route("**/api/backend/profiles/me/mentor-status", route => {
+      profile = { ...profile, mentor_available: route.request().postDataJSON().is_coach };
+      return route.fulfill({ json: { ...user, is_coach: profile.mentor_available } });
+    });
+    await page.goto(source === "settings" ? "/settings" : "/competenze");
+    if (source === "settings") {
+      const availability = page.getByRole("switch", { name: "Disponibilità come mentor" });
+      await availability.focus();
+      await availability.press("Space");
+      await expect(page.getByText("Disponibilità come mentor disattivata.", { exact: true })).toBeVisible();
+      await availability.press("Space");
+      await expect(page.getByText("Disponibilità come mentor attivata.", { exact: true })).toBeVisible();
+      await page.getByRole("checkbox", { name: "Offri: Leggere la scheda di un ETF", exact: true }).uncheck();
+    }
+    else {
+      await page.getByRole("checkbox", { name: "So: Leggere la scheda di un ETF", exact: true }).uncheck();
+      await page.getByRole("checkbox", { name: "Confermo le attività indicate, anche se non ne ho selezionata nessuna." }).check();
+    }
+    const save = page.getByRole("button", { name: source === "settings" ? "Salva capacità offerte" : "Conferma le risposte", exact: true });
+    await save.click();
+    const dialog = page.getByRole("dialog", { name: "Conferma la scelta" });
+    await expect(dialog).toContainText("La tua disponibilità come mentor verrà disattivata");
+    await expect(dialog).toContainText("I percorsi già aperti continueranno");
+    expect(writes).toBe(0);
+    await page.screenshot({ path: testInfo.outputPath("mentor-removal-confirmation.png"), fullPage: true });
+    await dialog.getByRole("button", { name: "Annulla", exact: true }).click();
+    expect(writes).toBe(0);
+    expect(profile.mentor_available).toBe(true);
+    await save.click();
+    await dialog.getByRole("button", { name: "Conferma", exact: true }).click();
+    if (source === "experience") await expect(page).toHaveURL(/\/dashboard$/);
+    else {
+      await expect(page.getByRole("status").filter({ hasText: "Capacità offerte aggiornate" })).toBeVisible();
+      await expect(page.getByText("Disponibilità come mentor attivata.", { exact: true })).toHaveCount(0);
+      await expect(page.getByText("Disponibilità come mentor disattivata.", { exact: true })).toBeVisible();
+    }
+    expect(writes).toBe(1);
+    expect(profile.mentor_skills).toEqual([]);
+    expect(profile.known_skills).toEqual(source === "settings" ? ["etf_read"] : []);
+    await page.goto("/settings");
+    const availability = page.getByRole("switch", { name: "Disponibilità come mentor" });
+    await expect(availability).not.toBeChecked();
+    await expect(availability).toBeDisabled();
+  });
+}
+
 test("survey removes offered skill when knowledge is removed and submits explicit empty profile", async ({ page }, testInfo) => {
   let sent: Record<string, unknown> | undefined;
   await page.route("**/api/backend/skills/me", route => {

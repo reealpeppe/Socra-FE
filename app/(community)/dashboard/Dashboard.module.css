@@ -49,6 +49,7 @@
 .cardTop + h2 { color: #315c88; }
 .mentor .cardTop + h2 { color: #8d5c0d; }
 .featureTitle { font-family: "Iowan Old Style", Georgia, serif; font-size: clamp(1.52rem, 2.35vw, 2.13rem); font-weight: 700; letter-spacing: -.035em; line-height: 1.17; margin: 13px 0 0; max-width: 16ch; }
+.topicExplanation { color: #365b7e; font-size: .79rem; line-height: 1.4; margin: 6px 0 0; max-width: 37ch; }
 .supporting, .cardMessage { color: #5b7089; font-size: .88rem; line-height: 1.48; margin: 15px 0 0; max-width: 37ch; }
 .mentor .supporting { color: #796b50; }
 .person { align-items: center; display: flex; gap: 10px; margin-top: 18px; }
