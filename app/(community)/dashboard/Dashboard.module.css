@@ -144,5 +144,6 @@
   .topicList { margin-top: 11px; }
   .availability { margin-top: 12px; }
   .mentorArt, .learningArt { opacity: .18; }
+  .skillsArt { display: none; }
 }
 
