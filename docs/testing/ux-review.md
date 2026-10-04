@@ -18,6 +18,15 @@ e gate superato. La successiva review sul dominio pubblico ha esaminato
 14 schermate desktop/mobile senza nuovi difetti bloccanti; copertura e limiti
 restano distinti nel rapporto, senza attestare l'intera applicazione.
 
+Il 04/10 GR ha approvato la disattivazione automatica del mentor quando vengono
+rimosse tutte le attività offerte, con conferma nelle impostazioni e nella
+modifica dell'esperienza. La suite comprende ora 14 scenari e 9 criteri per
+viewport, verificando anche annullamento senza scritture e conservazione dei
+percorsi aperti. Il primo controllo ha individuato un banner di attivazione
+rimasto visibile dopo la pausa: corretto, con regressione desktop/mobile e
+nuova cattura. Esito finale e pubblicazione nel
+[rapporto backend del 04/10](https://github.com/reealpeppe/Socra-BE/blob/release/v3-20260919/docs/releases/2026-10-04-mentor-availability.md).
+
 ## Riprodurre
 
 1. Preparare il venv backend con le dipendenze applicative e installare le
@@ -48,7 +57,7 @@ restano distinti nel rapporto, senza attestare l'intera applicazione.
    insufficienti, poi ripetere cattura e review. Eseguire infine
    `npm run test:ux:verify -- output/playwright/ux-review/<run>`.
 
-Il gate richiede 2/2 per ciascuno degli 8 criteri su desktop e mobile, assenza di
+Il gate richiede 2/2 per ciascuno dei 9 criteri su desktop e mobile, assenza di
 problemi bloccanti, cattura tecnica riuscita, impronta dei sorgenti corrente e
 hash delle evidenze invariati. **Non certifica la sincerità o la qualità del
 reviewer:** serve una vera lettura delle immagini, non una compilazione dei
@@ -95,6 +104,7 @@ motivo. Se l'evidenza manca, non attribuire 2. Registrare i difetti con gravità
 | partial-agreement | Attività incluse/escluse comprensibili e stessa selezione nella richiesta salvata? |
 | mentor-paths | “Vedi i percorsi” apre davvero i propri percorsi anche in pausa, senza riattivare la disponibilità, con contenuto finale caricato? |
 | preparation | Barre per singolo tema con numeratore/denominatore, capacità conosciute distinte dalle offerte e dalle conferme? |
+| mentor-removal | Rimuovere l'ultima offerta nelle impostazioni o nell'esperienza spiega la disattivazione, permette di annullare senza scritture e lascia accessibili i percorsi già aperti? |
 
 Fixture discriminanti: il learner ha un percorso attivo come mentor ma è in
 pausa; il mentor ha 4/6 capacità ETF conosciute, solo 2 offerte e 2/6 Azioni

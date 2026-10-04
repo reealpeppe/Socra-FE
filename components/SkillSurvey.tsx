@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
+import { useConfirmation } from "@/components/ConfirmationDialog";
 import { SkillPreparation } from "@/components/SkillPreparation";
 import { clientGet, clientPost, clientPut } from "@/lib/api";
 import { emptySkillAnswers, restoreSkillAnswers, type SkillAnswers } from "@/lib/skills";
@@ -38,6 +39,8 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
   const finalizing = useRef(false);
   const requestKey = useRef("");
   const ownerRef = useRef<SurveyOwner | null>(null);
+  const initialOffers = useRef<string[]>([]);
+  const { confirm, confirmationDialog } = useConfirmation();
   const ownsSession = useCallback((owner: SurveyOwner | null) =>
     owner !== null && ownerRef.current === owner && owner.sessionMarker === sessionMarker(), []);
   useUnsavedChangesGuard(loaded && !done && !busy && JSON.stringify(answers) !== initial);
@@ -58,6 +61,7 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
       userId.current = user.user_id;
       requestKey.current = crypto.randomUUID();
       const saved = restoreSkillAnswers(profile, catalog);
+      initialOffers.current = saved.mentor_skills;
       let raw: unknown = profile || draft?.answers?.skill_flow;
       try {
         const local = JSON.parse(sessionStorage.getItem(draftKey.current) || "null") as { answers: SkillAnswers; savedAt: number; baseVersion?: number } | null;
@@ -117,7 +121,13 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
     const owner = ownerRef.current;
     if (!ownsSession(owner)) return;
     if (!confirmed || busy) { setError("Conferma le attività indicate."); return; }
-    setBusy(true); setError(null); finalizing.current = true;
+    setBusy(true); setError(null);
+    if (initialOffers.current.length && !answers.mentor_skills.length && !await confirm("Stai rimuovendo tutte le attività su cui offri aiuto. La tua disponibilità come mentor verrà disattivata e non riceverai nuove richieste. I percorsi già aperti continueranno. Vuoi salvare questa modifica?")) {
+      if (ownsSession(owner)) setBusy(false);
+      return;
+    }
+    if (!ownsSession(owner)) return;
+    finalizing.current = true;
     try {
       await saveChain.current;
       if (!ownsSession(owner)) return;
@@ -133,7 +143,7 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
     finally { if (ownsSession(owner)) setBusy(false); }
   }
 
-  return <AppShell><div className={styles.page}>
+  return <AppShell>{confirmationDialog}<div className={styles.page}>
     {!loaded ? <div className="card" role={error ? "alert" : "status"}>{error || "Caricamento delle tue risposte…"}{error ? <button className="button secondary" onClick={() => { setError(null); setAttempt(value => value + 1); }}>Riprova</button> : null}</div>
       : done ? <section className={`${styles.section} stack`}><p className={styles.eyebrow}>Il tuo punto di partenza</p><h1>{reassessment ? "Le tue capacità sono aggiornate" : "Il tuo punto di partenza è chiaro"}</h1><p>Ora puoi scegliere le attività che vuoi imparare insieme a un mentor.</p><Link className="button dark" href={reassessment ? "/dashboard" : "/goal"}>{reassessment ? "Torna alla dashboard" : "Scegli cosa imparare"}</Link></section>
       : <form className={styles.page} onSubmit={submit} aria-busy={busy}>
