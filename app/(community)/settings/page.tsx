@@ -450,6 +450,8 @@ export default function SettingsPage() {
         }
         .settings-field-label {
           display: flex;
+          flex-shrink: 0;
+          white-space: nowrap;
           align-items: center;
           gap: 6px;
           font-size: 0.875rem;
