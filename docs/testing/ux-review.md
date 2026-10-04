@@ -124,6 +124,8 @@ storico dei soli account sintetici; non cancellano dati.
 
 ## Limiti
 
+La review live del 04/10 ha rilevato l'illustrazione decorativa sovrapposta ai numeri della preparazione nella card compatta mobile. Su questa viewport l'illustrazione viene omessa, mantenendo barra, percentuale e frazione leggibili. Verificare la sintesi nella dashboard finale, prima e dopo il salvataggio dell'esperienza; non dedurre la leggibilità dai soli valori delle API.
+
 Il manifest registra versioni dei sorgenti, errori, azioni e artefatti, senza
 token o password. Sono dati sintetici ma gli artefatti restano locali. Il
 flusso di accesso usa il form reale e i cookie BFF, senza token iniettati. Le viewport
