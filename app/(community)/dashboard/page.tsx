@@ -11,7 +11,7 @@ import { clientGet } from "@/lib/api";
 import type { GoalsMe, PathItem, PublicProfile, UserMe, Wallet } from "@/lib/types";
 import styles from "./Dashboard.module.css";
 
-type DashboardErrorKey = "user" | "wallet" | "goals" | "paths";
+type DashboardErrorKey = "user" | "wallet" | "goals" | "paths" | "profile";
 
 export default function DashboardPage() {
   const [me, setMe] = useState<UserMe | null>(null);
@@ -26,6 +26,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let active = true;
+    queueMicrotask(() => { if (active) setLoading(true); });
 
     // The wallet can load independently of the main dashboard.
     clientGet<Wallet>("/wallet/me").then(value => {
@@ -35,11 +36,24 @@ export default function DashboardPage() {
       clientGet<UserMe>("/auth/me"),
       clientGet<GoalsMe>("/goals/me"),
       clientGet<PathItem[]>("/paths/me")
-    ]).then(([userResult, goalResult, pathResult]) => {
+    ]).then(async ([userResult, goalResult, pathResult]) => {
       if (!active) return;
       const nextErrors: Partial<Record<DashboardErrorKey, string>> = {};
-      if (userResult.status === "fulfilled") setMe(userResult.value);
-      else nextErrors.user = userResult.reason?.message || "Profilo non disponibile";
+      if (userResult.status === "fulfilled") {
+        setMe(userResult.value);
+        try {
+          const nextProfile = await clientGet<PublicProfile>(`/profiles/${userResult.value.id}`);
+          if (!active) return;
+          setProfile(nextProfile);
+        } catch (error) {
+          if (!active) return;
+          setProfile(null);
+          nextErrors.profile = error instanceof Error ? error.message : "Esperienza non disponibile";
+        }
+      } else {
+        setProfile(null);
+        nextErrors.user = userResult.reason?.message || "Profilo non disponibile";
+      }
       if (goalResult.status === "fulfilled") setGoals(goalResult.value);
       else nextErrors.goals = goalResult.reason?.message || "Obiettivi non disponibili";
       if (pathResult.status === "fulfilled") setPaths(Array.isArray(pathResult.value) ? pathResult.value : []);
@@ -58,7 +72,6 @@ export default function DashboardPage() {
       const key = `socra_experience_saved:${me.id}`;
       if (sessionStorage.getItem(key)) { sessionStorage.removeItem(key); queueMicrotask(() => { if (active) setExperienceSaved(true); }); }
     } catch { /* The profile itself remains available without a local confirmation. */ }
-    clientGet<PublicProfile>(`/profiles/${me.id}`).then(value => { if (active) setProfile(value); }).catch(() => { if (active) setProfile(null); });
     return () => { active = false; };
   }, [me?.id]);
 
@@ -195,7 +208,7 @@ export default function DashboardPage() {
               <section className={`${styles.card} ${styles.skills}`} aria-labelledby="skills-title">
                 <div className={styles.smallCardHead}><span className={styles.cardIcon}><Sparkles size={21} aria-hidden="true" /></span><span className={styles.sectionIndex}>04 / La tua esperienza</span><Link href="/competenze" aria-label="Vai alle tue competenze"><ChevronRight size={19} aria-hidden="true" /></Link></div>
                 <h2 id="skills-title">Competenze e disponibilità</h2>
-                {profile?.skill_model ? profile.skill_groups?.length ? <div className={styles.preparation} aria-label="Preparazione per argomento"><small className={styles.preparationLabel}>Preparazione · attività conosciute</small>{profile.skill_groups.slice(0, 3).map(group => <SkillPreparation group={group} compact key={group.topic} />)}</div> : <p className={styles.cardMessage}>Nessuna attività conosciuta indicata.</p> : mentorTopics.length ? <div className={styles.topicList} aria-label="Topic di competenza">{mentorTopics.slice(0, 3).map(topic => <span key={topic}>{topic}</span>)}{mentorTopics.length > 3 ? <span>+{mentorTopics.length - 3}</span> : null}</div> : <p className={styles.cardMessage}>Nessun argomento ancora disponibile.</p>}
+                {errors.profile || errors.user ? <p className={styles.cardMessage}>La tua esperienza non è disponibile. Usa “Riprova” in alto.</p> : profile?.skill_model ? profile.skill_groups?.length ? <div className={styles.preparation} aria-label="Preparazione per argomento"><small className={styles.preparationLabel}>Preparazione · attività conosciute</small>{profile.skill_groups.slice(0, 3).map(group => <SkillPreparation group={group} compact key={group.topic} />)}</div> : <p className={styles.cardMessage}>Nessuna attività conosciuta indicata.</p> : mentorTopics.length ? <div className={styles.topicList} aria-label="Topic di competenza">{mentorTopics.slice(0, 3).map(topic => <span key={topic}>{topic}</span>)}{mentorTopics.length > 3 ? <span>+{mentorTopics.length - 3}</span> : null}</div> : <p className={styles.cardMessage}>Nessun argomento ancora disponibile.</p>}
                 <div className={styles.availability}><span className={me?.is_coach ? styles.availabilityDot : styles.availabilityDotOff} />{me?.is_coach ? "Disponibile come mentor" : "Disponibilità mentor disattivata"}</div>
                 <div className={styles.skillsArt} aria-hidden="true"><BarChart3 size={30} /></div>
               </section>

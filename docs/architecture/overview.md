@@ -1,6 +1,6 @@
 # Architettura frontend Socra
 
-Aggiornato: 03/10/2026. Proprietario dei confini tecnici locali; la [guida](../agent/README.md) risolve wiki e architettura condivisa del backend sul ref del task.
+Aggiornato: 04/10/2026. Proprietario dei confini tecnici locali; la [guida](../agent/README.md) risolve wiki e architettura condivisa del backend sul ref del task.
 
 La V4 è pubblicata dal 03/10 su `release/v3-20260919`: BE `f53226aab35c93722c0fad8dbee4efef31d66e28`, FE `996fb361167132b7667a4fc4df79626159a0b411`. Backend e frontend corretto verificati: il clipping mobile con username lunghi rilevato nella prima review live è stato corretto e ricollaudato il 03/10. Deployment ed evidenze nel [rapporto backend del 03/10](https://github.com/reealpeppe/Socra-BE/blob/release/v3-20260919/docs/releases/2026-10-03-skills-production.md). Stato operativo e regole restano nel backend; registrazione/verifica email, confine BFF, CSP e monitoraggio sono preservati.
 
@@ -36,6 +36,8 @@ La survey per capacità conserva bozze `skill_flow` separate per account; la riv
 La survey V4 invia soltanto capacità conosciute e offerte: omette `section_d`, lasciandone la conservazione al backend. [PersonalContext](../../components/PersonalContext.tsx) vive nelle impostazioni, rimane facoltativo e salva le cinque risposte esplicite con `PATCH /skills/me/context`; un profilo assente invita a completare l’esperienza senza creare onboarding dal contesto. Il salvataggio della rivalutazione torna alla dashboard con conferma temporanea separata per account. Le operazioni asincrone e le bozze della survey sono invalidate su unmount e cambio sessione prima di ogni invio accodato.
 
 [SkillPreparation](../../components/SkillPreparation.tsx) rende `known_count/total_count`, `preparation_percent` e `confirmed_count` dal profilo pubblico; l’elenco delle offerte resta distinto. Nella rivalutazione le barre descrivono il profilo già salvato, mentre il form modifica la nuova selezione. Dashboard e lista percorsi leggono gli obiettivi concordati dallo snapshot. Le schede matching mostrano `match_score` come compatibilità; la copertura è un dettaglio espandibile per scegliere il sottoinsieme da concordare, senza percentuali derivate sul client né deduzioni sulla disponibilità temporale.
+
+La dashboard attende anche `/profiles/{id}` prima di uscire dal caricamento principale: un profilo ancora in corso non è un elenco vuoto. Un errore del profilo viene segnalato nella scheda esperienza e nel recupero generale; «Riprova» include una nuova lettura del profilo. Crediti restano indipendenti. I confini, gli endpoint e gli schemi condivisi della wiki 13 non cambiano. Conferma dell'ultima offerta, layout email e prove successive al rilascio V4 sono nel [rapporto backend del 04/10](https://github.com/reealpeppe/Socra-BE/blob/release/v3-20260919/docs/releases/2026-10-04-mentor-availability.md).
 
 Test locali di riferimento: [auth/BFF](../../tests/auth-bff.test.mjs), [cache](../../tests/request-cache.mjs), [date](../../tests/date.test.mjs), [browser](../../tests/e2e). La configurazione e il runner distinguono mock e server esterno; i risultati browser con mock non verificano API/provider reali.
 
