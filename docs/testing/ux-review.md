@@ -26,6 +26,10 @@ percorsi aperti. Il primo controllo ha individuato un banner di attivazione
 rimasto visibile dopo la pausa: corretto, con regressione desktop/mobile e
 nuova cattura. Esito finale e pubblicazione nel
 [rapporto backend del 04/10](https://github.com/reealpeppe/Socra-BE/blob/release/v3-20260919/docs/releases/2026-10-04-mentor-availability.md).
+Il successivo controllo live ha rilevato l'etichetta corta «Email» spezzata
+internamente con indirizzi lunghi: corretta la contrazione della label,
+mantenendo il valore completo e a capo entro i margini; regressione geometrica
+sul testo con identità da 23 e 80 caratteri in entrambe le viewport.
 
 ## Riprodurre
 

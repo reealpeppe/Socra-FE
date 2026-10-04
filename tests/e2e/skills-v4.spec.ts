@@ -418,7 +418,16 @@ for (const username of ["qa.release.6f51e4f909ba", "q".repeat(80)]) {
     await expect(page.getByRole("textbox", { name: "Username", exact: true })).toHaveValue(username);
     await page.getByText("Contesto personale", { exact: true }).click();
     await expect(page.locator('select[name="D1"]')).toBeVisible();
-    await expectHorizontalContainment(page.locator(".settings-page > .card, .settings-profile-name, .settings-field-value, #personal-context, #personal-context select"));
+    const emailLabel = page.locator(".settings-field-label").filter({ hasText: "Email" });
+    const emailLines = await emailLabel.evaluate(label => {
+      const text = Array.from(label.childNodes).find(node => node.nodeType === Node.TEXT_NODE && node.textContent?.includes("Email"))!;
+      const range = document.createRange();
+      const start = text.textContent!.indexOf("Email");
+      range.setStart(text, start); range.setEnd(text, start + "Email".length);
+      return new Set(Array.from(range.getClientRects()).map(rect => Math.round(rect.top))).size;
+    });
+    expect(emailLines, "The short Email label must not split inside the word").toBe(1);
+    await expectHorizontalContainment(page.locator(".settings-page > .card, .settings-profile-name, .settings-field-label, .settings-field-value, #personal-context, #personal-context select"));
   });
 }
 
