@@ -217,7 +217,7 @@ try {
     await changeDialog.getByRole('button',{name:'Conferma',exact:true}).click();
     await expect(page).toHaveURL(/\/matching$/);
     assert.equal((await api(context,'/matching/requests/me?role=mentee')).find(r=>r.id===sent.id).status,'cancelled_by_goal_change');
-    await page.goto('/requests?tab=sent');await expect(page.getByText('Annullata per modifica dell’obiettivo',{exact:true})).toBeVisible();
+    await page.goto('/requests?tab=sent');await expect(page.getByText('Annullata per modifica dell’obiettivo',{exact:true}).first()).toBeVisible();
     await capture('goal-cancelled','Stato terminale leggibile; nessun percorso aperto.');
     await page.goto(`/profiles/${fixture.users.mentor.id}`);
     await expect(page.getByRole("progressbar", { name: "Preparazione su ETF" })).toBeVisible();

@@ -218,7 +218,8 @@ test("profile separates preparation from offered skills and displays critical re
   await expect(page.getByText("75%", { exact: true })).toBeVisible();
   await expect(page.getByText("2 dichiarate · 1 confermata nei percorsi", { exact: true })).toBeVisible();
   await expect(page.getByText("2 attività offerte", { exact: true })).toBeVisible();
-  await expect(page.getByText("2/3 attività · 84% compatibilità", { exact: true })).toBeVisible();
+  await expect(page.getByText("84%", { exact: true })).toBeVisible();
+  await expect(page.getByText("Copertura parziale", { exact: true })).toBeVisible();
   await expect(page.getByText("Avrei preferito più esempi <script>alert(1)</script>", { exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("profilo.png"), fullPage: true });
   await page.getByRole("button", { name: "Segnala commento" }).click();
