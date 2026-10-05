@@ -42,7 +42,7 @@ Regressione con risposta ritardata, errore 503 e recupero, desktop/mobile.
 2. Nel frontend: `npm run test:ux:capture`. Richiede Chrome. Il runner esegue
    `backend/scripts/seed_ux_review.py`, che accetta esclusivamente il DB
    `.local/skills-preview.sqlite3`, disabilita le integrazioni prima degli
-   import e crea tre account sintetici con fixture `socra-local-ux-v3-multi-goals`,
+   import e crea gli account sintetici dedicati con fixture `socra-local-ux-v3-multi-goals`,
    username `ux.review.{learner,mentor,peer}.long.username` e email lunghe.
    Conserva le demo e la precedente fixture v1.
 3. Il runner crea una build fresca in `.next-ux` e avvia entrambi i server su
@@ -116,10 +116,10 @@ motivo. Se l'evidenza manca, non attribuire 2. Registrare i difetti con gravità
 
 Fixture discriminanti: il learner ha un percorso attivo come mentor ma è in
 pausa; il mentor ha 4/6 capacità ETF conosciute, solo 2 offerte e 2/6 Azioni
-conosciute senza offerte; la richiesta desiderata contiene 3 attività, ne
+conosciute con una offerta; la richiesta desiderata contiene 3 attività, ne
 copre 2, e lo score API è diverso da 67%. Il runner modifica una capacità,
 salva/rilegge il contesto, invia una richiesta con una sola attività e poi la
-chiude dal destinatario per consentire repliche. Queste azioni restano nello
+annulla modificando il tema interessato, conservando lo storico e gli account separati per viewport. Queste azioni restano nello
 storico dei soli account sintetici; non cancellano dati.
 
 ## Limiti

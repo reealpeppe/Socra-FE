@@ -77,3 +77,46 @@ test('aggregate_long_identity_and_details_fit_viewport',async({page,baseURL})=>{
   const overflow=await page.locator('[data-person-id], [data-person-id] h2, [data-person-id] details, [data-person-id] button').evaluateAll(nodes=>nodes.some(node=>{const r=node.getBoundingClientRect();return r.right>innerWidth||r.left<0;}));
   expect(overflow).toBe(false);
 });
+
+for (const failedEndpoint of ['/goals/me','/skills/me','/matching/requests/me']) {
+  test(`failed_initial_selection_read_blocks_writes_and_recovers_${failedEndpoint}`,async({page,baseURL})=>{
+    const state=await fixture(page,baseURL!,{pending:true});
+    const pattern=`**/api/backend${failedEndpoint}${failedEndpoint.includes('requests')?'?**':''}`;
+    let fail=true;
+    await page.route(pattern,route=>fail?route.fulfill({status:503,json:{detail:'Lettura temporaneamente non disponibile'}}):route.fallback());
+    await page.goto('/goal');
+    await expect(page.locator('main').getByRole('alert')).toBeVisible();
+    await expect(page.getByRole('button',{name:/Salva e continua|Aggiorna e vedi i mentor/})).toHaveCount(0);
+    expect(state.selectionWrites).toBe(0);
+    fail=false;
+    await page.getByRole('button',{name:'Riprova',exact:true}).click();
+    const topic=page.locator('details').filter({has:page.getByText('ETF',{exact:true})});
+    await expect(topic.getByRole('checkbox',{name:'Leggere la scheda di un ETF',exact:true})).toBeChecked();
+    await topic.getByRole('checkbox',{name:'Leggere la scheda di un ETF',exact:true}).uncheck();
+    await page.getByRole('button',{name:'Aggiorna e vedi i mentor',exact:true}).click();
+    await expect(page.getByRole('dialog')).toContainText('proposta');
+    expect(state.selectionWrites).toBe(0);
+  });
+}
+test('account_change_during_page_request_keeps_new_pagination_usable',async({page,baseURL})=>{
+  await fixture(page,baseURL!);
+  let release!:()=>void, started!:()=>void;
+  const waiting=new Promise<void>(r=>release=r), requested=new Promise<void>(r=>started=r);
+  let old=true;
+  await page.route('**/api/backend/matching/candidates/all',async route=>{
+    const body=route.request().postDataJSON();
+    if(old&&body?.cursor){started();await waiting;return route.fulfill({json:{items:[card(99)],next_cursor:null}});}
+    return route.fallback();
+  });
+  await page.goto('/matching');
+  await expect(page.locator('[data-person-id]')).toHaveCount(10);
+  await page.getByRole('button',{name:'Mostra altri',exact:true}).click();
+  await requested;old=false;
+  await page.evaluate(()=>{localStorage.setItem('socra-session-change','account-with-more');window.dispatchEvent(new Event('socra:session-refresh'));});
+  await expect(page.locator('[data-person-id]')).toHaveCount(10);
+  await expect(page.getByRole('button',{name:'Mostra altri',exact:true})).toBeEnabled();
+  release();
+  await page.getByRole('button',{name:'Mostra altri',exact:true}).click();
+  await expect(page.locator('[data-person-id]')).toHaveCount(12);
+  await expect(page.locator('[data-person-id="m-99"]')).toHaveCount(0);
+});

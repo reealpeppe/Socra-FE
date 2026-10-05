@@ -12,7 +12,7 @@ import { clientGet } from "@/lib/api";
 import type { GoalsMe, PathItem, PublicProfile, UserMe, Wallet, SkillProfile } from "@/lib/types";
 import styles from "./Dashboard.module.css";
 
-type DashboardErrorKey = "user" | "wallet" | "goals" | "paths" | "profile";
+type DashboardErrorKey = "user" | "wallet" | "goals" | "paths" | "profile" | "context";
 
 export default function DashboardPage() {
   const [me, setMe] = useState<UserMe | null>(null);
@@ -30,7 +30,7 @@ export default function DashboardPage() {
     let active = true;
     queueMicrotask(() => { if (active) setLoading(true); });
 
-    clientGet<SkillProfile | null>("/skills/me").then(value => { if (active) setOwnSkills(value); }).catch(() => { if (active) setErrors(current => ({...current, profile: "Contesto personale non disponibile"})); });
+
     // The wallet can load independently of the main dashboard.
     clientGet<Wallet>("/wallet/me").then(value => {
       if (active) { setWallet(value); setErrors(current => ({ ...current, wallet: undefined })); }
@@ -38,8 +38,9 @@ export default function DashboardPage() {
     Promise.allSettled([
       clientGet<UserMe>("/auth/me"),
       clientGet<GoalsMe>("/goals/me"),
-      clientGet<PathItem[]>("/paths/me")
-    ]).then(async ([userResult, goalResult, pathResult]) => {
+      clientGet<PathItem[]>("/paths/me"),
+      clientGet<SkillProfile | null>("/skills/me")
+    ]).then(async ([userResult, goalResult, pathResult, skillsResult]) => {
       if (!active) return;
       const nextErrors: Partial<Record<DashboardErrorKey, string>> = {};
       if (userResult.status === "fulfilled") {
@@ -57,6 +58,8 @@ export default function DashboardPage() {
         setProfile(null);
         nextErrors.user = userResult.reason?.message || "Profilo non disponibile";
       }
+      if (skillsResult.status === "fulfilled") setOwnSkills(skillsResult.value);
+      else { setOwnSkills(undefined); nextErrors.context = "Contesto personale non disponibile"; }
       if (goalResult.status === "fulfilled") setGoals(goalResult.value);
       else nextErrors.goals = goalResult.reason?.message || "Obiettivi non disponibili";
       if (pathResult.status === "fulfilled") setPaths(Array.isArray(pathResult.value) ? pathResult.value : []);
@@ -78,7 +81,7 @@ export default function DashboardPage() {
     return () => { active = false; };
   }, [me?.id]);
 
-  const activeGoals = goals?.active_goals || goals?.goals.filter(g => g.is_active !== false) || [];
+  const activeGoals = goals?.active_goals || goals?.goals?.filter(g => g.is_active !== false) || [];
   const activeGoal = goals?.active_goal || goals?.current || activeGoals[0] || null;
   const displayName = me?.nickname || "utente Socra";
   const pendingGoalReview = useMemo(() => paths.find(path =>
@@ -121,7 +124,8 @@ export default function DashboardPage() {
             </Link>
           </header>
 
-          {ownSkills?.profile_completion ? <ProfileCompletionBanner completion={ownSkills.profile_completion} /> : null}
+          {!loading && ownSkills?.profile_completion ? <ProfileCompletionBanner completion={ownSkills.profile_completion} /> : null}
+          {errors.context ? <p role="alert">{errors.context}</p> : null}
           {experienceSaved ? <div className={styles.success} role="status">La tua esperienza è stata aggiornata.</div> : null}
 
           {me && !me.nickname ? <div className={styles.notice}>

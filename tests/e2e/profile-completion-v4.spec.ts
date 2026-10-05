@@ -60,3 +60,35 @@ test('session_change_discards_context_draft',async({page,baseURL})=>{
   await page.evaluate(()=>{localStorage.setItem('socra-session-change','other');window.dispatchEvent(new Event('socra:session-refresh'));});
   await expect(page.locator('#personal-context select')).toHaveCount(0);
 });
+
+test('saved_experience_and_context_continue_without_unsaved_warning',async({page,baseURL})=>{
+  await fixture(page,baseURL!,{context:undisclosed});
+  await page.addInitScript(()=>{(window as unknown as {warnings:number}).warnings=0;window.confirm=()=>{(window as unknown as {warnings:number}).warnings++;return true;};});
+  await page.goto('/competenze');
+  await page.getByRole('checkbox',{name:'So: Confrontare due ETF',exact:true}).check();
+  await page.getByRole('checkbox',{name:'Confermo le attività indicate, anche se non ne ho selezionata nessuna.'}).check();
+  await page.getByRole('button',{name:'Conferma le risposte',exact:true}).click();
+  await page.getByRole('link',{name:'Continua',exact:true}).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  expect(await page.evaluate(()=>(window as unknown as {warnings:number}).warnings)).toBe(0);
+});
+test('dashboard_context_read_error_survives_slow_public_profile_and_recovers',async({page,baseURL})=>{
+  await fixture(page,baseURL!);
+  let fail=true,release!:()=>void,failed!:()=>void;
+  const held=new Promise<void>(r=>release=r),seen=new Promise<void>(r=>failed=r);
+  await page.route('**/api/backend/skills/me',route=>{if(!fail)return route.fallback();failed();return route.fulfill({status:503,json:{detail:'Contesto personale non disponibile'}});});
+  await page.route('**/api/backend/profiles/u1',async route=>{await held;return route.fallback();});
+  await page.goto('/dashboard');await seen;release();
+  await expect(page.getByText('Caricamento della dashboard…',{exact:true})).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'Riprova',exact:true})).toBeVisible();
+  await expect(page.getByText(/Contesto personale non disponibile/)).toBeVisible();
+  fail=false;await page.getByRole('button',{name:'Riprova',exact:true}).click();
+  await expect(page.getByText('Completa il tuo profilo!',{exact:true})).toBeVisible();
+});
+
+test('completion_link_opens_context_in_already_mounted_settings',async({page,baseURL})=>{
+  await fixture(page,baseURL!);await page.goto('/settings');
+  await expect(page.locator('#personal-context')).not.toHaveAttribute('open');
+  await page.getByRole('link',{name:'Completa il profilo · 0/5',exact:true}).click();
+  await expect(page.locator('#personal-context select[name=D1]')).toBeVisible();
+});

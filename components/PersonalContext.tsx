@@ -20,10 +20,14 @@ export function PersonalContext({ profile, onSaved, expanded = false, onSkip }: 
   const marker = () => { try { return localStorage.getItem('socra-session-change'); } catch { return null; } };
   useEffect(() => {
     owner.current = marker();
-    if (window.location.hash === '#personal-context' && details.current) details.current.open = true;
+    const openContext = () => { if (window.location.hash === '#personal-context' && details.current) details.current.open = true; };
+    openContext();
+    const followContext = (event: MouseEvent) => { const anchor = event.target instanceof Element ? event.target.closest('a[href]') : null; if (anchor && new URL((anchor as HTMLAnchorElement).href).hash === '#personal-context' && details.current) details.current.open = true; };
+    window.addEventListener('hashchange', openContext);
+    document.addEventListener('click', followContext);
     const refresh = () => { if (owner.current !== marker()) { setAnswers({}); setMessage(''); setError(null); setSessionValid(false); key.current = ''; } };
     window.addEventListener('socra:session-refresh', refresh);
-    return () => window.removeEventListener('socra:session-refresh', refresh);
+    return () => { window.removeEventListener('socra:session-refresh', refresh); window.removeEventListener('hashchange', openContext); document.removeEventListener('click', followContext); };
   }, []);
   const dirty = sectionDQuestions.some(question => answers[question.key] !== profile?.section_d[question.key]);
   const answeredCount = sectionDQuestions.filter(question => question.options.some(option => option.value === answers[question.key]) || (question.key === 'D2' && answers.D2 === 'gt_75k')).length;

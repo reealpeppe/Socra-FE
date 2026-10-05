@@ -12,7 +12,7 @@ import { UserAvatar } from "@/components/Ui";
 import { AlignmentDialog } from "@/components/AlignmentDialog";
 import { useDiscoveryImpressions } from "@/lib/use-discovery-impressions";
 import { ClientApiError, clientGet, clientPost } from "@/lib/api";
-import type { MatchRequestItem, MenteeCandidate, PathItem, UserMe } from "@/lib/types";
+import type { MatchRequestItem, MenteeCandidate, PathItem, UserMe, SkillProfile } from "@/lib/types";
 
 export default function MenteeMatchingPage() {
   return (
@@ -47,10 +47,11 @@ function MenteeMatchingContent() {
       setError(null);
       setRequestsReady(false);
       try {
-        const [user, skillProfile] = await Promise.all([clientGet<UserMe>("/auth/me"), clientGet("/skills/me")]);
+        const [user, skillProfile] = await Promise.all([clientGet<UserMe>("/auth/me"), clientGet<SkillProfile | null>("/skills/me").catch(error => { if (error instanceof ClientApiError && error.status === 404) return null; throw error; })]);
         if (!active) return;
         setMe(user);
-        if (skillProfile) { setSkillModel(true); return; }
+        setSkillModel(!!skillProfile);
+        if (skillProfile) return;
         if (!user.is_coach) {
           setCandidates([]);
           setRequests([]);

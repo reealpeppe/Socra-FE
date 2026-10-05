@@ -25,7 +25,7 @@ export function AggregateMatching({role='mentor'}:{role?:'mentor'|'mentee'}) {
       if(!active||version!==generation.current||session!==marker())return;
       setMe(user);setRequests(pending);setItems(page.items);setCursor(page.next_cursor);setReady(true);setLoading(false);
     }).catch(err=>{if(active&&version===generation.current){setError(err.message);setLoading(false);}});
-    const reset=()=>{if(session!==marker()){generation.current++;setItems([]);setCursor(null);setRequests([]);setSelected(null);setReady(false);setLoading(true);setError(null);setAttempt(v=>v+1);}};
+    const reset=()=>{if(session!==marker()){generation.current++;setItems([]);setCursor(null);setRequests([]);setSelected(null);setMore(false);setPageError(null);setMessage('');setMe(null);setReady(false);setLoading(true);setError(null);setAttempt(v=>v+1);}};
     window.addEventListener('socra:session-refresh',reset);
     return()=>{active=false;window.removeEventListener('socra:session-refresh',reset);};
   },[endpoint,role,attempt]);
@@ -36,7 +36,7 @@ export function AggregateMatching({role='mentor'}:{role?:'mentor'|'mentee'}) {
     }catch(err){if(version===generation.current)setPageError(err instanceof Error?err.message:'Risultati non disponibili.');}
     finally{if(version===generation.current)setMore(false);}
   }
-  function refresh(){generation.current++;setLoading(true);setReady(false);setItems([]);setCursor(null);setSelected(null);setError(null);setPageError(null);setAttempt(v=>v+1);}
+  function refresh(){generation.current++;setLoading(true);setMore(false);setMessage('');setReady(false);setItems([]);setCursor(null);setSelected(null);setError(null);setPageError(null);setAttempt(v=>v+1);}
   const hasPending=requests.some(r=>r.status==='pending'&&r.mentee_id===me?.id);
   function blocked(candidate:AggregateCandidate){return !ready||(role==='mentor'?hasPending:requests.some(r=>r.status==='pending'&&r.mentee_id===candidate.mentee_id));}
   async function send(text:string,agreed?:string[],goalId?:string){

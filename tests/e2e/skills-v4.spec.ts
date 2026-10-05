@@ -576,3 +576,16 @@ for (const boundary of ["unmount", "session-change", "final-submit"] as const) {
     if (boundary === "session-change") await expect(page.getByText("Bozza salvata", { exact: true })).toHaveCount(0);
   });
 }
+
+test('public_profile_describes_compatible_goal_instead_of_latest_other_theme',async({page})=>{
+  const other={...goal,id:'g-stock',topic:'Azioni',topic_code:'stocks',objective_codes:['stock_fundamentals'],objective_labels:['Leggere i fondamentali'],discussion_mode_label:'Lavoriamo su un caso concreto'};
+  await page.route('**/api/backend/goals/me',route=>route.fulfill({json:{current:other,active_goals:[other,goal],goals:[other,goal]}}));
+  await page.goto('/profiles/mentor');
+  const request=page.locator('.profile-request-card');
+  await expect(request.getByRole('button',{name:'Invia richiesta al mentor',exact:true})).toBeVisible();
+  await expect(request).toContainText('ETF');
+  await expect(request).not.toContainText('Azioni');
+  await expect(page.locator('.profile-match-card')).toContainText('ETF');
+  await request.getByRole('button',{name:'Invia richiesta al mentor',exact:true}).click();
+  await expect(page.getByRole('dialog')).toContainText('ETF');
+});

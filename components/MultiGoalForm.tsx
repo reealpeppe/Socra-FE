@@ -27,8 +27,8 @@ export function MultiGoalForm({catalog}:{catalog:SkillCatalog}) {
       if(!active||session!==marker())return;
       const activeGoals=goals.active_goals||goals.goals.filter(g=>g.is_active!==false);
       setOriginal(activeGoals);setChosen(selections(activeGoals));setPending(requests.filter(r=>r.status==='pending'));setMissing(!profile);setLoaded(true);setDirty(false);
-    }).catch(err=>{if(active){setError(err.message);setLoaded(true);}});
-    const reset=()=>{if(session!==marker()){setLoaded(false);setChosen([]);setOriginal([]);setPending([]);setDirty(false);request.current=null;setAttempt(v=>v+1);}};
+    }).catch(err=>{if(active&&session===marker()){setError(err.message);setLoaded(false);}});
+    const reset=()=>{if(session!==marker()){setLoaded(false);setError(null);setBusy(false);setChosen([]);setOriginal([]);setPending([]);setDirty(false);request.current=null;setAttempt(v=>v+1);}};
     window.addEventListener('socra:session-refresh',reset);
     return()=>{active=false;window.removeEventListener('socra:session-refresh',reset);};
   },[attempt]);
@@ -45,7 +45,7 @@ export function MultiGoalForm({catalog}:{catalog:SkillCatalog}) {
     setLimit(null);change(topic,s=>({...s,objective_codes:s.objective_codes.includes(code)?s.objective_codes.filter(c=>c!==code):[...s.objective_codes,code]}));
   }
   async function save(event:React.FormEvent){
-    event.preventDefault();if(busy)return;
+    event.preventDefault();if(busy||!loaded||missing||owner.current!==marker())return;
     const payload=chosen.filter(s=>s.objective_codes.length);
     if(payload.some(s=>!s.discussion_mode)){setError('Scegli una modalità per ogni tema selezionato.');return;}
     const changedIds=original.filter(g=>{const next=payload.find(s=>s.topic===g.topic_code);return !next||JSON.stringify([...next.objective_codes].sort())!==JSON.stringify([...(g.objective_codes||[])].sort())||next.discussion_mode!==g.discussion_mode;}).map(g=>g.id);
@@ -60,7 +60,7 @@ export function MultiGoalForm({catalog}:{catalog:SkillCatalog}) {
     }catch(err){if(session===marker())setError(err instanceof Error?err.message:'Obiettivi non salvati.');}
     finally{if(session===marker())setBusy(false);}
   }
-  if(!loaded)return <div className="card" role="status">Caricamento obiettivi…</div>;
+  if(!loaded)return <div className="card stack" role={error?"alert":"status"}>{error||"Caricamento obiettivi…"}{error?<button type="button" className="button secondary" onClick={()=>{setError(null);setAttempt(v=>v+1);}}>Riprova</button>:null}</div>;
   if(missing)return <div className="card stack"><h1>Partiamo dalle tue capacità</h1><Link href="/competenze">Aggiorna la tua esperienza</Link></div>;
   return <>{confirmationDialog}<form className={styles.page} onSubmit={save} aria-busy={busy}>
     <header className={styles.intro}><p className={styles.eyebrow}>La tua direzione</p><h1>{original.length?'Aggiorna cosa vuoi imparare':'Cosa vuoi imparare?'}</h1><p>Scegli più temi, con da una a tre attività e una modalità per ciascuno. Vedrai insieme i mentor compatibili; ogni percorso partirà da un solo tema.</p></header>

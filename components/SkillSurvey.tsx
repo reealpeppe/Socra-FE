@@ -152,6 +152,7 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
       const profile = await clientPut<SkillProfile>("/skills/me", { ...answers, idempotency_key: requestKey.current });
       if (!ownsSession(owner)) return;
       try { sessionStorage.removeItem(draftKey.current); } catch { /* Saved on the server. */ }
+      setInitial(JSON.stringify(answers));
       setSavedProfile(profile);
       setContextStep(true);
       if (reassessment) {
