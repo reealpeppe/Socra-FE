@@ -5,8 +5,8 @@ import { fileURLToPath } from "node:url";
 
 export const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const backend = path.resolve(process.env.UX_BACKEND_DIR || path.join(root, "..", "backend"));
-export const criteria = ["objectives", "private-context", "experience-save", "goal-hierarchy", "matching-score", "partial-agreement", "mentor-paths", "preparation", "mentor-removal"];
-export const scenarios = ["dashboard", "mentor-paths", "experience", "experience-saved", "private-context", "matching", "partial-details", "agreement", "request-saved", "mentor-profile", "mentor-removal-settings", "mentor-removal-settings-saved", "mentor-removal-experience", "mentor-removal-experience-saved"];
+export const criteria = ["objectives", "private-context", "experience-save", "goal-hierarchy", "matching-score", "partial-agreement", "mentor-paths", "preparation", "mentor-removal", "multi-goals", "matching-pagination", "profile-completion", "offer-help", "goal-cancellation"];
+export const scenarios = ["dashboard", "mentor-paths", "experience", "experience-saved", "private-context", "matching", "partial-details", "agreement", "request-saved", "mentor-profile", "mentor-removal-settings", "mentor-removal-settings-saved", "mentor-removal-experience", "mentor-removal-experience-saved", "survey-context", "offer-help", "profile-incomplete", "profile-complete", "goal-selection", "matching-pagination", "goal-cancellation", "goal-cancelled"];
 export function hash(bytes) { return createHash("sha256").update(bytes).digest("hex"); }
 async function tree(directory, prefix = "") {
   const rows = [];

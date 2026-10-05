@@ -53,3 +53,7 @@ completezza, esito e attualità delle evidenze; i test tecnici non assegnano il
 giudizio semantico.
 
 Le griglie di dashboard e impostazioni contengono anche username lunghi e indirizzi email senza spazi: le colonne possono restringersi e il testo va a capo. Le regressioni browser controllano i rettangoli degli elementi e delle righe di testo rispetto al viewport e agli antenati che tagliano il contenuto; il solo `scrollWidth` non rileva un overflow nascosto. La correzione non cambia schede, collegamenti, permessi o contratti della wiki 13.
+
+## Ricerca e profilo multitema
+
+`MultiGoalForm` salva tutte le selezioni in una sola richiesta idempotente; la revisione del percorso conserva la forma singola e riparte dalla sua origine. `AggregateMatching` condivide la pagina nei due versi, scarta pagine su cambio sessione e usa `GoalMatchChoices` per una proposta esplicita. `PersonalContext` è un form separato dopo l’esperienza e nelle impostazioni, con rilettura su risultato incerto e retry. `ProfileCompletionBanner` usa esclusivamente DTO proprietari. `MentorOfferHelp` gestisce la disclosure indipendentemente dalle selezioni. Il profilo pubblico usa la ricerca aggregata con selettore persona per evitare dipendenza dalla prima pagina. Contratti e regole restano nel backend.

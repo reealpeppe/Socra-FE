@@ -1,4 +1,5 @@
 "use client";
+import { AggregateMatching } from "@/components/AggregateMatching";
 import { DiscussionPreferences } from "@/components/DiscussionPreferences";
 import { CoverageSummary, ObjectiveSummary } from "@/components/SkillSummary";
 
@@ -24,6 +25,7 @@ export default function MenteeMatchingPage() {
 }
 
 function MenteeMatchingContent() {
+  const [skillModel, setSkillModel] = useState(false);
   const [me, setMe] = useState<UserMe | null>(null);
   const [candidates, setCandidates] = useState<MenteeCandidate[]>([]);
   const [requests, setRequests] = useState<MatchRequestItem[]>([]);
@@ -45,9 +47,10 @@ function MenteeMatchingContent() {
       setError(null);
       setRequestsReady(false);
       try {
-        const user = await clientGet<UserMe>("/auth/me");
+        const [user, skillProfile] = await Promise.all([clientGet<UserMe>("/auth/me"), clientGet("/skills/me")]);
         if (!active) return;
         setMe(user);
+        if (skillProfile) { setSkillModel(true); return; }
         if (!user.is_coach) {
           setCandidates([]);
           setRequests([]);
@@ -121,6 +124,8 @@ function MenteeMatchingContent() {
       });
     }
   }
+
+  if (skillModel) return <AggregateMatching role="mentee" />;
 
   return (
     <div className="mentee-search-page" ref={discoveryRoot}>

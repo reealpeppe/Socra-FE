@@ -79,12 +79,14 @@ export type Goal = {
 };
 
 export type GoalsMe = {
+  active_goals?: Goal[];
   current?: Goal | null;
   active_goal?: Goal | null;
   goals: Goal[];
 };
 
 export type MatchCandidate = SkillCoverage & {
+  goal_matches?: GoalMatch[];
   discovery_offer_id?: string;
   discovery_label?: string | null;
   mentor_id: string;
@@ -283,12 +285,18 @@ export type SkillCatalog = {
   max_objectives: number;
 };
 export type SkillProfile = {
+  profile_completion?: ProfileCompletion;
   version: number;
   known_skills: string[];
   mentor_skills: string[];
   section_d: Record<string, string>;
   mentor_available: boolean;
 };
+export type ProfileCompletion = {experience_completed: boolean; context_completed: boolean; context_answered_count: number; context_total_count: number};
+export type GoalSelection = {topic: string; objective_codes: string[]; discussion_mode: string};
+export type GoalMatch = SkillCoverage & {goal_id: string; topic: string; topic_code: string; objective_codes: string[]; objective_labels: string[]; discussion_mode?: string; discussion_mode_label?: string | null; match_score: number; compatibility_band: string; reason_summary: string};
+export type AggregateCandidate = {mentor_id?: string; mentee_id?: string; nickname: string | null; goal_matches: GoalMatch[]; discovery_offer_id?: string; is_recommended: boolean};
+export type CandidatePage = {items: AggregateCandidate[]; next_cursor: string | null};
 export type SkillCoverage = {
   skill_model?: boolean;
   covered_objective_codes?: string[];

@@ -28,7 +28,8 @@ const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   accepted: { label: "Accettata", className: "green" },
   rejected: { label: "Rifiutata", className: "danger" },
   expired: { label: "Scaduta", className: "" },
-  expired_by_timeout: { label: "Scaduta", className: "" }
+  expired_by_timeout: { label: "Scaduta", className: "" },
+  cancelled_by_goal_change: { label: "Annullata per modifica dell’obiettivo", className: "" }
 };
 
 const expiryFormatter = new Intl.DateTimeFormat("it-IT", {

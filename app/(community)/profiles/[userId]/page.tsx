@@ -10,7 +10,7 @@ import { AlignmentDialog } from "@/components/AlignmentDialog";
 import { CoverageSummary, ObjectiveSummary } from "@/components/SkillSummary";
 import { SkillPublicProfile } from "@/components/SkillPublicProfile";
 import { ClientApiError, clientGet, clientPost } from "@/lib/api";
-import type { Goal, GoalsMe, MatchCandidate, MatchRequestItem, PublicProfile, UserMe } from "@/lib/types";
+import type { Goal, GoalsMe, MatchCandidate, MatchRequestItem, PublicProfile, UserMe, CandidatePage } from "@/lib/types";
 
 export default function ProfilePage() {
   return (
@@ -74,8 +74,7 @@ function ProfileContent() {
           if (requestsResult.status === "fulfilled") {
             const sent = (Array.isArray(requestsResult.value) ? requestsResult.value : []).some(
               (request) => request.status === "pending"
-                && request.goal_id === goal.id
-                && request.mentor_id === userId
+
             );
             setRequestSent(sent);
             setRequestStateReady(true);
@@ -117,7 +116,7 @@ function ProfileContent() {
       }
       setCandidateError(null);
       setCandidateLoading(true);
-      clientPost<MatchCandidate[]>("/matching/candidates", { goal_id: activeGoal.id })
+      (activeGoal.skill_model ? clientPost<CandidatePage>("/matching/candidates/all", {mentor_id:userId}).then(page=>page.items as MatchCandidate[]) : clientPost<MatchCandidate[]>("/matching/candidates", { goal_id: activeGoal.id }))
         .then((items) => {
           if (active) setCandidate(items.find((item) => item.mentor_id === userId) || null);
         })
@@ -135,14 +134,14 @@ function ProfileContent() {
     };
   }, [activeGoal?.id, candidateRetryVersion, isOwnProfile, me, profile?.is_coach, requestSent, userId]);
 
-  async function sendMatchRequest(alignmentMessage: string, agreedObjectives?: string[]) {
+  async function sendMatchRequest(alignmentMessage: string, agreedObjectives?: string[], selectedGoalId?: string) {
     if (!activeGoal || isOwnProfile || !me || !profile?.is_coach || !requestStateReady) return;
     setRequestLoading(true);
     setRequestError(null);
     try {
       await clientPost("/matching/requests", {
         mentor_id: userId,
-        goal_id: activeGoal.id,
+        goal_id: selectedGoalId || activeGoal.id,
         alignment_message: alignmentMessage,
         ...(candidate?.skill_model ? { agreed_objective_codes: agreedObjectives } : {}),
         email_sharing_accepted: true
@@ -159,7 +158,7 @@ function ProfileContent() {
 	  return (
 	    <>
 	      <div className="profile-page">
-        {showAlignment ? <AlignmentDialog name={profile?.nickname || "il mentor"} coverage={candidate} onClose={() => setShowAlignment(false)} onSend={sendMatchRequest} /> : null}
+        {showAlignment ? <AlignmentDialog name={profile?.nickname || "il mentor"} coverage={candidate} matches={candidate?.goal_matches} onClose={() => setShowAlignment(false)} onSend={sendMatchRequest} /> : null}
         <Link href={isOwnProfile ? "/dashboard" : fromRequests ? "/requests" : "/matching"} className="profile-back">
           <ArrowLeft size={16} aria-hidden />
           {isOwnProfile ? "Torna alla dashboard" : fromRequests ? "Torna alle proposte" : "Torna alla lista dei mentor"}

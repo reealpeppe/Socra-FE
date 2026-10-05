@@ -65,3 +65,12 @@
 .offeredSkills h3 { font-size: .9rem; }
 .offeredSkills p { font-size: .86rem; margin-block: 6px; }
 @media (max-width: 600px) { .section { padding: 17px; } .skill { grid-template-columns: 1fr; gap: 10px; } .skill > label:last-child { padding-left: 29px; } .actions > button { width: 100%; } .topic summary small { display: block; margin: 5px 0 0 16px; } }
+
+.offerHelp { display: grid; gap: 12px; margin: 16px 0; }
+.offerHelp button { min-height: 44px; justify-self: start; white-space: normal; }
+.offerHelp button:focus-visible { outline: 3px solid var(--mint-600); outline-offset: 3px; }
+
+.personCard { min-width: 0; overflow-wrap: anywhere; }
+.personHeader { min-width: 0; }
+.personHeader h2 { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.personCard details, .personCard button { min-width: 0; max-width: 100%; }
