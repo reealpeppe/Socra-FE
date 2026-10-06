@@ -65,7 +65,7 @@ Regressione con risposta ritardata, errore 503 e recupero, desktop/mobile.
    insufficienti, poi ripetere cattura e review. Eseguire infine
    `npm run test:ux:verify -- output/playwright/ux-review/<run>`.
 
-Il gate richiede 2/2 per ciascuno dei 14 criteri su desktop e mobile, assenza di
+Il gate richiede 2/2 per ciascuno dei 15 criteri su desktop e mobile, assenza di
 problemi bloccanti, cattura tecnica riuscita, impronta dei sorgenti corrente e
 hash delle evidenze invariati. **Non certifica la sincerità o la qualità del
 reviewer:** serve una vera lettura delle immagini, non una compilazione dei
@@ -105,8 +105,8 @@ motivo. Se l'evidenza manca, non attribuire 2. Registrare i difetti con gravità
 | ID | Domanda da verificare |
 |---|---|
 | objectives | Dashboard: numero/contenuto degli obiettivi comprensibili, abbreviazioni spiegate, sezioni inferiori compatte e saluto/username lungo interamente leggibile senza tagli o margini persi su mobile? |
-| private-context | Esperienza centrata sulle capacità; contesto privato facoltativo nella survey e nelle impostazioni e salvabile separatamente; nome pubblico/email lunghi leggibili senza tagli o margini persi? |
-| experience-save | Risposte precompilate, modifica persistita, passaggio facoltativo contesto e ritorno dashboard; pausa e contesto conservati? |
+| private-context | Esperienza centrata sulle capacità; privacy e finalità comprensibili; contesto con cinque scelte anche PNR, unico Continua nella survey e salvataggio separato nelle impostazioni; nome pubblico/email lunghi leggibili senza tagli o margini persi? |
+| experience-save | Risposte precompilate, modifica persistita senza casella ridondante, contesto salvato prima di Continua e ritorno dashboard; pausa e contesto conservati? |
 | goal-hierarchy | Tema, obiettivi e modalità distinguibili velocemente, anche su mobile? |
 | matching-score | Percentuale di compatibilità reale visibile, distinta da copertura e disponibilità, nel risultato finale caricato? |
 | partial-agreement | Attività incluse/escluse comprensibili e stessa selezione nella richiesta salvata? |
@@ -140,6 +140,24 @@ Ora 22 scenari e 14 criteri per viewport. Fixture con due apprendisti distinti p
 |---|---|
 | multi-goals | Tutti i temi selezionati sono visibili e modificabili separatamente, mantenendo 1–3 attività e modalità proprie? |
 | matching-pagination | «Mostra altri» raggiunge più di dieci persone senza duplicati e preserva tutti i temi di ogni scheda? |
-| profile-completion | Contesto facoltativo sempre proposto nella survey, banner privato incompleto e sua scomparsa dopo cinque risposte realmente salvate? |
+| profile-completion | Contesto sempre proposto nella survey, scelta sostanziale facoltativa tramite PNR, Continua assente con zero/quattro scelte e presente con cinque; banner privato incompleto e sua scomparsa dopo cinque risposte realmente salvate? |
 | offer-help | «Posso aiutare» spiegato con clic/tocco/tastiera senza cambiare capacità, offerte o disponibilità? |
 | goal-cancellation | La modifica avvisa prima di annullare la proposta e lo stato terminale è comprensibile senza aprire percorsi? |
+
+## Revisione survey e verifica email del 06/10
+
+Ora 25 scenari e 15 criteri per viewport. Il passo contesto ha un solo «Continua»,
+visibile dopo cinque scelte valide e capace di salvare prima della destinazione;
+ogni domanda conserva PNR. Capture a zero, quattro e cinque risposte e aiuto
+«Perché ci serve questa informazione?» aperto con tastiera/tocco. La modifica
+dell’esperienza mantiene il contesto prima che la persona lo salvi esplicitamente;
+le impostazioni conservano la loro azione separata. Nessun «Salta per ora».
+
+| ID | Domanda da verificare |
+|---|---|
+| email-return | Dopo conferma email reale riuscita, il link all’account apre le impostazioni preservando il contesto; nessun ritorno proposto alla survey già compilata? |
+
+Il seed prepara due link monouso validi soltanto per i learner della fixture
+locale guardata, con invii disattivati. I link sono nel file privato della fixture,
+non nelle immagini, nelle tracce né nei log. La capture usa l’endpoint reale di
+conferma e rilegge `email_verified`; non certifica la consegna del provider.

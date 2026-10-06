@@ -62,7 +62,6 @@ export function AccountAction({ action }: { action: Action }) {
             <button className={styles.submit} type="submit" disabled={busy} aria-busy={busy}>{busy ? "Conferma in corso…" : copy[action].button}</button>
           </form>}
         <p className={styles.footerText}><Link href={action === "verify" ? "/settings" : "/login"} className={styles.footerLink}>{action === "verify" ? "Vai al tuo account" : "Torna all’accesso"}</Link></p>
-        {action === "verify" && success ? <p className={styles.footerText}><Link href="/onboarding" className={styles.footerLink}>Riprendi survey</Link></p> : null}
         {action === "reset" && !success ? <p className={styles.footerText}><Link href="/forgot-password" className={styles.footerLink}>Richiedi un nuovo link</Link></p> : null}
       </section>
     </main>

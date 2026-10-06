@@ -1,12 +1,11 @@
 import {test,expect} from '@playwright/test';
 import {fixture,undisclosed} from './multi-goal-fixture';
 
-test('survey_always_offers_optional_context_and_skip_shows_banner_without_write',async({page,baseURL})=>{
+test('survey_keeps_context_empty_until_explicit_answers_and_banner_remains',async({page,baseURL})=>{
   const state=await fixture(page,baseURL!);await page.goto('/competenze');
-  await page.getByRole('checkbox',{name:'Confermo le attività indicate, anche se non ne ho selezionata nessuna.'}).check();
   await page.getByRole('button',{name:'Conferma le risposte',exact:true}).click();
   await expect(page.getByText('Contesto personale',{exact:true})).toBeVisible();
-  await page.getByRole('button',{name:'Salta per ora',exact:true}).click();
+  await expect(page.getByRole('button',{name:'Continua',exact:true})).toHaveCount(0);
   expect(state.contextWrites).toBe(0);await page.goto('/dashboard');
   await expect(page.getByText('Completa il tuo profilo!',{exact:true})).toBeVisible();
 });
@@ -66,9 +65,8 @@ test('saved_experience_and_context_continue_without_unsaved_warning',async({page
   await page.addInitScript(()=>{(window as unknown as {warnings:number}).warnings=0;window.confirm=()=>{(window as unknown as {warnings:number}).warnings++;return true;};});
   await page.goto('/competenze');
   await page.getByRole('checkbox',{name:'So: Confrontare due ETF',exact:true}).check();
-  await page.getByRole('checkbox',{name:'Confermo le attività indicate, anche se non ne ho selezionata nessuna.'}).check();
   await page.getByRole('button',{name:'Conferma le risposte',exact:true}).click();
-  await page.getByRole('link',{name:'Continua',exact:true}).click();
+  await page.getByRole('button',{name:'Continua',exact:true}).click();
   await expect(page).toHaveURL(/\/dashboard$/);
   expect(await page.evaluate(()=>(window as unknown as {warnings:number}).warnings)).toBe(0);
 });
