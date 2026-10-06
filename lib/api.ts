@@ -291,14 +291,14 @@ export async function correctAccountEmail<T>(email: string): Promise<T> {
 }
 
 async function mutate<T>(method: string, path: string, payload?: unknown): Promise<T> {
-  const affectsCachedData = !["/matching/candidates", "/matching/mentees/candidates", "/matching/discovery/impressions", "/surveys/onboarding/me/draft"].includes(path);
+  const affectsCachedData = !["/matching/candidates/all", "/matching/mentees/all", "/matching/candidates", "/matching/mentees/candidates", "/matching/discovery/impressions", "/surveys/onboarding/me/draft"].includes(path);
   if (affectsCachedData) invalidate();
   try {
     return await request<T>(`/api/backend/${path.replace(/^\//, "")}`, { method, headers: jsonHeaders,
       body: payload === undefined ? undefined : JSON.stringify(payload) });
   } finally {
     if (affectsCachedData) invalidate();
-    if (typeof window !== "undefined" && (path === "/skills/me" || path.includes("/reassessment") || path.includes("/onboarding/me/answers") || path.includes("/mentor") || path.includes("/profile")))
+    if (typeof window !== "undefined" && (path === "/skills/me" || path === "/skills/me/context" || path.includes("/reassessment") || path.includes("/onboarding/me/answers") || path.includes("/mentor") || path.includes("/profile")))
       window.dispatchEvent(new Event("socra:session-refresh"));
     if (typeof window !== "undefined" && /^\/matching\/requests(?:\/|$)/.test(path))
       window.dispatchEvent(new Event("socra:proposals-refresh"));

@@ -26,6 +26,8 @@ test.beforeEach(async ({ baseURL, context, page }) => {
   await context.addCookies([{ name: "socra_session", value: "test-token", url: baseURL!, httpOnly: true, sameSite: "Lax" }]);
   await page.route("**/api/backend/**", route => route.fulfill({ json: [] }));
   await page.route("**/api/backend/auth/me", route => route.fulfill({ json: account }));
+  await page.route("**/api/backend/goals/me", route => route.fulfill({ json: { current: null, active_goals: [], goals: [] } }));
+  await page.route("**/api/backend/skills/me", route => route.fulfill({ json: null }));
 });
 
 test("public navigation returns an authenticated visitor to the community", async ({ page }) => {

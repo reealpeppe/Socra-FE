@@ -11,8 +11,10 @@ assert.equal(runtime.kind, "managed_fresh");
 assert.equal(runtime.frontend_url, baseURL);
 assert.equal(runtime.source_fingerprint, await fingerprint());
 const fixture = JSON.parse(await readFile(path.join(backend, ".local", "ux-review-fixture.json"), "utf8"));
-assert.equal(fixture.fixture, "socra-local-ux-v2-long-names");
+assert.equal(fixture.fixture, "socra-local-ux-v3-multi-goals");
 assert.equal(path.resolve(fixture.database), path.join(backend, ".local", "skills-preview.sqlite3"));
+fixture.users.learner_original = fixture.users.learner;
+fixture.users.peer_original = fixture.users.peer;
 const runId = new Date().toISOString().replace(/[:.]/g, "-");
 const directory = path.join(root, "output", "playwright", "ux-review", runId);
 await mkdir(directory, { recursive: true });
@@ -55,6 +57,8 @@ try {
     if (request.status === "pending" && request.mentee_id === fixture.users.learner.id) await api(mentor, `/matching/requests/${request.id}/respond`, { method: "POST", data: { accept: false, reason: "Chiusura della richiesta sintetica UX locale." } });
   }
   for (const [viewportName, viewport] of [["desktop", { width: 1440, height: 1000 }], ["mobile", { width: 390, height: 844 }]]) {
+    fixture.users.learner = viewportName === "mobile" ? fixture.users.learner_mobile : fixture.users.learner_original;
+    fixture.users.peer = viewportName === "mobile" ? fixture.users.peer_mobile : fixture.users.peer_original;
     const context = await browser.newContext({ baseURL, viewport, isMobile: viewportName === "mobile", hasTouch: viewportName === "mobile" });
     await login(context, "learner");
     const page = context.pages()[0];
@@ -116,12 +120,26 @@ try {
     await expect(page.getByRole("heading", { name: "Rivedi ciò che sai fare" })).toBeVisible();
     await expect(page.getByRole("checkbox", { name: "So: Leggere e comprendere un ETF", exact: true })).toBeChecked();
     await expect(page.getByText("Qual è la tua situazione professionale?", { exact: true })).toHaveCount(0);
+    const help=page.getByRole('button',{name:'Cosa significa Posso aiutare?',exact:true});
+    const beforeHelp=await api(context,'/skills/me');
+    const selectedBefore=await page.getByRole('checkbox').evaluateAll(nodes=>nodes.map(node=>({name:node.getAttribute('aria-label'),checked:node.checked,disabled:node.disabled})));
+    if(viewportName==='mobile')await help.tap();else{await help.focus();await help.press('Enter');}
+    await expect(help).toHaveAttribute('aria-expanded','true');
+    await expect(page.getByText(/Potrai ricevere richieste compatibili/)).toBeVisible();
+    const afterHelp=await api(context,'/skills/me');
+    const selectedAfter=await page.getByRole('checkbox').evaluateAll(nodes=>nodes.map(node=>({name:node.getAttribute('aria-label'),checked:node.checked,disabled:node.disabled})));
+    assert.deepEqual(afterHelp,beforeHelp);assert.deepEqual(selectedAfter,selectedBefore);
+    trace.push({action:'Cosa significa Posso aiutare → apertura spiegazione',interaction:viewportName==='mobile'?'touch':'keyboard Enter',aria_expanded:true,profile_unchanged:true,ui_selections_unchanged:true});
+    await capture('offer-help','Spiegazione accessibile senza cambiare capacità o offerte.',{interaction:viewportName==='mobile'?'touch':'keyboard Enter',before_profile_version:beforeHelp.version,after_profile_version:afterHelp.version,mentor_available:afterHelp.mentor_available});
     await capture("experience", "Ritrovare le risposte precompilate, barre per argomento e offerte distinte; nessuna domanda economica nel compito.", { known_skills: before.known_skills, mentor_skills: before.mentor_skills });
     // A real edit, persisted and subsequently reopened; alternate to keep reruns useful.
     const change = page.getByRole("checkbox", { name: "So: Impostare un PAC con ETF", exact: true });
     await change.setChecked(!before.known_skills.includes("etf_pac"));
     await page.getByRole("checkbox", { name: "Confermo le attività indicate, anche se non ne ho selezionata nessuna." }).check();
     await page.getByRole("button", { name: "Conferma le risposte", exact: true }).click();
+    await expect(page.getByRole('heading', {name:'Aggiungi il tuo contesto personale'})).toBeVisible();
+    await capture('survey-context', 'Il contesto facoltativo viene proposto dopo l’esperienza salvata.');
+    await page.getByRole('button', {name:'Salta per ora',exact:true}).click();
     await expect(page).toHaveURL(/\/dashboard$/);
     await expect(page.getByRole("status").filter({ hasText: /esperienza.*aggiornata/i })).toBeVisible();
     const saved = await api(context, "/skills/me");
@@ -136,6 +154,10 @@ try {
     assert.equal(await change.isChecked(), saved.known_skills.includes("etf_pac"));
     trace.push({ action: "Riapertura esperienza", saved_selection_still_checked: true });
 
+    await page.goto('/dashboard');await expect(page.getByText('Completa il tuo profilo!',{exact:true})).toBeVisible();
+    await capture('profile-incomplete','Richiamo privato con risposte facoltative ancora da completare.');
+    await page.goto('/goal');await expect(page.getByRole('heading',{name:'I tuoi obiettivi',exact:true})).toBeVisible();
+    await capture('goal-selection','Temi e attività separate con modalità propria.');
     await page.goto("/settings");
     await page.getByText("Contesto personale", { exact: true }).click();
     await expect(page.getByRole("combobox", { name: "Qual è la tua situazione professionale?", exact: true })).toBeVisible();
@@ -154,22 +176,40 @@ try {
     trace.push({ action: "Impostazioni → Contesto personale → Salva", skills_and_pause_preserved: true });
     await capture("private-context", "Dati privati facoltativi in una sezione distinta delle impostazioni, salvataggio indipendente.");
 
+    await page.goto('/dashboard');
+    await expect(page.getByRole('heading',{name:'I tuoi obiettivi',exact:true})).toBeVisible();
+    await expect(page.getByRole('progressbar',{name:'Preparazione su ETF'})).toHaveAttribute('value',String(withContext.known_skills.filter(code=>code.startsWith('etf_')).length));
+    await expect(page.getByText('Completa il tuo profilo!',{exact:true})).toHaveCount(0);
+    const completion=(await api(context,'/skills/me')).profile_completion;
+    assert.equal(completion.context_completed,true);assert.equal(completion.context_answered_count,5);
+    trace.push({action:'Riapertura dashboard dopo contesto salvato',dashboard_loaded:true,profile_completion:completion,banner_visible:false});
+    await capture('profile-complete','Il richiamo scompare dopo salvataggio e rilettura delle cinque risposte.',{dashboard_loaded:true,profile_completion:completion});
     await page.goto("/matching");
     const card = page.getByRole("article").filter({ hasText: fixture.users.mentor.nickname });
     await expect(card).toBeVisible();
-    const candidates = await api(context, "/matching/candidates", { method: "POST", data: { goal_id: fixture.goal_id } });
+    const candidates = (await api(context, "/matching/candidates/all", { method: "POST", data: {} })).items;
     const candidate = candidates.find(item => item.mentor_id === fixture.users.mentor.id);
     assert.ok(candidate);
     assert.equal(candidate.coverage_count, 2);
     assert.equal(candidate.requested_count, 3);
     assert.notEqual(Math.round(candidate.match_score), Math.round(100 * 2 / 3));
-    await expect(card.getByText(`${Math.round(candidate.match_score)}%`, { exact: true })).toBeVisible();
+    await expect(card.getByText(new RegExp(`${Math.round(candidate.match_score)}% compatibilità`))).toBeVisible();
     await capture("matching", "Confrontare compatibilità e copertura; capire tema, obiettivi e modalità.", { candidate: { nickname: candidate.nickname, match_score: candidate.match_score, coverage_count: 2, requested_count: 3 } });
-    await card.getByText("Su cosa potete lavorare", { exact: true }).click();
+    const firstPeople=await page.locator('[data-person-id]').evaluateAll(nodes=>nodes.map(n=>n.dataset.personId));
+    assert.equal(firstPeople.length,10);
+    await page.getByRole('button', {name:'Mostra altri',exact:true}).click();
+    await expect(page.locator('[data-person-id]')).toHaveCount(13);
+    const allPeople=await page.locator('[data-person-id]').evaluateAll(nodes=>nodes.map(n=>n.dataset.personId));
+    assert.equal(new Set(allPeople).size,13);
+    await expect(card).toContainText('ETF');await expect(card).toContainText('Azioni');
+    trace.push({action:'Mostra altri → tutte le persone compatibili',before_person_ids:firstPeople,after_person_ids:allPeople,no_duplicates:true,mentor_themes_preserved:['ETF','Azioni']});
+    await capture('matching-pagination','Tutte le persone compatibili raggiungibili senza duplicati.',{person_ids:await page.locator('[data-person-id]').evaluateAll(nodes=>nodes.map(n=>n.dataset.personId))});
+    await card.locator('details').filter({has:page.getByText('ETF',{exact:true})}).locator('summary').click();
     await capture("partial-details", "Scoprire le attività affrontabili e quella esclusa senza scambiare copertura per disponibilità.");
-    await card.getByRole("button", { name: "Invia richiesta al mentor", exact: true }).click();
+    await card.getByRole("button", { name: "Chiedi un confronto", exact: true }).click();
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
+    await dialog.getByRole("radio", {name:/ETF/}).check();
     await dialog.getByRole("checkbox", { name: "Leggere e comprendere un ETF", exact: true }).check();
     await dialog.getByLabel("Il tuo messaggio").fill("Vorrei leggere insieme una scheda ETF e comprendere i suoi dati principali.");
     await dialog.getByRole("checkbox", { name: /email/ }).check();
@@ -189,13 +229,29 @@ try {
     await expect(page.getByText(fixture.users.mentor.nickname, { exact: false }).first()).toBeVisible();
     trace.push({ action: "Invia proposta parziale → Richieste inviate", request_id: sent.id, agreed_objective_codes: sent.agreed_objective_codes, persisted: true });
     await capture("request-saved", "La richiesta salvata mantiene il sottoinsieme proposto e rende leggibile l'attività concordata.");
-    await api(mentor, `/matching/requests/${sent.id}/respond`, { method: "POST", data: { accept: false, reason: "Fine della richiesta sintetica UX locale." } });
+    const goalsBeforeEdit=(await api(context,'/goals/me')).active_goals;
+    const stocksBeforeEdit=goalsBeforeEdit.find(goal=>goal.topic_code==='stocks');
+    await page.goto('/goal');
+    const selectedTopic = page.locator('details').filter({has:page.getByText('ETF',{exact:true})});
+    await selectedTopic.getByRole('checkbox',{name:'Confrontare ETF simili con criteri chiari',exact:true}).uncheck();
+    await page.getByRole('button',{name:'Aggiorna e vedi i mentor',exact:true}).click();
+    const changeDialog=page.getByRole('dialog');await expect(changeDialog).toContainText('proposta');
+    await capture('goal-cancellation','Conseguenza della modifica spiegata prima del salvataggio.');
+    await changeDialog.getByRole('button',{name:'Conferma',exact:true}).click();
+    await expect(page).toHaveURL(/\/matching$/);
+    assert.equal((await api(context,'/matching/requests/me?role=mentee')).find(r=>r.id===sent.id).status,'cancelled_by_goal_change');
+    const goalsAfterEdit=(await api(context,'/goals/me')).active_goals;
+    const stocksAfterEdit=goalsAfterEdit.find(goal=>goal.topic_code==='stocks');
+    assert.deepEqual(stocksAfterEdit,stocksBeforeEdit);
+    trace.push({action:'Modifica ETF → conferma → proposta annullata',request_id:sent.id,status:'cancelled_by_goal_change',other_theme_unchanged:true,stocks_goal_id:stocksAfterEdit.id});
+    await page.goto('/requests?tab=sent');await expect(page.getByText('Annullata per modifica dell’obiettivo',{exact:true}).first()).toBeVisible();
+    await capture('goal-cancelled','Stato terminale leggibile; nessun percorso aperto.');
     await page.goto(`/profiles/${fixture.users.mentor.id}`);
     await expect(page.getByRole("progressbar", { name: "Preparazione su ETF" })).toBeVisible();
     await expect(page.getByRole("progressbar", { name: "Preparazione su ETF" })).toHaveAttribute("value", "4");
     await expect(page.getByText("Verifica compatibilità…", { exact: true })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Invia richiesta al mentor", exact: true })).toBeVisible();
-    await capture("mentor-profile", "Leggere preparazione su due temi (4/6 e 2/6), distinta dalle due attività offerte.");
+    await capture("mentor-profile", "Leggere preparazione su due temi (4/6 e 2/6), distinta dalle due offerte ETF e dall’offerta Azioni.");
     // Only this local learner fixture is changed; restore offers for the next viewport.
     try {
       await page.goto("/settings");
@@ -247,6 +303,7 @@ try {
       assert.equal(cancelledExperience.mentor_available, true);
       await saveExperience.click();
       await removal.getByRole("button", { name: "Conferma", exact: true }).click();
+      await page.getByRole('button', {name:'Salta per ora',exact:true}).click();
       await expect(page).toHaveURL(/\/dashboard$/);
       await expect(page.getByRole("status").filter({ hasText: /esperienza.*aggiornata/i })).toBeVisible();
       await expect(page.getByText("Disponibilità mentor disattivata", { exact: true })).toBeVisible();

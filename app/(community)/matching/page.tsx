@@ -1,4 +1,5 @@
 "use client";
+import { AggregateMatching } from "@/components/AggregateMatching";
 import { DiscussionPreferences } from "@/components/DiscussionPreferences";
 import { CoverageSummary, ObjectiveSummary } from "@/components/SkillSummary";
 
@@ -96,12 +97,14 @@ function MatchingContent() {
         return;
       }
 
+      if (selectedGoal.skill_model) return;
+
       // Pending-request checks protect actions, not the visibility of results.
       void requestsPromise.then(([requestsResult]) => {
       if (!active) return;
       if (requestsResult.status === "fulfilled") {
         const pendingIds = (Array.isArray(requestsResult.value) ? requestsResult.value : [])
-          .filter((request) => request.status === "pending" && request.goal_id === selectedGoal.id)
+          .filter((request) => request.status === "pending")
           .map((request) => request.mentor_id);
         setRequestedMentors(new Set(pendingIds));
         setRequestStateReady(true);
@@ -179,6 +182,8 @@ function MatchingContent() {
     const query = params.toString();
     router.replace(`/matching${query ? `?${query}` : ""}`);
   }
+
+  if (activeGoal?.skill_model) return <AggregateMatching />;
 
   return (
     <div className="matching-page" ref={discoveryRoot}>

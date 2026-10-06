@@ -98,7 +98,7 @@ test("dashboard renders responsive operational state", async ({ page }) => {
   await expect(page.locator('nav.nav-list a[href="/dashboard"]')).toHaveAttribute("aria-current", "page");
   await expect(page.getByRole("heading", { name: "Il tuo percorso di apprendimento" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "I tuoi percorsi come mentor" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Il tuo obiettivo" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "I tuoi obiettivi" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Competenze e disponibilità" })).toBeVisible();
   await expect(page.getByRole("main").getByText("Crediti").first()).toBeVisible();
   await expect(page.getByRole("main").getByText("10").first()).toBeVisible();
@@ -841,7 +841,7 @@ test("dashboard keeps mentor discovery behind its dedicated page", async ({ page
     return route.fulfill({ json: [] });
   });
   await page.goto("/dashboard");
-  await expect(page.getByRole("heading", { name: "Il tuo obiettivo" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "I tuoi obiettivi" })).toBeVisible();
   await page.waitForLoadState("networkidle");
   expect(candidatesCalled).toBe(false);
   await expect(page.getByRole("heading", { name: "Mentor compatibili" })).toHaveCount(0);

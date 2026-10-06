@@ -5,10 +5,16 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { clientGet, clientPost } from "@/lib/api";
 import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes-guard";
-import type { Goal, GoalsMe, SkillCatalog, SkillProfile } from "@/lib/types";
+import type { Goal, GoalsMe, SkillCatalog, SkillProfile, PathItem } from "@/lib/types";
+import { MultiGoalForm } from "./MultiGoalForm";
 import styles from "./SkillLearning.module.css";
 
 export function SkillGoalForm({ catalog }: { catalog: SkillCatalog }) {
+  const pathId = useSearchParams().get("pathId");
+  return pathId ? <SingleGoalForm catalog={catalog} /> : <MultiGoalForm catalog={catalog} />;
+}
+
+function SingleGoalForm({ catalog }: { catalog: SkillCatalog }) {
   const router = useRouter();
   const pathId = useSearchParams().get("pathId");
   const [form, setForm] = useState({ topic: "", objective_codes: [] as string[], discussion_mode: "" });
@@ -23,16 +29,16 @@ export function SkillGoalForm({ catalog }: { catalog: SkillCatalog }) {
   useUnsavedChangesGuard(dirty && !busy);
   useEffect(() => {
     let active = true;
-    Promise.all([clientGet<GoalsMe>("/goals/me"), clientGet<SkillProfile | null>("/skills/me")]).then(([goals, profile]) => {
+    Promise.all([clientGet<GoalsMe>("/goals/me"), clientGet<SkillProfile | null>("/skills/me"), pathId ? clientGet<PathItem>(`/paths/${pathId}`) : Promise.resolve(null)]).then(([goals, profile, path]) => {
       if (!active) return;
-      const goal = goals.current || goals.active_goal;
+      const goal = path?.goal || goals.current || goals.active_goal;
       setProfileMissing(profile === null);
       setEditing(!!goal);
       if (goal?.skill_model) setForm({ topic: goal.topic_code || "", objective_codes: goal.objective_codes || [], discussion_mode: goal.discussion_mode || "" });
       setLoading(false);
     }).catch(err => { if (active) { setError(err instanceof Error ? err.message : "Obiettivo non disponibile."); setLoading(false); } });
     return () => { active = false; };
-  }, [attempt]);
+  }, [attempt, pathId]);
   const topic = catalog.topics.find(item => item.code === form.topic);
   function toggle(code: string) {
     const selected = form.objective_codes.includes(code);

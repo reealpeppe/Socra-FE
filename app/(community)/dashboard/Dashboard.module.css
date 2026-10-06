@@ -147,3 +147,6 @@
   .skillsArt { display: none; }
 }
 
+
+.goalDetails { position: relative; z-index: 1; border-bottom: 1px solid var(--line); padding: 10px 0; }
+.goalDetails summary { cursor: pointer; min-height: 44px; }

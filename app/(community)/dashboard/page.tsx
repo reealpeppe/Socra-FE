@@ -6,15 +6,17 @@ import { ArrowRight, BarChart3, BookOpen, ChevronRight, Coins, GraduationCap, Sp
 import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
 import { UserAvatar } from "@/components/Ui";
+import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
 import { SkillPreparation } from "@/components/SkillPreparation";
 import { clientGet } from "@/lib/api";
-import type { GoalsMe, PathItem, PublicProfile, UserMe, Wallet } from "@/lib/types";
+import type { GoalsMe, PathItem, PublicProfile, UserMe, Wallet, SkillProfile } from "@/lib/types";
 import styles from "./Dashboard.module.css";
 
-type DashboardErrorKey = "user" | "wallet" | "goals" | "paths" | "profile";
+type DashboardErrorKey = "user" | "wallet" | "goals" | "paths" | "profile" | "context";
 
 export default function DashboardPage() {
   const [me, setMe] = useState<UserMe | null>(null);
+  const [ownSkills, setOwnSkills] = useState<SkillProfile | null | undefined>(undefined);
   const [wallet, setWallet] = useState<Wallet | null>(null);
   const [goals, setGoals] = useState<GoalsMe | null>(null);
   const [paths, setPaths] = useState<PathItem[]>([]);
@@ -28,6 +30,7 @@ export default function DashboardPage() {
     let active = true;
     queueMicrotask(() => { if (active) setLoading(true); });
 
+
     // The wallet can load independently of the main dashboard.
     clientGet<Wallet>("/wallet/me").then(value => {
       if (active) { setWallet(value); setErrors(current => ({ ...current, wallet: undefined })); }
@@ -35,8 +38,9 @@ export default function DashboardPage() {
     Promise.allSettled([
       clientGet<UserMe>("/auth/me"),
       clientGet<GoalsMe>("/goals/me"),
-      clientGet<PathItem[]>("/paths/me")
-    ]).then(async ([userResult, goalResult, pathResult]) => {
+      clientGet<PathItem[]>("/paths/me"),
+      clientGet<SkillProfile | null>("/skills/me")
+    ]).then(async ([userResult, goalResult, pathResult, skillsResult]) => {
       if (!active) return;
       const nextErrors: Partial<Record<DashboardErrorKey, string>> = {};
       if (userResult.status === "fulfilled") {
@@ -54,6 +58,8 @@ export default function DashboardPage() {
         setProfile(null);
         nextErrors.user = userResult.reason?.message || "Profilo non disponibile";
       }
+      if (skillsResult.status === "fulfilled") setOwnSkills(skillsResult.value);
+      else { setOwnSkills(undefined); nextErrors.context = "Contesto personale non disponibile"; }
       if (goalResult.status === "fulfilled") setGoals(goalResult.value);
       else nextErrors.goals = goalResult.reason?.message || "Obiettivi non disponibili";
       if (pathResult.status === "fulfilled") setPaths(Array.isArray(pathResult.value) ? pathResult.value : []);
@@ -75,7 +81,8 @@ export default function DashboardPage() {
     return () => { active = false; };
   }, [me?.id]);
 
-  const activeGoal = goals?.active_goal || goals?.current || null;
+  const activeGoals = goals?.active_goals || goals?.goals?.filter(g => g.is_active !== false) || [];
+  const activeGoal = goals?.active_goal || goals?.current || activeGoals[0] || null;
   const displayName = me?.nickname || "utente Socra";
   const pendingGoalReview = useMemo(() => paths.find(path =>
     path.mentee_id === me?.id && path.status === "completed" && path.goal_review_completed === false
@@ -90,13 +97,13 @@ export default function DashboardPage() {
     path.mentor_id === me?.id && path.status === "completed"
   ).length, [paths, me?.id]);
   const mentorTopics = profile?.top_topics || [];
+  const goalObjectives = activeGoal?.objective_labels || [];
   const goalTitle = activeGoal?.skill_model ? activeGoal.topic : activeGoal?.goal_tag;
-  const goalObjectives = activeGoal?.skill_model ? activeGoal.objective_labels || [] : [];
   const hasDataError = Object.values(errors).some(Boolean);
   const learningHref = pendingGoalReview
     ? `/goal?pathId=${encodeURIComponent(pendingGoalReview.id)}`
     : activeMenteePath ? `/paths/${activeMenteePath.id}`
-      : activeGoal ? `/matching?goalId=${activeGoal.id}` : "/goal";
+      : activeGoal ? activeGoal.skill_model ? "/matching" : `/matching?goalId=${activeGoal.id}` : "/goal";
   const learningAction = pendingGoalReview ? "Rivedi obiettivo"
     : activeMenteePath ? "Apri il percorso" : activeGoal ? "Trova un mentor" : "Definisci obiettivo";
 
@@ -117,6 +124,8 @@ export default function DashboardPage() {
             </Link>
           </header>
 
+          {!loading && ownSkills?.profile_completion ? <ProfileCompletionBanner completion={ownSkills.profile_completion} /> : null}
+          {errors.context ? <p role="alert">{errors.context}</p> : null}
           {experienceSaved ? <div className={styles.success} role="status">La tua esperienza è stata aggiornata.</div> : null}
 
           {me && !me.nickname ? <div className={styles.notice}>
@@ -192,15 +201,13 @@ export default function DashboardPage() {
 
               <section className={`${styles.card} ${styles.goal}`} aria-labelledby="goal-title">
                 <div className={styles.smallCardHead}><span className={styles.cardIcon}><Target size={21} aria-hidden="true" /></span><span className={styles.sectionIndex}>03 / La tua direzione</span><Link href="/goal" aria-label="Vai ai tuoi obiettivi"><ChevronRight size={19} aria-hidden="true" /></Link></div>
-                <h2 id="goal-title">Il tuo obiettivo</h2>
+                <h2 id="goal-title">I tuoi obiettivi</h2>
                 {errors.goals ? <p className={styles.cardMessage}>L&apos;obiettivo non è disponibile. Usa “Riprova” in alto.</p> : activeGoal ? <>
-                  <div className={styles.goalTitleRow}><p className={styles.smallTitle}>{goalTitle}</p>{activeGoal.skill_model ? <small>{goalObjectives.length} {goalObjectives.length === 1 ? "obiettivo" : "obiettivi"}</small> : null}</div>
-                  {goalObjectives.length ? <p className={styles.goalDescription}>{goalObjectives[0]}{goalObjectives.length > 1 ? <> <span>e {goalObjectives.length === 2 ? "un altro obiettivo" : `altri ${goalObjectives.length - 1} obiettivi`}</span></> : null}</p> : null}
-                  <div className={styles.goalTags} aria-label="Tipi di confronto">
-                    {activeGoal.skill_model ? <span>{activeGoal.discussion_mode_label}</span> : activeGoal.discussion_type_labels?.length
-                      ? activeGoal.discussion_type_labels.map(label => <span key={label}>{label}</span>)
-                      : <span>{activeGoal.topic || "Argomento non definito"}</span>}
-                  </div>
+                  {activeGoal.skill_model ? activeGoals.filter(g=>g.skill_model).map(goal=><details key={goal.id} className={styles.goalDetails}>
+                    <summary className={styles.goalTitleRow}><span className={styles.smallTitle}>{goal.topic}</span><small>{goal.objective_labels?.length||0} attività</small></summary>
+                    <ul className={styles.goalDescription}>{goal.objective_labels?.map(label=><li key={label}>{label}</li>)}</ul>
+                    <p className={styles.goalDescription}>{goal.discussion_mode_label}</p>
+                  </details>) : <><p className={styles.smallTitle}>{goalTitle}</p><p>{activeGoal.topic}</p></>}
                 </> : <><p className={styles.cardMessage}>Nessun obiettivo attivo.</p><Link className={styles.textLink} href="/goal">Definisci obiettivo <ArrowRight size={16} aria-hidden="true" /></Link></>}
                 <div className={styles.goalArt} aria-hidden="true" />
               </section>

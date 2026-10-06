@@ -23,6 +23,7 @@ const goal = { id: "g1", topic: "ETF", topic_code: "etf_funds", goal_tag: "Legge
   objective_codes: ["etf_read", "etf_compare", "etf_plan"], objective_labels: ["Leggere la scheda di un ETF", "Confrontare due ETF", "Costruire un piano periodico"], discussion_mode: "step_by_step", discussion_mode_label: "Guidami passo passo" };
 const candidate = { mentor_id: "mentor", nickname: "Marta", path_cost: 1, is_recommended: true, match_score: 84, reason_summary: "Due attività in comune.", skill_model: true,
   availability_fallback: true, covered_objective_codes: ["etf_read", "etf_compare"], covered_objective_labels: goal.objective_labels.slice(0, 2), missing_objective_codes: ["etf_plan"], missing_objective_labels: [goal.objective_labels[2]], coverage_count: 2, requested_count: 3 };
+function aggregate(row: Record<string, unknown>) { return {...row,goal_id:"g1",goal_matches:[{...goal,...row,goal_id:"g1"}]}; }
 const preparation = { topic: "etf_funds", label: "ETF", known_count: 3, confirmed_count: 1, preparation_percent: 75, offered_count: 2, total_count: 4, coverage_percent: 50, skills: [{ code: "etf_read", label: "Leggere la scheda di un ETF", source: "path" }, { code: "etf_compare", label: "Confrontare due ETF", source: "declared" }] };
 const path = { id: "p1", status: "feedback_pending", mentee_id: "u1", mentor_id: "mentor", goal_id: "g1", first_call_completed: true, mentee_closed_at: "2026-10-01T10:00:00Z", mentor_closed_at: null,
   goal, skill_model: true, agreed_objective_codes: ["etf_read", "etf_compare"], agreed_objective_labels: goal.objective_labels.slice(0, 2), discussion_mode_label: "Guidami passo passo" };
@@ -38,7 +39,7 @@ test.beforeEach(async ({ page, context: browser, baseURL }) => {
       "/surveys/onboarding/me": { user_id: "u1", latest_answer_id: "done" },
       "/surveys/onboarding/me/draft": null, "/notifications/me": [], "/wallet/me": { balance: 2, debt: 0 },
       "/goals/me": { current: goal, goals: [goal] }, "/paths/me": [], "/paths/p1": path,
-      "/matching/candidates": [candidate], "/matching/requests/me": [],
+      "/matching/candidates": [candidate], "/matching/candidates/all": {items:[aggregate(candidate)],next_cursor:null}, "/matching/requests/me": [],
       "/calls/capabilities": { google_meet_available: false },
       "/profiles/u1": { skill_model: true, user_id: "u1", nickname: "Giulia", completed_paths: 0, public_badges: [], top_topics: ["ETF"], aggregate_metrics: {}, path_cost: 1, is_coach: true, skill_groups: [preparation], public_reviews: [], mentor_started_paths: 0, mentor_completion_rate: null },
       "/profiles/mentor": { skill_model: true, user_id: "mentor", nickname: "Marta", completed_paths: 2, public_badges: [], top_topics: ["ETF"], aggregate_metrics: {}, path_cost: 1, is_coach: true,
@@ -96,7 +97,7 @@ for (const source of ["settings", "experience"] as const) {
     expect(profile.mentor_available).toBe(true);
     await save.click();
     await dialog.getByRole("button", { name: "Conferma", exact: true }).click();
-    if (source === "experience") await expect(page).toHaveURL(/\/dashboard$/);
+    if (source === "experience") { await page.getByRole("button",{name:"Salta per ora",exact:true}).click(); await expect(page).toHaveURL(/\/dashboard$/); }
     else {
       await expect(page.getByRole("status").filter({ hasText: "Capacità offerte aggiornate" })).toBeVisible();
       await expect(page.getByText("Disponibilità come mentor attivata.", { exact: true })).toHaveCount(0);
@@ -140,7 +141,7 @@ test("dashboard waits for preparation and retries a profile error without showin
 test("survey removes offered skill when knowledge is removed and submits explicit empty profile", async ({ page }, testInfo) => {
   let sent: Record<string, unknown> | undefined;
   await page.route("**/api/backend/skills/me", route => {
-    if (route.request().method() === "PUT") { sent = route.request().postDataJSON(); return route.fulfill({ json: { ...sent, version: 1, mentor_available: false } }); }
+    if (route.request().method() === "PUT") { sent = route.request().postDataJSON(); return route.fulfill({ json: { ...sent, section_d: {}, version: 1, mentor_available: false } }); }
     return route.fulfill({ json: null });
   });
   await page.goto("/onboarding");
@@ -152,50 +153,43 @@ test("survey removes offered skill when knowledge is removed and submits explici
   await page.screenshot({ path: testInfo.outputPath("survey.png"), fullPage: true });
   await page.getByRole("checkbox", { name: "Confermo le attività indicate, anche se non ne ho selezionata nessuna." }).check();
   await page.getByRole("button", { name: "Conferma le risposte" }).click();
+  await page.getByRole("button",{name:"Salta per ora",exact:true}).click();
   await expect(page.getByRole("link", { name: "Scegli cosa imparare" })).toBeVisible();
   expect(sent).toMatchObject({ known_skills: [], mentor_skills: [] });
   expect(sent).not.toHaveProperty("section_d");
 });
 
-test("goal limits objectives to three, clears them when topic changes and submits one mode", async ({ page }, testInfo) => {
-  let sent: Record<string, unknown> | undefined;
-  await page.route("**/api/backend/goals/me", route => route.fulfill({ json: { current: null, goals: [] } }));
-  await page.route("**/api/backend/surveys/goal/me", route => { sent = route.request().postDataJSON(); return route.fulfill({ json: { ...goal, id: "new" } }); });
-  await page.goto("/goal");
-  await page.getByLabel("Tema", { exact: true }).selectOption("etf_funds");
-  for (const text of goal.objective_labels) await page.getByRole("checkbox", { name: text, exact: true }).check();
-  await page.getByRole("checkbox", { name: "Ribilanciare un portafoglio", exact: true }).click();
-  await expect(page.getByRole("checkbox", { name: "Ribilanciare un portafoglio", exact: true })).not.toBeChecked();
-  await page.getByLabel("Tema", { exact: true }).selectOption("stocks");
-  await page.getByRole("checkbox", { name: "Leggere un bilancio", exact: true }).check();
-  await page.getByRole("radio", { name: "Guidami passo passo", exact: true }).check();
-  await page.getByRole("radio", { name: "Lavoriamo su un caso concreto", exact: true }).check();
-  await page.screenshot({ path: testInfo.outputPath("obiettivi.png"), fullPage: true });
-  await page.getByRole("button", { name: "Salva e continua" }).click();
-  await expect(page).toHaveURL(/tour/);
-  expect(sent).toEqual({ topic: "stocks", objective_codes: ["stock_read"], discussion_mode: "concrete_case" });
+test("goal limits objectives per topic and preserves separate selections", async ({ page }) => {
+  await page.route("**/api/backend/goals/me", r=>r.fulfill({json:{current:null,active_goals:[],goals:[]}}));
+  let sent:Record<string,unknown>|undefined;
+  await page.route("**/api/backend/goals/me/selection",r=>{sent=r.request().postDataJSON();return r.fulfill({json:{active_goals:[]}});});
+  await page.goto('/goal');
+  const etf=page.locator('details').filter({has:page.getByText('ETF',{exact:true})});await etf.locator('summary').click();
+  for(const text of goal.objective_labels)await etf.getByRole('checkbox',{name:text,exact:true}).check();
+  await etf.getByRole('checkbox',{name:'Ribilanciare un portafoglio',exact:true}).click();
+  await expect(etf.getByRole('checkbox',{name:'Ribilanciare un portafoglio',exact:true})).not.toBeChecked();
+  await etf.getByRole('radio',{name:'Guidami passo passo',exact:true}).check();
+  const stocks=page.locator('details').filter({has:page.getByText('Azioni',{exact:true})});await stocks.locator('summary').click();
+  await stocks.getByRole('checkbox',{name:'Leggere un bilancio',exact:true}).check();await stocks.getByRole('radio',{name:'Lavoriamo su un caso concreto',exact:true}).check();
+  await page.getByRole('button',{name:'Salva e continua',exact:true}).click();await expect(page).toHaveURL(/matching/);
+  expect(sent?.selections).toEqual([{topic:'etf_funds',objective_codes:goal.objective_codes,discussion_mode:'step_by_step'},{topic:'stocks',objective_codes:['stock_read'],discussion_mode:'concrete_case'}]);
 });
 
 test("partial matching requires an explicit covered subset in the request", async ({ page }) => {
   let sent: Record<string, unknown> | undefined;
   await page.route("**/api/backend/matching/requests", route => { sent = route.request().postDataJSON(); return route.fulfill({ json: { id: "r2" } }); });
   await page.goto("/matching");
-  const goalSummary = page.getByRole("complementary").filter({ hasText: "Obiettivo attivo" });
-  await expect(goalSummary.getByRole("heading", { name: "ETF", exact: true })).toBeVisible();
-  await expect(goalSummary.getByText("Cosa vuoi imparare", { exact: true })).toBeVisible();
-  await expect(goalSummary.getByText("Come vuoi lavorare", { exact: true })).toBeVisible();
-  await expect(page.getByText("84%", { exact: true })).toBeVisible();
-  await expect(page.getByText("Disponibilità limitata", { exact: true })).toHaveCount(0);
-  await page.getByText("Su cosa potete lavorare", { exact: true }).click();
-  await expect(page.getByText("2 di 3 obiettivi", { exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Invia richiesta al mentor", exact: true }).first().click();
+  const card=page.locator('[data-person-id="mentor"]');
+  await expect(card).toContainText('ETF');await expect(card).toContainText('84% compatibilità');
+  await card.locator('summary').click();await expect(card).toContainText('Costruire un piano periodico');
+  await card.getByRole('button',{name:'Chiedi un confronto',exact:true}).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("checkbox", { name: "Leggere la scheda di un ETF", exact: true })).not.toBeChecked();
   await dialog.getByRole("checkbox", { name: "Confrontare due ETF", exact: true }).check();
   await dialog.getByLabel("Il tuo messaggio").fill("Vorrei confrontare questi due ETF insieme a te.");
   await dialog.getByRole("checkbox", { name: /email/ }).check();
   await dialog.getByRole("button", { name: "Invia", exact: true }).click();
-  await expect(page.getByText(/Richiesta inviata/).first()).toBeVisible();
+  await expect(page.getByText(/Proposta inviata/).first()).toBeVisible();
   expect(sent).toMatchObject({ agreed_objective_codes: ["etf_compare"], goal_id: "g1" });
 });
 
@@ -225,6 +219,7 @@ test("profile separates preparation from offered skills and displays critical re
   await expect(page.getByText("2 dichiarate · 1 confermata nei percorsi", { exact: true })).toBeVisible();
   await expect(page.getByText("2 attività offerte", { exact: true })).toBeVisible();
   await expect(page.getByText("84%", { exact: true })).toBeVisible();
+  await expect(page.getByText("Copertura parziale", { exact: true })).toBeVisible();
   await expect(page.getByText("Avrei preferito più esempi <script>alert(1)</script>", { exact: true })).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("profilo.png"), fullPage: true });
   await page.getByRole("button", { name: "Segnala commento" }).click();
@@ -270,18 +265,18 @@ test("skill draft restores on reload and is isolated from another account", asyn
 
 test("mentor proposal sends only the explicitly selected covered objectives", async ({ page }) => {
   let sent: Record<string, unknown> | undefined;
-  await page.route("**/api/backend/matching/mentee-candidates", route => route.fulfill({ json: [{ ...candidate, mentee_id: "learner", goal_id: "g1", goal_topic: "ETF", goal_tag: goal.goal_tag, objective_labels: goal.objective_labels, discussion_mode_label: goal.discussion_mode_label }] }));
+  await page.route("**/api/backend/matching/mentees/all", route => route.fulfill({ json: {items:[aggregate({...candidate,mentor_id:undefined,mentee_id:"learner"})],next_cursor:null} }));
   await page.route("**/api/backend/matching/proposals", route => { sent = route.request().postDataJSON(); return route.fulfill({ json: { ...sent, id: "offer", status: "pending", initiator_role: "mentor" } }); });
   await page.goto("/matching/mentees");
-  await expect(page.getByText("84%", { exact: true })).toBeVisible();
+  await expect(page.getByText("2/3 attività · 84% compatibilità", { exact: true })).toBeVisible();
   await expect(page.getByText("Disponibilità limitata", { exact: true })).toHaveCount(0);
-  await page.getByRole("button", { name: "Proponi un percorso", exact: true }).click();
+  await page.getByRole("button", { name: "Proponi un confronto", exact: true }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("checkbox", { name: "Leggere la scheda di un ETF", exact: true }).check();
   await dialog.getByLabel("Il tuo messaggio").fill("Ti propongo di leggere insieme una scheda ETF.");
   await dialog.getByRole("checkbox", { name: /email/ }).check();
   await dialog.getByRole("button", { name: "Invia", exact: true }).click();
-  await expect(page.getByText(/Proposta inviata a/)).toBeVisible();
+  await expect(page.getByText(/Proposta inviata/)).toBeVisible();
   expect(sent).toMatchObject({ agreed_objective_codes: ["etf_read"], mentee_id: "learner" });
 });
 
@@ -289,7 +284,7 @@ test("request from public profile retains explicit task agreement", async ({ pag
   let sent: Record<string, unknown> | undefined;
   await page.route("**/api/backend/matching/requests", route => { sent = route.request().postDataJSON(); return route.fulfill({ json: { id: "profile-request" } }); });
   await page.goto("/profiles/mentor");
-  await page.getByRole("button", { name: "Invia richiesta al mentor", exact: true }).first().click();
+  await page.getByRole("button", { name: /Invia richiesta al mentor|Chiedi un confronto/, exact: true }).first().click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("button", { name: "Invia", exact: true })).toBeDisabled();
   await dialog.getByRole("checkbox", { name: "Confrontare due ETF", exact: true }).check();
@@ -357,6 +352,7 @@ test("experience saves only skills and returns to dashboard with confirmation", 
   await page.getByRole("checkbox", { name: "So: Costruire un piano periodico", exact: true }).uncheck();
   await page.getByRole("checkbox", { name: "Confermo le attività indicate, anche se non ne ho selezionata nessuna." }).check();
   await page.getByRole("button", { name: "Conferma le risposte" }).click();
+  await page.getByRole("button", {name:"Salta per ora",exact:true}).click();
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByRole("status").filter({ hasText: "La tua esperienza è stata aggiornata." })).toBeVisible();
   expect(sent).toMatchObject({ known_skills: ["etf_read", "etf_compare"], mentor_skills: ["etf_read"] });
@@ -398,9 +394,10 @@ test("dashboard shows explicit objectives, preparation and mentor paths while pa
   await expect(learning.getByText("ETF", { exact: true })).toBeVisible();
   await expect(learning.getByText("3 obiettivi", { exact: true })).toBeVisible();
   for (const label of goal.objective_labels) await expect(learning.getByText(label, { exact: true })).toBeVisible();
-  const smallGoal = page.getByRole("region", { name: "Il tuo obiettivo" });
-  await expect(smallGoal.getByText("3 obiettivi", { exact: true })).toBeVisible();
-  await expect(smallGoal.getByText("e altri 2 obiettivi", { exact: true })).toBeVisible();
+  const smallGoal = page.getByRole("region", { name: "I tuoi obiettivi" });
+  await expect(smallGoal.getByText("3 attività", { exact: true })).toBeVisible();
+  await smallGoal.locator("summary").click();
+  await expect(smallGoal).toContainText(goal.objective_labels[2]);
   await expect(page.getByRole("progressbar", { name: "Preparazione su ETF" })).toHaveAttribute("value", "3");
   await expect(page.getByRole("link", { name: "Vedi i percorsi" })).toHaveAttribute("href", "/paths?tab=mentor");
 });
@@ -458,11 +455,11 @@ for (const username of ["qa.release.6f51e4f909ba", "q".repeat(80)]) {
 
 for (const nickname of ["ux.review.mentor.long.username", "m".repeat(80)]) {
   test(`long mentor identity fits candidate and agreement (${nickname.length} characters)`, async ({ page }) => {
-    await page.route("**/api/backend/matching/candidates", route => route.fulfill({ json: [{ ...candidate, nickname }] }));
+    await page.route("**/api/backend/matching/candidates/all", route => route.fulfill({ json: {items:[aggregate({...candidate,nickname})],next_cursor:null} }));
     await page.goto("/matching");
     await expect(page.getByRole("heading", { name: nickname, exact: true })).toBeVisible();
-    await expectHorizontalContainment(page.locator(".mentor-candidate-card, .mentor-candidate-card h2, .mentor-candidate-card button"));
-    await page.getByRole("button", { name: "Invia richiesta al mentor", exact: true }).first().click();
+    await expectHorizontalContainment(page.locator("[data-person-id], [data-person-id] h2, [data-person-id] button"));
+    await page.getByRole("button", { name: /Invia richiesta al mentor|Chiedi un confronto/, exact: true }).first().click();
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
     await dialog.getByText("Su cosa potete lavorare", { exact: true }).click();
@@ -478,10 +475,10 @@ for (const nickname of ["ux.review.mentor.long.username", "m".repeat(80)]) {
   });
 
   test(`long learner identity fits reverse matching (${nickname.length} characters)`, async ({ page }) => {
-    await page.route("**/api/backend/matching/mentee-candidates", route => route.fulfill({ json: [{ ...candidate, nickname, mentee_id: "learner", goal_id: "g1", goal_topic: "ETF", goal_tag: goal.goal_tag, objective_labels: goal.objective_labels, discussion_mode_label: goal.discussion_mode_label }] }));
+    await page.route("**/api/backend/matching/mentees/all", route => route.fulfill({ json: {items:[aggregate({...candidate,nickname,mentor_id:undefined,mentee_id:"learner"})],next_cursor:null} }));
     await page.goto("/matching/mentees");
     await expect(page.getByRole("heading", { name: nickname, exact: true })).toBeVisible();
-    await expectHorizontalContainment(page.locator(".mentee-goal-card, .mentee-goal-person h2, .mentee-goal-card button"));
+    await expectHorizontalContainment(page.locator("[data-person-id], [data-person-id] h2, [data-person-id] button"));
   });
 
   test(`long public identity fits profile and review (${nickname.length} characters)`, async ({ page }) => {
@@ -491,7 +488,7 @@ for (const nickname of ["ux.review.mentor.long.username", "m".repeat(80)]) {
     } }));
     await page.goto("/profiles/mentor");
     await expect(page.getByRole("heading", { name: nickname, exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Invia richiesta al mentor", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Invia richiesta al mentor|Chiedi un confronto/, exact: true })).toBeVisible();
     await expectHorizontalContainment(page.locator(".profile-hero, .profile-name, .profile-body, .profile-body section, .profile-body article, .profile-body button"));
   });
 
@@ -579,3 +576,16 @@ for (const boundary of ["unmount", "session-change", "final-submit"] as const) {
     if (boundary === "session-change") await expect(page.getByText("Bozza salvata", { exact: true })).toHaveCount(0);
   });
 }
+
+test('public_profile_describes_compatible_goal_instead_of_latest_other_theme',async({page})=>{
+  const other={...goal,id:'g-stock',topic:'Azioni',topic_code:'stocks',objective_codes:['stock_fundamentals'],objective_labels:['Leggere i fondamentali'],discussion_mode_label:'Lavoriamo su un caso concreto'};
+  await page.route('**/api/backend/goals/me',route=>route.fulfill({json:{current:other,active_goals:[other,goal],goals:[other,goal]}}));
+  await page.goto('/profiles/mentor');
+  const request=page.locator('.profile-request-card');
+  await expect(request.getByRole('button',{name:'Invia richiesta al mentor',exact:true})).toBeVisible();
+  await expect(request).toContainText('ETF');
+  await expect(request).not.toContainText('Azioni');
+  await expect(page.locator('.profile-match-card')).toContainText('ETF');
+  await request.getByRole('button',{name:'Invia richiesta al mentor',exact:true}).click();
+  await expect(page.getByRole('dialog')).toContainText('ETF');
+});

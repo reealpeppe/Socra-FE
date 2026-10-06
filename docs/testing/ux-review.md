@@ -42,7 +42,7 @@ Regressione con risposta ritardata, errore 503 e recupero, desktop/mobile.
 2. Nel frontend: `npm run test:ux:capture`. Richiede Chrome. Il runner esegue
    `backend/scripts/seed_ux_review.py`, che accetta esclusivamente il DB
    `.local/skills-preview.sqlite3`, disabilita le integrazioni prima degli
-   import e crea tre account sintetici con fixture `socra-local-ux-v2-long-names`,
+   import e crea gli account sintetici dedicati con fixture `socra-local-ux-v3-multi-goals`,
    username `ux.review.{learner,mentor,peer}.long.username` e email lunghe.
    Conserva le demo e la precedente fixture v1.
 3. Il runner crea una build fresca in `.next-ux` e avvia entrambi i server su
@@ -65,7 +65,7 @@ Regressione con risposta ritardata, errore 503 e recupero, desktop/mobile.
    insufficienti, poi ripetere cattura e review. Eseguire infine
    `npm run test:ux:verify -- output/playwright/ux-review/<run>`.
 
-Il gate richiede 2/2 per ciascuno dei 9 criteri su desktop e mobile, assenza di
+Il gate richiede 2/2 per ciascuno dei 14 criteri su desktop e mobile, assenza di
 problemi bloccanti, cattura tecnica riuscita, impronta dei sorgenti corrente e
 hash delle evidenze invariati. **Non certifica la sincerità o la qualità del
 reviewer:** serve una vera lettura delle immagini, non una compilazione dei
@@ -105,8 +105,8 @@ motivo. Se l'evidenza manca, non attribuire 2. Registrare i difetti con gravità
 | ID | Domanda da verificare |
 |---|---|
 | objectives | Dashboard: numero/contenuto degli obiettivi comprensibili, abbreviazioni spiegate, sezioni inferiori compatte e saluto/username lungo interamente leggibile senza tagli o margini persi su mobile? |
-| private-context | Esperienza centrata sulle capacità; contesto privato facoltativo nelle impostazioni e salvabile separatamente; nome pubblico/email lunghi leggibili senza tagli o margini persi? |
-| experience-save | Risposte precompilate, modifica persistita, conferma e ritorno dashboard; pausa e contesto conservati? |
+| private-context | Esperienza centrata sulle capacità; contesto privato facoltativo nella survey e nelle impostazioni e salvabile separatamente; nome pubblico/email lunghi leggibili senza tagli o margini persi? |
+| experience-save | Risposte precompilate, modifica persistita, passaggio facoltativo contesto e ritorno dashboard; pausa e contesto conservati? |
 | goal-hierarchy | Tema, obiettivi e modalità distinguibili velocemente, anche su mobile? |
 | matching-score | Percentuale di compatibilità reale visibile, distinta da copertura e disponibilità, nel risultato finale caricato? |
 | partial-agreement | Attività incluse/escluse comprensibili e stessa selezione nella richiesta salvata? |
@@ -116,10 +116,10 @@ motivo. Se l'evidenza manca, non attribuire 2. Registrare i difetti con gravità
 
 Fixture discriminanti: il learner ha un percorso attivo come mentor ma è in
 pausa; il mentor ha 4/6 capacità ETF conosciute, solo 2 offerte e 2/6 Azioni
-conosciute senza offerte; la richiesta desiderata contiene 3 attività, ne
+conosciute con una offerta; la richiesta desiderata contiene 3 attività, ne
 copre 2, e lo score API è diverso da 67%. Il runner modifica una capacità,
 salva/rilegge il contesto, invia una richiesta con una sola attività e poi la
-chiude dal destinatario per consentire repliche. Queste azioni restano nello
+annulla modificando il tema interessato, conservando lo storico e gli account separati per viewport. Queste azioni restano nello
 storico dei soli account sintetici; non cancellano dati.
 
 ## Limiti
@@ -131,3 +131,15 @@ token o password. Sono dati sintetici ma gli artefatti restano locali. Il
 flusso di accesso usa il form reale e i cookie BFF, senza token iniettati. Le viewport
 coprono i due layout principali, non tutti i dispositivi. SQLite locale non
 sostituisce il collaudo PostgreSQL né una prova dei provider esterni.
+
+## Variazione del 05/10: più temi e profilo
+
+Ora 22 scenari e 14 criteri per viewport. Fixture con due apprendisti distinti per desktop/mobile, un mentor con ETF e Azioni e dodici mentor aggiuntivi. Il seed ripristina soltanto questi account sintetici nel DB preview guardato, con history e transazione; nessun DB condiviso.
+
+| ID | Domanda da verificare |
+|---|---|
+| multi-goals | Tutti i temi selezionati sono visibili e modificabili separatamente, mantenendo 1–3 attività e modalità proprie? |
+| matching-pagination | «Mostra altri» raggiunge più di dieci persone senza duplicati e preserva tutti i temi di ogni scheda? |
+| profile-completion | Contesto facoltativo sempre proposto nella survey, banner privato incompleto e sua scomparsa dopo cinque risposte realmente salvate? |
+| offer-help | «Posso aiutare» spiegato con clic/tocco/tastiera senza cambiare capacità, offerte o disponibilità? |
+| goal-cancellation | La modifica avvisa prima di annullare la proposta e lo stato terminale è comprensibile senza aprire percorsi? |

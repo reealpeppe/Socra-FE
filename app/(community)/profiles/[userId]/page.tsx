@@ -10,7 +10,7 @@ import { AlignmentDialog } from "@/components/AlignmentDialog";
 import { CoverageSummary, ObjectiveSummary } from "@/components/SkillSummary";
 import { SkillPublicProfile } from "@/components/SkillPublicProfile";
 import { ClientApiError, clientGet, clientPost } from "@/lib/api";
-import type { Goal, GoalsMe, MatchCandidate, MatchRequestItem, PublicProfile, UserMe } from "@/lib/types";
+import type { Goal, GoalsMe, MatchCandidate, MatchRequestItem, PublicProfile, UserMe, CandidatePage, GoalMatch } from "@/lib/types";
 
 export default function ProfilePage() {
   return (
@@ -74,8 +74,7 @@ function ProfileContent() {
           if (requestsResult.status === "fulfilled") {
             const sent = (Array.isArray(requestsResult.value) ? requestsResult.value : []).some(
               (request) => request.status === "pending"
-                && request.goal_id === goal.id
-                && request.mentor_id === userId
+
             );
             setRequestSent(sent);
             setRequestStateReady(true);
@@ -117,7 +116,7 @@ function ProfileContent() {
       }
       setCandidateError(null);
       setCandidateLoading(true);
-      clientPost<MatchCandidate[]>("/matching/candidates", { goal_id: activeGoal.id })
+      (activeGoal.skill_model ? clientPost<CandidatePage>("/matching/candidates/all", {mentor_id:userId}).then(page=>page.items as MatchCandidate[]) : clientPost<MatchCandidate[]>("/matching/candidates", { goal_id: activeGoal.id }))
         .then((items) => {
           if (active) setCandidate(items.find((item) => item.mentor_id === userId) || null);
         })
@@ -133,16 +132,16 @@ function ProfileContent() {
     return () => {
       active = false;
     };
-  }, [activeGoal?.id, candidateRetryVersion, isOwnProfile, me, profile?.is_coach, requestSent, userId]);
+  }, [activeGoal?.id, activeGoal?.skill_model, candidateRetryVersion, isOwnProfile, me, profile?.is_coach, requestSent, userId]);
 
-  async function sendMatchRequest(alignmentMessage: string, agreedObjectives?: string[]) {
+  async function sendMatchRequest(alignmentMessage: string, agreedObjectives?: string[], selectedGoalId?: string) {
     if (!activeGoal || isOwnProfile || !me || !profile?.is_coach || !requestStateReady) return;
     setRequestLoading(true);
     setRequestError(null);
     try {
       await clientPost("/matching/requests", {
         mentor_id: userId,
-        goal_id: activeGoal.id,
+        goal_id: selectedGoalId || activeGoal.id,
         alignment_message: alignmentMessage,
         ...(candidate?.skill_model ? { agreed_objective_codes: agreedObjectives } : {}),
         email_sharing_accepted: true
@@ -159,7 +158,7 @@ function ProfileContent() {
 	  return (
 	    <>
 	      <div className="profile-page">
-        {showAlignment ? <AlignmentDialog name={profile?.nickname || "il mentor"} coverage={candidate} onClose={() => setShowAlignment(false)} onSend={sendMatchRequest} /> : null}
+        {showAlignment ? <AlignmentDialog name={profile?.nickname || "il mentor"} coverage={candidate} matches={candidate?.goal_matches} onClose={() => setShowAlignment(false)} onSend={sendMatchRequest} /> : null}
         <Link href={isOwnProfile ? "/dashboard" : fromRequests ? "/requests" : "/matching"} className="profile-back">
           <ArrowLeft size={16} aria-hidden />
           {isOwnProfile ? "Torna alla dashboard" : fromRequests ? "Torna alle proposte" : "Torna alla lista dei mentor"}
@@ -226,12 +225,18 @@ function ProfileContent() {
 
                 {!isOwnProfile && candidate ? (
                   <section className="card profile-match-card">
+                    {candidate.goal_matches?.length ? candidate.goal_matches.map(match => <div key={match.goal_id}>
+                      <p className="profile-section-label">Compatibilità per {match.topic}</p>
+                      <div className="profile-match-score"><span className="profile-match-pct">{Math.round(match.match_score)}%</span><span className="profile-muted-text">Compatibilità</span></div>
+                      <CoverageSummary coverage={match} />
+                    </div>) : <>
                     <p className="profile-section-label">Compatibilità con il tuo obiettivo</p>
                     <div className="profile-match-score">
                       <span className="profile-match-pct">{Math.round(candidate.match_score)}%</span>
                       <span className="profile-muted-text">Compatibilità</span>
                     </div>
                     {candidate.skill_model ? <CoverageSummary coverage={candidate} /> : <p className="profile-muted-text">{candidate.reason_summary}</p>}
+                    </>}
                   </section>
                 ) : null}
 
@@ -292,6 +297,7 @@ function ProfileContent() {
 	                ) : requestSent ? (
                   <RequestCard
                     activeGoal={activeGoal}
+                    matches={candidate?.goal_matches}
                     pathCost={profile.path_cost}
                     requestSent
                     requestLoading={false}
@@ -319,6 +325,7 @@ function ProfileContent() {
                 ) : (
                   <RequestCard
                     activeGoal={activeGoal}
+                    matches={candidate?.goal_matches}
                     pathCost={profile.path_cost}
                     requestSent={requestSent}
                     requestLoading={requestLoading}
@@ -339,6 +346,7 @@ function ProfileContent() {
 
 function RequestCard({
   activeGoal,
+  matches,
   pathCost,
   requestSent,
   requestLoading,
@@ -346,6 +354,7 @@ function RequestCard({
   onRequest
 }: {
   activeGoal: Goal | null;
+  matches?: GoalMatch[];
   pathCost: number;
   requestSent: boolean;
   requestLoading: boolean;
@@ -376,7 +385,7 @@ function RequestCard({
     <section className="card profile-request-card">
       <p className="profile-card-title">Invia richiesta al mentor</p>
       <div className="profile-muted-text">
-        {activeGoal.skill_model ? <ObjectiveSummary topic={activeGoal.topic} title="Cosa vuoi imparare" labels={activeGoal.objective_labels} mode={activeGoal.discussion_mode_label} /> : <>Obiettivo: <strong>{activeGoal.goal_tag}</strong></>}
+        {matches?.length ? matches.map(match=><ObjectiveSummary key={match.goal_id} topic={match.topic} title="Su cosa può aiutarti" labels={match.covered_objective_labels} mode={match.discussion_mode_label} />) : activeGoal.skill_model ? <ObjectiveSummary topic={activeGoal.topic} title="Cosa vuoi imparare" labels={activeGoal.objective_labels} mode={activeGoal.discussion_mode_label} /> : <>Obiettivo: <strong>{activeGoal.goal_tag}</strong></>}
       </div>
       <p className="profile-muted-text">
         Costo del percorso per te: {pathCost} {pathCost === 1 ? "credito" : "crediti"}.
