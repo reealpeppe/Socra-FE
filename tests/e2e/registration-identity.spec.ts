@@ -86,7 +86,9 @@ test("verification in another tab unlocks the page without losing the survey", a
   });
   await confirmation.goto("/verify-email#token=identity-local-token");
   await confirmation.getByRole("button", { name: "Conferma email", exact: true }).click();
-  await expect(confirmation.getByRole("link", { name: "Riprendi survey", exact: true })).toHaveAttribute("href", "/onboarding");
+  await expect(confirmation.getByRole("status").filter({ hasText: "Email verificata" })).toBeVisible();
+  await expect(confirmation.getByRole("link", { name: "Riprendi survey", exact: true })).toHaveCount(0);
+  await expect(confirmation.getByRole("link", { name: "Vai al tuo account", exact: true })).toHaveAttribute("href", "/settings");
   await page.bringToFront();
   await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
   await expect(page.getByRole("heading", { name: "Conferma la tua email", exact: true })).toHaveCount(0);
