@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { useConfirmation } from "@/components/ConfirmationDialog";
@@ -30,10 +29,8 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
   const [answers, setAnswers] = useState<SkillAnswers>(emptySkillAnswers);
   const [loaded, setLoaded] = useState(false);
   const [existing, setExisting] = useState(false);
-  const [confirmed, setConfirmed] = useState(false);
   const [contextStep, setContextStep] = useState(false);
   const [savedProfile, setSavedProfile] = useState<SkillProfile | null>(null);
-  const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState("");
@@ -48,7 +45,7 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
   const { confirm, confirmationDialog } = useConfirmation();
   const ownsSession = useCallback((owner: SurveyOwner | null) =>
     owner !== null && ownerRef.current === owner && owner.sessionMarker === sessionMarker(), []);
-  useUnsavedChangesGuard(loaded && !done && !busy && JSON.stringify(answers) !== initial);
+  useUnsavedChangesGuard(loaded && !busy && JSON.stringify(answers) !== initial);
 
   useEffect(() => {
     // Each load owns its queued work. Auth writes this marker even before navigation.
@@ -78,7 +75,6 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
       setAnswers(restoreSkillAnswers(raw, catalog));
       setInitial(JSON.stringify(saved));
       setExisting(!!profile);
-      setDone(false);
       setSavedProfile(profile);
       setContextStep(!!profile && !reassessment);
       setLoaded(true);
@@ -100,7 +96,7 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
     const refresh = () => {
       if (ownerRef.current && ownerRef.current.sessionMarker !== sessionMarker()) {
         ownerRef.current = null; setLoaded(false); setAnswers(emptySkillAnswers()); setContextStep(false);
-        setSavedProfile(null); setDone(false); setConfirmed(false); setAttempt(v => v + 1);
+        setSavedProfile(null); setAttempt(v => v + 1);
       }
     };
     window.addEventListener('socra:session-refresh', refresh);
@@ -109,7 +105,7 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
 
   useEffect(() => {
     const owner = ownerRef.current;
-    if (!loaded || done || finalizing.current || !ownsSession(owner)) return;
+    if (!loaded || finalizing.current || !ownsSession(owner)) return;
     try { sessionStorage.setItem(draftKey.current, JSON.stringify({ answers, savedAt: Date.now(), baseVersion: baseVersion.current })); }
     catch { /* Online draft remains available. */ }
     if (reassessment || existing) return;
@@ -123,10 +119,10 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
       });
     }, 700);
     return () => window.clearTimeout(timer);
-  }, [answers, loaded, done, reassessment, existing, ownsSession]);
+  }, [answers, loaded, reassessment, existing, ownsSession]);
 
   function update(next: SkillAnswers) {
-    setAnswers(next); setConfirmed(false); setError(null); requestKey.current = crypto.randomUUID();
+    setAnswers(next); setError(null); requestKey.current = crypto.randomUUID();
   }
   function toggleKnown(code: string, checked: boolean) {
     update({ ...answers,
@@ -138,7 +134,7 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
     event.preventDefault();
     const owner = ownerRef.current;
     if (!ownsSession(owner)) return;
-    if (!confirmed || busy) { setError("Conferma le attività indicate."); return; }
+    if (busy) return;
     setBusy(true); setError(null);
     if (initialOffers.current.length && !answers.mentor_skills.length && !await confirm("Stai rimuovendo tutte le attività su cui offri aiuto. La tua disponibilità come mentor verrà disattivata e non riceverai nuove richieste. I percorsi già aperti continueranno. Vuoi salvare questa modifica?")) {
       if (ownsSession(owner)) setBusy(false);
@@ -165,8 +161,7 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
 
   return <AppShell>{confirmationDialog}<div className={styles.page}>
     {!loaded ? <div className="card" role={error ? "alert" : "status"}>{error || "Caricamento delle tue risposte…"}{error ? <button className="button secondary" onClick={() => { setError(null); setAttempt(value => value + 1); }}>Riprova</button> : null}</div>
-      : contextStep ? <section className={`${styles.section} stack`}><p className={styles.eyebrow}>Il tuo profilo · passo facoltativo</p><h1>Aggiungi il tuo contesto personale</h1><p>La tua esperienza è salvata. Puoi rispondere alle cinque domande private, scegliere “Preferisco non rispondere” o continuare per ora.</p><PersonalContext key={contextOwner} profile={savedProfile} expanded onSaved={setSavedProfile} onSkip={()=>{setContextStep(false);setDone(true);if(reassessment)router.push('/dashboard');}}/>{savedProfile?.profile_completion?.context_completed?<Link className="button dark" href={reassessment?'/dashboard':'/goal'}>Continua</Link>:null}</section>
-      : done ? <section className={`${styles.section} stack`}><p className={styles.eyebrow}>Il tuo punto di partenza</p><h1>{reassessment ? "Le tue capacità sono aggiornate" : "Il tuo punto di partenza è chiaro"}</h1><p>Ora puoi scegliere le attività che vuoi imparare insieme a un mentor.</p><Link className="button dark" href={reassessment ? "/dashboard" : "/goal"}>{reassessment ? "Torna alla dashboard" : "Scegli cosa imparare"}</Link></section>
+      : contextStep ? <section className={`${styles.section} stack`}><p className={styles.eyebrow}>Il tuo profilo</p><h1>Aggiungi il tuo contesto personale</h1><p>La tua esperienza è salvata.</p><PersonalContext key={contextOwner} profile={savedProfile} expanded onSaved={setSavedProfile} onContinue={()=>router.push(reassessment?'/dashboard':'/goal')}/></section>
       : <form className={styles.page} onSubmit={submit} aria-busy={busy}>
         <header className={styles.intro}><p className={styles.eyebrow}>La tua esperienza</p><h1>{reassessment ? "Rivedi ciò che sai fare" : "Cosa sai fare, cosa vuoi condividere?"}</h1><p>Indica le attività che sai svolgere. Tra queste, scegli quelle su cui ti fa piacere aiutare un’altra persona. Puoi partire senza selezionarne nessuna.</p></header>
         {reassessment && existing ? <section className={styles.section} aria-label="Preparazione per argomento"><h2>Preparazione per argomento</h2><p className="muted">Il tuo punto di partenza attuale, dalle attività dichiarate e confermate nei percorsi.</p>{preparation.length ? <div className={styles.preparationGrid}>{preparation.map(group => <SkillPreparation key={group.topic} group={group} />)}</div> : <p className="muted">Non hai ancora indicato attività conosciute.</p>}</section> : null}
@@ -181,7 +176,6 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
           </details>)}
         </section>
         {existing ? <p className={styles.notice}>Le modifiche non riattivano una disponibilità mentor messa in pausa. I percorsi già svolti restano nel tuo storico.</p> : null}
-        <label className={styles.check}><input type="checkbox" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} disabled={busy} required /><span>Confermo le attività indicate, anche se non ne ho selezionata nessuna.</span></label>
         {error ? <p className="error" role="alert">{error}</p> : null}
         <div className={styles.actions}><small className="muted" role="status">{saveMessage}</small><button className="button dark" disabled={busy} type="submit">{busy ? "Salvataggio…" : "Conferma le risposte"}</button></div>
       </form>}

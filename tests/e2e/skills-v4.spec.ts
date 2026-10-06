@@ -83,7 +83,6 @@ for (const source of ["settings", "experience"] as const) {
     }
     else {
       await page.getByRole("checkbox", { name: "So: Leggere la scheda di un ETF", exact: true }).uncheck();
-      await page.getByRole("checkbox", { name: "Confermo le attività indicate, anche se non ne ho selezionata nessuna." }).check();
     }
     const save = page.getByRole("button", { name: source === "settings" ? "Salva capacità offerte" : "Conferma le risposte", exact: true });
     await save.click();
@@ -97,7 +96,7 @@ for (const source of ["settings", "experience"] as const) {
     expect(profile.mentor_available).toBe(true);
     await save.click();
     await dialog.getByRole("button", { name: "Conferma", exact: true }).click();
-    if (source === "experience") { await page.getByRole("button",{name:"Salta per ora",exact:true}).click(); await expect(page).toHaveURL(/\/dashboard$/); }
+    if (source === "experience") { await page.getByRole("button",{name:"Continua",exact:true}).click(); await expect(page).toHaveURL(/\/dashboard$/); }
     else {
       await expect(page.getByRole("status").filter({ hasText: "Capacità offerte aggiornate" })).toBeVisible();
       await expect(page.getByText("Disponibilità come mentor attivata.", { exact: true })).toHaveCount(0);
@@ -151,10 +150,8 @@ test("survey removes offered skill when knowledge is removed and submits explici
   await expect(page.getByRole("checkbox", { name: "Posso aiutare: Leggere la scheda di un ETF", exact: true })).not.toBeChecked();
   await expect(page.locator('select[name="D1"]')).toHaveCount(0);
   await page.screenshot({ path: testInfo.outputPath("survey.png"), fullPage: true });
-  await page.getByRole("checkbox", { name: "Confermo le attività indicate, anche se non ne ho selezionata nessuna." }).check();
   await page.getByRole("button", { name: "Conferma le risposte" }).click();
-  await page.getByRole("button",{name:"Salta per ora",exact:true}).click();
-  await expect(page.getByRole("link", { name: "Scegli cosa imparare" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Aggiungi il tuo contesto personale" })).toBeVisible();
   expect(sent).toMatchObject({ known_skills: [], mentor_skills: [] });
   expect(sent).not.toHaveProperty("section_d");
 });
@@ -350,9 +347,8 @@ test("experience saves only skills and returns to dashboard with confirmation", 
   await expect(page.getByText("2 dichiarate · 1 confermata nei percorsi", { exact: true })).toBeVisible();
   await expect(page.locator('select[name="D1"]')).toHaveCount(0);
   await page.getByRole("checkbox", { name: "So: Costruire un piano periodico", exact: true }).uncheck();
-  await page.getByRole("checkbox", { name: "Confermo le attività indicate, anche se non ne ho selezionata nessuna." }).check();
   await page.getByRole("button", { name: "Conferma le risposte" }).click();
-  await page.getByRole("button", {name:"Salta per ora",exact:true}).click();
+  await page.getByRole("button", {name:"Continua",exact:true}).click();
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByRole("status").filter({ hasText: "La tua esperienza è stata aggiornata." })).toBeVisible();
   expect(sent).toMatchObject({ known_skills: ["etf_read", "etf_compare"], mentor_skills: ["etf_read"] });
@@ -555,7 +551,6 @@ for (const boundary of ["unmount", "session-change", "final-submit"] as const) {
     await page.getByRole("checkbox", { name: "So: Confrontare due ETF", exact: true }).check();
     await page.clock.fastForward(750);
     if (boundary === "final-submit") {
-      await page.getByRole("checkbox", { name: "Confermo le attività indicate, anche se non ne ho selezionata nessuna." }).check();
       await page.getByRole("button", { name: "Conferma le risposte" }).click();
     }
     if (boundary !== "session-change") {

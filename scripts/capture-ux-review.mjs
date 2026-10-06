@@ -68,6 +68,10 @@ try {
     const trace = [];
     async function capture(scenario, intent, facts = {}) {
       await page.evaluate(() => document.fonts.ready);
+      if (scenario === 'context-four' || scenario === 'context-ready') {
+        await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+      }
       const file = `${viewportName}-${scenario}`;
       const bytes = await page.screenshot({ fullPage: true, animations: "disabled" });
       await writeFile(path.join(directory, `${file}.png`), bytes);
@@ -131,21 +135,36 @@ try {
     assert.deepEqual(afterHelp,beforeHelp);assert.deepEqual(selectedAfter,selectedBefore);
     trace.push({action:'Cosa significa Posso aiutare → apertura spiegazione',interaction:viewportName==='mobile'?'touch':'keyboard Enter',aria_expanded:true,profile_unchanged:true,ui_selections_unchanged:true});
     await capture('offer-help','Spiegazione accessibile senza cambiare capacità o offerte.',{interaction:viewportName==='mobile'?'touch':'keyboard Enter',before_profile_version:beforeHelp.version,after_profile_version:afterHelp.version,mentor_available:afterHelp.mentor_available});
+    // Capture the incomplete state before the explicit context step completes it.
+    await page.goto('/dashboard');await expect(page.getByText('Completa il tuo profilo!',{exact:true})).toBeVisible();
+    await capture('profile-incomplete','Richiamo privato prima delle cinque risposte esplicite.');
+    await page.goto('/competenze');await expect(page.getByRole('heading',{name:'Rivedi ciò che sai fare'})).toBeVisible();
     await capture("experience", "Ritrovare le risposte precompilate, barre per argomento e offerte distinte; nessuna domanda economica nel compito.", { known_skills: before.known_skills, mentor_skills: before.mentor_skills });
     // A real edit, persisted and subsequently reopened; alternate to keep reruns useful.
     const change = page.getByRole("checkbox", { name: "So: Impostare un PAC con ETF", exact: true });
     await change.setChecked(!before.known_skills.includes("etf_pac"));
-    await page.getByRole("checkbox", { name: "Confermo le attività indicate, anche se non ne ho selezionata nessuna." }).check();
     await page.getByRole("button", { name: "Conferma le risposte", exact: true }).click();
     await expect(page.getByRole('heading', {name:'Aggiungi il tuo contesto personale'})).toBeVisible();
-    await capture('survey-context', 'Il contesto facoltativo viene proposto dopo l’esperienza salvata.');
-    await page.getByRole('button', {name:'Salta per ora',exact:true}).click();
+    assert.deepEqual((await api(context,'/skills/me')).section_d,before.section_d);
+    await expect(page.getByRole('button',{name:'Continua',exact:true})).toHaveCount(0);
+    const why=page.locator('#personal-context').getByText('Perché ci serve questa informazione?',{exact:true});
+    if(viewportName==='mobile')await why.tap();else{await why.focus();await why.press('Enter');}
+    await expect(page.getByText(/conoscere meglio la community e a comprenderne bisogni e caratteristiche/)).toBeVisible();
+    trace.push({action:'Esperienza confermata → contesto privato',context_preserved_before_explicit_answers:true,continue_visible:false,why_opened_with:viewportName==='mobile'?'touch':'keyboard Enter'});
+    await capture('survey-context', 'Contesto privato con spiegazione della finalità; nessuna seconda conferma o salto.');
+    for(let i=1;i<=4;i++)await page.locator(`select[name=D${i}]`).selectOption('undisclosed');
+    await expect(page.getByRole('button',{name:'Continua',exact:true})).toHaveCount(0);
+    await capture('context-four','Quattro risposte non rendono disponibile Continua.',{answered_count:4,continue_visible:false});
+    await page.locator('select[name=D5]').selectOption('undisclosed');
+    await expect(page.getByRole('button',{name:'Continua',exact:true})).toBeVisible();
+    await capture('context-ready','Cinque scelte esplicite, anche tutte Preferisco non rispondere, mostrano un solo Continua.',{answered_count:5});
+    await page.getByRole('button',{name:'Continua',exact:true}).click();
     await expect(page).toHaveURL(/\/dashboard$/);
     await expect(page.getByRole("status").filter({ hasText: /esperienza.*aggiornata/i })).toBeVisible();
     const saved = await api(context, "/skills/me");
     assert.equal(saved.known_skills.includes("etf_pac"), !before.known_skills.includes("etf_pac"));
     assert.equal(saved.mentor_available, false);
-    assert.deepEqual(saved.section_d, before.section_d);
+    assert.deepEqual(saved.section_d,Object.fromEntries([1,2,3,4,5].map(i=>[`D${i}`,'undisclosed'])));
     await expect(page.getByRole("progressbar", { name: "Preparazione su ETF" })).toHaveAttribute("value", String(saved.known_skills.filter(code => code.startsWith("etf_")).length));
     trace.push({ action: "Modifica esperienza → Conferma le risposte", actual_url: page.url(), persisted: true, private_context_preserved: true, mentor_paused: true });
     await capture("experience-saved", "Conferma visibile e ritorno alla dashboard dopo il salvataggio.");
@@ -154,8 +173,6 @@ try {
     assert.equal(await change.isChecked(), saved.known_skills.includes("etf_pac"));
     trace.push({ action: "Riapertura esperienza", saved_selection_still_checked: true });
 
-    await page.goto('/dashboard');await expect(page.getByText('Completa il tuo profilo!',{exact:true})).toBeVisible();
-    await capture('profile-incomplete','Richiamo privato con risposte facoltative ancora da completare.');
     await page.goto('/goal');await expect(page.getByRole('heading',{name:'I tuoi obiettivi',exact:true})).toBeVisible();
     await capture('goal-selection','Temi e attività separate con modalità propria.');
     await page.goto("/settings");
@@ -184,6 +201,18 @@ try {
     assert.equal(completion.context_completed,true);assert.equal(completion.context_answered_count,5);
     trace.push({action:'Riapertura dashboard dopo contesto salvato',dashboard_loaded:true,profile_completion:completion,banner_visible:false});
     await capture('profile-complete','Il richiamo scompare dopo salvataggio e rilettura delle cinque risposte.',{dashboard_loaded:true,profile_completion:completion});
+    const verification=new URL(fixture.verification_links[viewportName==='mobile'?'learner_mobile':'learner']);
+    await page.goto('/verify-email'+verification.hash);
+    await expect.poll(()=>new URL(page.url()).hash).toBe('');
+    await page.getByRole('button',{name:'Conferma email',exact:true}).click();
+    await expect(page.getByRole('status').filter({hasText:'Email verificata'})).toBeVisible();
+    await expect(page.getByRole('link',{name:/Riprendi.*survey/i})).toHaveCount(0);
+    const verified=await api(context,'/auth/me');assert.equal(verified.email_verified,true);
+    trace.push({action:'Conferma email con token locale valido',email_verified:true,fragment_removed:true,survey_resume_link:false});
+    await capture('verification-success','Conferma riuscita senza riportare alla survey già compilata.',{email_verified:true,context_completed:true});
+    await page.getByRole('link',{name:'Vai al tuo account',exact:true}).click();
+    await expect(page).toHaveURL(/\/settings$/);
+    trace.push({action:'Email confermata → Vai al tuo account',actual_url:page.url(),context_preserved:true});
     await page.goto("/matching");
     const card = page.getByRole("article").filter({ hasText: fixture.users.mentor.nickname });
     await expect(card).toBeVisible();
@@ -217,6 +246,12 @@ try {
     const controlsFile = `${viewportName}-agreement-controls.png`;
     await writeFile(path.join(directory, controlsFile), controlsBytes);
     manifest.artifacts.push({ file: controlsFile, sha256: hash(controlsBytes) });
+    await dialog.evaluate(element => { element.scrollTop = element.scrollHeight; });
+    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    const footerBytes = await page.screenshot({ animations: "disabled" });
+    const footerFile = `${viewportName}-agreement-footer.png`;
+    await writeFile(path.join(directory, footerFile), footerBytes);
+    manifest.artifacts.push({ file: footerFile, sha256: hash(footerBytes) });
     await dialog.evaluate(element => { element.scrollTop = 0; });
     await capture("agreement", "Proporre esplicitamente una sola attività del sottoinsieme compatibile.", { chosen: ["etf_read"] });
     await dialog.getByRole("button", { name: "Invia", exact: true }).click();
@@ -292,7 +327,6 @@ try {
       await expect(page.getByRole("status").filter({ hasText: "Disponibilità come mentor attivata." })).toBeVisible();
       await page.goto("/competenze");
       await page.getByRole("checkbox", { name: "So: Leggere e comprendere un ETF", exact: true }).uncheck();
-      await page.getByRole("checkbox", { name: "Confermo le attività indicate, anche se non ne ho selezionata nessuna." }).check();
       const saveExperience = page.getByRole("button", { name: "Conferma le risposte", exact: true });
       await saveExperience.click();
       await expect(removal).toContainText("I percorsi già aperti continueranno");
@@ -303,7 +337,7 @@ try {
       assert.equal(cancelledExperience.mentor_available, true);
       await saveExperience.click();
       await removal.getByRole("button", { name: "Conferma", exact: true }).click();
-      await page.getByRole('button', {name:'Salta per ora',exact:true}).click();
+      await page.getByRole('button', {name:'Continua',exact:true}).click();
       await expect(page).toHaveURL(/\/dashboard$/);
       await expect(page.getByRole("status").filter({ hasText: /esperienza.*aggiornata/i })).toBeVisible();
       await expect(page.getByText("Disponibilità mentor disattivata", { exact: true })).toBeVisible();
