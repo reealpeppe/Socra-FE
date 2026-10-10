@@ -157,6 +157,35 @@ components:
     rounded: "{rounded.radius-lg}"
     padding: "clamp(26px, 5vw, 44px)"
     width: "min(100%, 510px)"
+  card-dashboard-learning:
+    backgroundColor: "{colors.ink}"
+    textColor: "{colors.card}"
+    rounded: "{rounded.radius}"
+    padding: "32px"
+    width: "100%"
+  card-dashboard-secondary:
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.radius}"
+    padding: "28px"
+  button-dashboard-learning:
+    backgroundColor: "{colors.gold-500}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.radius-sm}"
+    padding: "13px 18px"
+    width: "100%"
+  button-dashboard-mentor:
+    backgroundColor: "{colors.card}"
+    textColor: "{colors.ink}"
+    typography: "{typography.button}"
+    rounded: "{rounded.radius-sm}"
+    padding: "11px 16px"
+  notification-unread:
+    backgroundColor: "{colors.honey-soft}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.radius-sm}"
+    padding: "12px"
+    width: "100%"
   tab:
     backgroundColor: "transparent"
     textColor: "{colors.muted}"
@@ -185,9 +214,9 @@ Il movimento accompagna gli stati con piccoli spostamenti e variazioni di colore
 - Motion discreto con supporto a reduced-motion.
 - Contenuti, destinazioni e logica funzionale preservati.
 
-Questa documentazione è un'estrazione statica del codice sul branch `design/grafite-miele`, non una certificazione visiva o un risultato di QA browser. Fonti: `app/theme.css`, `app/Home.module.css`, `components/PublicLayout.module.css`, `app/(community)/dashboard/Dashboard.module.css`, `app/login/auth.module.css` e `app/layout.tsx`; `app/globals.css` fornisce soltanto le proprietà ancora ereditate. `layout.tsx` importa il tema dopo i globals: il tema finale prevale a parità di specificità. I selettori più specifici dei moduli mantengono le loro varianti.
+Questa documentazione è un'estrazione statica del codice sul branch `design/grafite-miele`, non una certificazione visiva o un risultato di QA browser. Fonti: `app/theme.css`, `app/Home.module.css`, `components/PublicLayout.module.css`, `app/(community)/dashboard/Dashboard.module.css`, `app/(community)/dashboard/page.tsx`, `app/login/auth.module.css` e `app/layout.tsx`; `app/globals.css` fornisce soltanto le proprietà ancora ereditate. `layout.tsx` importa il tema dopo i globals: il tema finale prevale a parità di specificità. I selettori più specifici dei moduli mantengono le loro varianti.
 
-Il redesign conserva testi e logica; il markup della home è riordinato per la presentazione. Questo documento e il sidecar non modificano JSX, testi o comportamento e non aggiungono regole di prodotto. La wiki backend resta proprietaria di quelle regole.
+Il redesign conserva la logica e le destinazioni; il markup della home è riordinato per la presentazione. Il refinement dashboard approvato rende prioritaria l'azione di apprendimento e presenta la definizione ETF esistente in un aiuto apribile. Questo documento e il sidecar descrivono il codice, senza aggiungere regole di prodotto. La wiki backend resta proprietaria delle regole; l'aiuto ETF è documentato sul branch `docs/dashboard-help-grafite-miele`, commit `e5546fd`.
 
 ## Colors
 
@@ -197,13 +226,13 @@ La palette combina neutrali chiari e grafite con un solo accento di marca, miele
 
 - **Miele** (`gold-500`): pulsanti principali, indicatori di progresso e piccoli segnali della navigazione.
 - **Miele hover** (`gold-400`): stato hover delle azioni principali.
-- **Miele chiaro** (`gold-300`): selezione del testo.
+- **Miele chiaro** (`gold-300`): selezione del testo e focus visibile di link e summary sulla card grafite della dashboard.
 - **Miele tenue** (`honey-soft`): selezione in navigazione, avvisi e superfici di richiamo.
 - **Miele scuro** (`honey-ink`): testo su fondi miele, checkbox e indicatori compatibili con questa superficie.
 
 ### Neutral
 
-- **Grafite** (`ink`): testo principale, focus, pulsanti scuri e footer pubblico. `navy` e `navy-950` sono alias dello stesso valore.
+- **Grafite** (`ink`): testo principale, focus, pulsanti scuri, footer pubblico e fondo della card di apprendimento dashboard. `navy` e `navy-950` sono alias dello stesso valore.
 - **Grafite secondarie** (`navy-900`, `navy-850`, `navy-800`): varianti scure già definite; l'ultima è usata anche nell'hover delle azioni scure pubbliche.
 - **Testo secondario** (`muted`, `neutral-text`): descrizioni e metadati.
 - **Fondo pagina** (`paper`): sfondo uniforme, pannelli di supporto e hover neutri.
@@ -229,7 +258,7 @@ Le rampe OKLCH del sidecar sono anteprime sintetiche per il pannello di design, 
 ### Hierarchy
 
 - **Display:** il titolo della home usa il ruolo `display` del frontmatter; il peso intermedio limita la massa del titolo. A 1100px cambia la scala e a 760px passa a `clamp(2rem, 5.8vw, 2.6rem)`.
-- **Headline:** titoli di sezione della home; i titoli applicativi hanno scale locali, fra cui `clamp(2rem, 3.2vw, 2.6rem)` nella dashboard.
+- **Headline:** titoli di sezione della home; le scale applicative sono locali. Nella dashboard il saluto usa (2rem / 32px), peso (550), line-height (1.15), ridotto a (1.75rem / 28px) fino a 760px; il tema di apprendimento ha maggiore rilievo, a (2.75rem / 44px), peso (550), line-height (1.15), ridotto a (2.25rem / 36px) fino a 760px. Le altre feature usano (1.5rem) e line-height (1.25).
 - **Title:** titoli di passi e piccoli blocchi. Nella home i titoli dei pilastri hanno line-height 1.45.
 - **Body:** base (15px), line-height (1.6). Le descrizioni della home arrivano a line-height (1.7), con larghezza massima (58ch); le descrizioni degli header applicativi arrivano a (70ch).
 - **Label:** etichette dei campi con peso (600). I pulsanti usano il ruolo separato `button`, con peso (650).
@@ -242,7 +271,11 @@ I ruoli documentano gli stili osservati, non una scala matematica obbligatoria. 
 
 La shell applicativa ha sidebar (252px) e contenuto flessibile; il contenuto usa padding (36px 40px 56px), ridotto a (28px 28px 48px) sotto 1100px e a (24px 18px 32px) sotto 620px. Sotto 960px la sidebar lascia posto alla navigazione mobile inferiore, con spazio per la safe area. La topbar è alta almeno (76px), poi (68px) sotto 620px.
 
-La dashboard è larga al massimo (1240px), con due colonne proporzionali (1.1fr / 1fr) e gap (24px). Sotto 760px passa a una colonna, gap (16px), card con padding (22px) e azioni a larghezza piena. I padding delle card dashboard sono (28px) sul desktop e (24px) sotto 1100px.
+La dashboard è larga al massimo (1240px). La card “Impara” occupa tutta la prima riga; le tre card di supporto seguono in colonne uguali, con gap (24px). Fino a 1200px la griglia ha due colonne, gap (20px), con la card mentor a tutta larghezza; fino a 760px passa a una colonna, gap (16px) e azioni a larghezza piena. Le card hanno padding (28px), con (32px) per “Impara”, poi tutte (24px) fino a 1200px e (22px) fino a 760px.
+
+Dentro “Impara”, il tema a sinistra e il prossimo passo a destra usano colonne (1.25fr / .75fr), gap (48px) e un divisore verticale con padding (32px). Fino a 1200px il gap scende a (28px), le proporzioni diventano (1fr / .85fr) e il padding del divisore (24px). Fino a 760px il prossimo passo precede il tema; il divisore diventa orizzontale, con gap e padding superiore (24px). L'azione precede i metadati anche nel suo blocco. Questa gerarchia è specifica della dashboard, non una nuova regola per tutte le pagine.
+
+Fino a 760px l'introduzione dashboard usa una griglia con colonna flessibile e colonna automatica: i crediti affiancano il saluto, mentre contesto e descrizione occupano tutta la larghezza. Il wrapper del testo usa `display: contents`; il wallet ha padding (8px), gap (8px) e icona (28px). La numerazione delle sezioni (01–04) conserva il copy esistente.
 
 La navigazione pubblica è fissa, alta (64px). Sotto 900px usa il menu mobile; sotto 600px riduce il padding e le CTA di sezione diventano larghe quanto il contenitore. Il footer passa da tre aree a due e poi a una colonna.
 
@@ -273,7 +306,7 @@ La card di autenticazione è una variante osservata con angoli (16px), coerente 
 
 Azioni chiare, con angoli contenuti e pesi leggibili. La primaria usa miele e grafite; la secondaria una superficie bianca con bordo, la scura grafite con testo bianco, la ghost un fondo trasparente, la danger la coppia semantica di errore.
 
-Il pulsante condiviso ha padding (11px 18px), altezza minima (44px) e raggio `radius-sm`. Le azioni pubbliche usano (12px 22px) e altezza minima (48px); quelle dashboard (11px 16px). Il submit auth ha altezza minima (50px). Hover e pressione non aggiungono ombre: la primaria cambia al miele hover e la pressione scala a (.98). Su puntatore fine il pulsante condiviso può salire di (1px); il disabled resta fermo, con opacità (.55), oppure (.62) nel submit auth.
+Il pulsante condiviso ha padding (11px 18px), altezza minima (44px) e raggio `radius-sm`. Le azioni pubbliche usano (12px 22px) e altezza minima (48px); quelle dashboard (11px 16px). La CTA principale in “Impara” è miele, larga quanto il blocco azione, con altezza minima (50px), padding (13px 18px) e testo (1rem); il nome CSS storico `actionDark` non ne descrive il colore finale. L'azione mentor è secondaria, bianca con bordo `control-line` e peso (600), con hover fondo pagina. Il submit auth ha altezza minima (50px). Hover e pressione non aggiungono ombre: la primaria cambia al miele hover e la pressione scala a (.98). Su puntatore fine il pulsante condiviso può salire di (1px); il disabled resta fermo, con opacità (.55), oppure (.62) nel submit auth.
 
 ### Chips / Tags
 
@@ -282,6 +315,14 @@ Badge piccoli, con padding (5px 9px), raggio `badge` e peso (600). I badge infor
 ### Cards / Containers
 
 Contenitori piatti su superficie card, con bordo `line` e raggio `radius`. Il padding condiviso è (24px), poi (20px) nella shell sotto 620px; la dashboard mantiene la propria variante descritta in Layout. La card auth ha la forma e la larghezza riportate in `card-auth`, nessuna ombra e padding mobile (24px 18px). Non introdurre un hover su card prive di interazione.
+
+La card “Impara” usa fondo grafite, testo bianco e nessun bordo esterno. L'icona ha un contenitore grafite secondario (44px), raggio (10px) e segno miele chiaro; descrizioni e metadati usano neutrali chiari locali. Le card mentor, obiettivo e competenze mantengono superficie bianca e bordo sottile; obiettivo e competenze hanno altezza minima (224px), rimossa fino a 760px. Le illustrazioni decorative dashboard sono nascoste.
+
+### Aiuto ETF e notifiche
+
+L'aiuto “Cos’è un ETF?” usa `details` / `summary` nativi, senza attributo `open`: parte chiuso ed è disponibile solo quando l'argomento selezionato è ETF nel contesto di apprendimento. Conserva la definizione “ETF significa Exchange Traded Fund: un fondo quotato in borsa.” Il summary è azionabile da tastiera, alto almeno (32px), con focus miele chiaro sulla grafite. La freccia ruota di (90deg) all'apertura; il testo usa (.8125rem), line-height (1.5) e larghezza massima (52ch).
+
+La lista notifiche usa flex in colonna. Ogni notifica è un pulsante con `flex: 0 0 auto`, altezza automatica, testo a capo e padding (12px): cresce con il messaggio senza restringersi nella lista scorrevole. Il messaggio può spezzare parole lunghe; il badge “Nuova” resta compatto e allineato all'inizio, con padding (2px 6px), raggio (4px) e miele chiaro. Il fondo unread rimane miele tenue.
 
 ### Inputs / Fields
 
@@ -300,6 +341,8 @@ La navigazione pubblica è bianca; la pagina attiva ha una sottolineatura miele 
 I tab si appoggiano a un contenitore neutro con padding (4px); il tab attivo è bianco e usa l'ombra compatta. Altezza minima (44px) e scorrimento orizzontale preservano lo spazio su schermi stretti.
 
 I token condivisi sono `duration-press` (120ms), `duration-ui` (180ms), `duration-reveal` (260ms), `ease-out` e `ease-in-out`; la presenza di un token non impone il suo utilizzo su ogni elemento. Dropdown e dialog entrano con opacità e piccoli spostamenti solo all'inserimento, senza nascondere il contenuto come stato predefinito. La home osservata ha un reveal del testo (420ms), limitato a `no-preference`. Reduced-motion disattiva animazioni, transizioni e smooth scrolling.
+
+Nella dashboard wallet e righe mentor cambiano fondo in (180ms) con `ease`; le CTA cambiano fondo con la stessa durata e scalano alla pressione in (120ms) con `ease-out`. La freccia dell'aiuto ETF ruota con (180ms) e `ease-out`. Le card restano ferme; reduced-motion elimina le transizioni anche da questi componenti.
 
 ## Do's and Don'ts
 

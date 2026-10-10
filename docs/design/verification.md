@@ -6,7 +6,7 @@ Data: 10/10/2026. Branch locale `design/grafite-miele`.
 
 La baseline `455b5a2` fotografa il frontend corrente, incluse le modifiche preesistenti di altre chat, nel worktree isolato `output/frontend-grafite-miele` del workspace. Il checkout frontend originale e il backend non sono stati modificati da questa slice. Le modifiche grafiche successive alla baseline hanno un commit separato: per la review usare `git diff 455b5a2`, senza attribuire alla grafica il contenuto dello snapshot.
 
-Testi, link, condizioni, chiamate API, salvataggi, autorizzazioni e logica applicativa restano invariati. La home riordina il markup e usa una hero tipografica senza fotografie; gli altri TSX cambiano attributi/stili di presentazione. La wiki non cambia: nessuna regola, visibilità o contratto è stato modificato. Nessun push, deploy o provider aggiunto.
+Testi esistenti, link, chiamate API, salvataggi, autorizzazioni e logica applicativa restano invariati. La home riordina il markup e usa una hero tipografica senza fotografie. L’unica variazione di comportamento approvata dal responsabile prodotto è la definizione ETF: aiuto inizialmente chiuso, apribile su richiesta tramite «Cos’è un ETF?». Nessun push, deploy o provider aggiunto.
 
 ## Sistema realizzato
 
@@ -19,7 +19,7 @@ Manrope variabile locale con licenza OFL; grafite per testo e navigazione, miele
 - `node node_modules/next/dist/bin/next build --webpack`: passato, 35 route generate. Webpack è usato per il worktree con node_modules in junction; Turbopack rifiuta il percorso esterno al suo filesystem root.
 - `node scripts/verify-design-boundary.mjs`: passato. Confronta AST dei TSX esclusi gli attributi grafici; per la home confronta testi, link e dati delle sezioni con la baseline. Non sostituisce un test di ogni comportamento.
 - Validatore documentale canonico backend con `--frontend .`: passato (23 documenti backend, 5 frontend, 0 errori).
-- Detector Impeccable eseguito una volta: nessun finding. Provenienza asset: 1 raster, 0 prompt mancanti.
+- Detector Impeccable eseguito una volta sulla prima versione: nessun finding. Il raster iniziale è stato successivamente eliminato con il suo prompt; il detector non è stato rieseguito nelle correzioni.
 
 ## Browser e review indipendente
 
@@ -38,3 +38,13 @@ Per ripetere la cattura, avviare la stessa slice su un backend locale con dati s
 ## Correzione home senza fotografia
 
 Su richiesta del responsabile prodotto, rimossi fotografia, asset e animazione fotografica. Hero su una colonna, centrata su desktop e allineata a sinistra su mobile. Testi e destinazioni invariati. Il riferimento corrente della home è `output/playwright/design/home-no-photo`, non la home fotografica delle review storiche precedenti. Playwright: zero immagini nel main, font attivo, nessun overflow o errore JavaScript a 1440×1000 e 390×844. Typecheck e controllo del confine grafico passati. La [nuova review indipendente della home](review-home-no-photo.md) approva questo scope con SHIP; il resto del sito non è stato riesaminato in questa correzione.
+
+## Correzione dashboard e notifiche
+
+Il feedback umano successivo prevale sulle review storiche: quattro card dello stesso peso non rendevano chiaro il primo passo. La card Impara ora usa grafite e tutta la larghezza; il pulsante miele è l’azione principale, mentre mentor, obiettivo e competenze restano secondari. Su mobile il prossimo passo precede gli obiettivi e i crediti affiancano il saluto. Le destinazioni dipendono dalle stesse condizioni esistenti: definire l’obiettivo, cercare un mentor, aprire il percorso o rivedere l’obiettivo.
+
+La definizione ETF era già nella baseline ed era mostrata per argomento ETF, senza distinzione per preparazione. Il responsabile prodotto ha scelto l’aiuto apribile su richiesta. La definizione esistente è conservata in un `details` nativo inizialmente chiuso, utilizzabile da tastiera. La pagina proprietaria wiki 12 è aggiornata in un worktree backend documentale isolato, branch `docs/dashboard-help-grafite-miele`: `202458a` fotografa solo il documento corrente preesistente; `e5546fd` modifica unicamente il paragrafo sulla dashboard. Il checkout backend originale e il codice backend restano intatti.
+
+Le notifiche rompevano i confini della propria riga: la lista grid compressa dalla sua altezza massima lasciava «Nuova» fuori dal pulsante. La riproduzione precedente rilevava sette righe rotte. La lista ora usa flex verticale e ogni pulsante conserva l’altezza naturale senza restringersi, mantenendo testo e badge al suo interno.
+
+Il runner [verify-dashboard-design.mjs](../../scripts/verify-dashboard-design.mjs) verifica dashboard, aiuto e notifiche su desktop 1440×1000, intermedio 1024×900, mobile 390×844 e scala CSS 125% (non zoom nativo del browser). Controlla contenimento di ogni figlio delle notifiche, CTA nel primo viewport, definizione nascosta all’ingresso e visibile senza coperture all’apertura, tastiera e assenza di overflow/errore JavaScript. Sei viste aggiuntive desktop/mobile usano risposte API mock per obiettivo assente, percorso attivo e revisione: verificano presentazione e destinazioni, senza mutazioni applicative. Evidenze correnti: `output/playwright/design/dashboard-priority-final/report.json`, 18 viste, 36 PNG e 10 check. La [review indipendente di questa correzione](review-dashboard-priority.md) possiede il giudizio grafico e i suoi limiti. Non è una nuova approvazione dell’intero sito né una prova di comprensione con utenti nuovi.
