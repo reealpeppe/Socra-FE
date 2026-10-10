@@ -405,7 +405,7 @@ function RequestsStyles() {
       .requests-stat p {
         color: var(--muted);
         font-size: 0.75rem;
-        font-weight: 900;
+        font-weight: 650;
         letter-spacing: 0.08em;
         margin: 0 0 4px;
         text-transform: uppercase;
@@ -446,7 +446,7 @@ function RequestsStyles() {
         border-radius: 999px;
         color: white;
         display: inline-flex;
-        font-weight: 900;
+        font-weight: 650;
         height: 44px;
         justify-content: center;
         width: 44px;
@@ -478,7 +478,7 @@ function RequestsStyles() {
         color: var(--navy-950, #07172d);
         display: inline-block;
         font-size: 0.84rem;
-        font-weight: 800;
+        font-weight: 650;
         margin-top: 6px;
         text-decoration: underline;
         text-underline-offset: 3px;

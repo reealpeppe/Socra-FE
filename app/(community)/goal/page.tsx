@@ -212,7 +212,7 @@ function GoalForm() {
               <Target size={20} aria-hidden />
             </span>
             <div>
-              <p style={{ color: "var(--muted)", fontSize: "0.75rem", fontWeight: 800, letterSpacing: "0.08em", margin: "0 0 2px", textTransform: "uppercase" }}>
+              <p style={{ color: "var(--muted)", fontSize: "0.75rem", fontWeight: 650, letterSpacing: "0.08em", margin: "0 0 2px", textTransform: "uppercase" }}>
                 Il prossimo passo
               </p>
               <strong style={{ color: "var(--navy-950)", fontSize: "1.25rem" }}>
@@ -227,7 +227,7 @@ function GoalForm() {
           <div className="card">
             <div style={{ display: "grid", gap: "20px" }}>
               <div>
-                <p style={{ color: "var(--navy-950)", fontWeight: 800, margin: "0 0 4px" }}>Scegli il tema del confronto</p>
+                <p style={{ color: "var(--navy-950)", fontWeight: 650, margin: "0 0 4px" }}>Scegli il tema del confronto</p>
                 <p style={{ color: "var(--muted)", fontSize: "0.88rem", margin: 0 }}>
                   Chi valuta un percorso con te vede il tema, il risultato di apprendimento e i tipi di confronto.
                 </p>
@@ -309,12 +309,12 @@ function GoalForm() {
           </div>
           <style jsx>{`
             .discussion-fieldset { border: 0; padding: 0; margin: 12px 0 0; min-width: 0; }
-            .discussion-fieldset legend { font-size: 1.15rem; font-weight: 800; color: var(--navy-950); }
+            .discussion-fieldset legend { font-size: 1.15rem; font-weight: 650; color: var(--navy-950); }
             .discussion-fieldset p { font-size: .88rem; line-height: 1.6; }
             .discussion-options { display: grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
             .discussion-option { display: flex; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; }
             .discussion-option[data-selected="true"] { border-color: var(--navy-950); background: var(--paper); box-shadow: inset 0 0 0 1px var(--navy-950); }
-            .discussion-limit-notice { background: #fff8e8; border: 1px solid #efcb70; border-radius: 9px; color: #744d06; font-weight: 750; margin: 2px 0 0; padding: 10px 12px; }
+            .discussion-limit-notice { background: #fff8e8; border: 1px solid #efcb70; border-radius: 9px; color: #744d06; font-weight: 600; margin: 2px 0 0; padding: 10px 12px; }
             .discussion-option:focus-within { outline: 3px solid var(--gold-500); outline-offset: 3px; }
             .discussion-option input { width: 18px; height: 18px; flex-shrink: 0; margin-top: 3px; accent-color: var(--navy-950); }
             .discussion-option strong { display: block; margin-bottom: 5px; font-size: .91rem; }
@@ -326,7 +326,7 @@ function GoalForm() {
             }
             .goal-result-guidance { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
             .goal-result-guidance p { margin: 0; font-size: .84rem; line-height: 1.5; }
-            .goal-result-toggle { border: 0; background: none; color: var(--navy-950); font: inherit; font-size: .84rem; font-weight: 800; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 6px 0; }
+            .goal-result-toggle { border: 0; background: none; color: var(--navy-950); font: inherit; font-size: .84rem; font-weight: 650; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 6px 0; }
             .goal-result-toggle:focus-visible { outline: 3px solid var(--gold-500); outline-offset: 3px; }
             @media (max-width: 640px) {
               .goal-fields, .discussion-options {
@@ -350,7 +350,7 @@ function SelectField({
   const id = useId();
   return (
     <div style={{ display: "grid", gap: "6px" }}>
-      <label htmlFor={id} style={{ color: "var(--navy-950)", fontSize: "0.85rem", fontWeight: 800 }}>{label}</label>
+      <label htmlFor={id} style={{ color: "var(--navy-950)", fontSize: "0.85rem", fontWeight: 650 }}>{label}</label>
       <select
         id={id}
         name={id}

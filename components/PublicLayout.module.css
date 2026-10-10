@@ -80,7 +80,7 @@
   color: var(--navy-950);
   display: inline-flex;
   font-size: 0.875rem;
-  font-weight: 850;
+  font-weight: 650;
   justify-content: center;
   min-height: 42px;
   padding: 9px 18px;
@@ -100,7 +100,7 @@
   cursor: pointer;
   font: inherit;
   font-size: 0.875rem;
-  font-weight: 750;
+  font-weight: 600;
   min-height: 42px;
   padding: 8px 16px;
 }
@@ -179,7 +179,7 @@
 .footerNavLabel {
   color: rgba(255, 255, 255, 0.48);
   font-size: 0.68rem;
-  font-weight: 850;
+  font-weight: 650;
   letter-spacing: 0.13em;
   margin: 0;
   text-transform: uppercase;
@@ -244,7 +244,7 @@
   border-radius: 999px;
   display: inline-flex;
   font-size: 0.95rem;
-  font-weight: 800;
+  font-weight: 650;
   gap: 8px;
   justify-content: center;
   min-height: 48px;
@@ -302,7 +302,7 @@
   border-radius: 6px;
   display: inline-flex;
   font-size: 0.92rem;
-  font-weight: 750;
+  font-weight: 600;
   gap: 6px;
   min-height: 40px;
   text-decoration: underline;
@@ -355,6 +355,25 @@
   display: none;
 }
 
+/* Approved light public shell; footer retains the graphite anchor. */
+.nav { background: #fff; backdrop-filter: none; border-bottom: 1px solid var(--line); --brand-ink: var(--ink); }
+.navLink, .loginLink { color: var(--muted); font-weight: 500; min-height: 44px; }
+.navLink:hover, .loginLink:hover, .navLink[aria-current="page"], .loginLink[aria-current="page"] { background: var(--paper); color: var(--ink); }
+.navLink[aria-current="page"] { box-shadow: inset 0 -2px 0 var(--gold-500); }
+.navCta { border-radius: 8px; font-weight: 650; min-height: 44px; }
+.retryButton { border-color: var(--line); color: var(--ink); }
+.retryButton:hover { background: var(--paper); }
+.sessionLoading, .sessionMessage { color: var(--muted); }
+.mobileToggle { border-color: var(--line); color: var(--ink); border-radius: 8px; }
+.mobileToggle:hover, .mobileToggle[aria-expanded="true"] { background: var(--paper); border-color: #aeb2b2; }
+.actionGold, .actionDark, .actionOutline, .actionOnDark { border-radius: 8px; font-weight: 650; min-height: 48px; padding: 12px 22px; transition: background-color var(--duration-ui) ease, color var(--duration-ui) ease, border-color var(--duration-ui) ease, transform var(--duration-press) var(--ease-out); }
+.actionGold:active, .actionDark:active, .actionOutline:active, .actionOnDark:active, .navCta:active { transform: scale(.98); }
+.navLink:focus-visible, .loginLink:focus-visible, .navCta:focus-visible, .brandLink:focus-visible, .mobileToggle:focus-visible, .actionGold:focus-visible { outline: 2px solid var(--ink); outline-offset: 4px; }
+.footer { background: var(--ink); }
+.footerTagline, .copyright, .footerNavLabel { color: #b9bfc3; }
+.footerLink { color: #d4d8da; }
+.footerNavLabel { text-transform: none; letter-spacing: 0; font-size: .8125rem; font-weight: 500; }
+
 @media (max-width: 900px) {
   .nav {
     grid-template-columns: auto 1fr;
@@ -377,11 +396,9 @@
   }
 
   .mobilePanel {
-    background:
-      radial-gradient(circle at 90% 0%, rgba(245, 182, 47, 0.13), transparent 240px),
-      var(--navy-950);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow: 0 28px 56px rgba(2, 8, 23, 0.32);
+    background: #fff;
+    border-bottom: 1px solid var(--line);
+    box-shadow: var(--shadow);
     display: grid;
     gap: 6px;
     left: 0;
@@ -389,6 +406,8 @@
     position: fixed;
     right: 0;
     top: 64px;
+    transform-origin: top;
+    transition: opacity var(--duration-ui) var(--ease-out), transform var(--duration-ui) var(--ease-out);
   }
 
   .mobilePanel .navLink,

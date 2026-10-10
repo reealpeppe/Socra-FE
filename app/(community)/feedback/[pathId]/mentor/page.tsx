@@ -113,7 +113,7 @@ function LegacyMentorFeedbackPage() {
               <Gauge size={22} aria-hidden />
             </span>
             <div>
-              <p style={{ color: "var(--muted)", fontSize: "0.75rem", fontWeight: 800, letterSpacing: "0.08em", margin: "0 0 2px", textTransform: "uppercase" }}>
+              <p style={{ color: "var(--muted)", fontSize: "0.75rem", fontWeight: 650, letterSpacing: "0.08em", margin: "0 0 2px", textTransform: "uppercase" }}>
                 Valutazione del percorso
               </p>
               <strong style={{ color: "var(--navy-950)", fontSize: "1.05rem", lineHeight: 1 }}>
@@ -164,7 +164,7 @@ function LegacyMentorFeedbackPage() {
                 <div style={{ display: "grid", gap: "6px", marginTop: "20px" }}>
                   <label htmlFor="mentor-feedback-note" style={{
                     alignItems: "center", color: "var(--navy-950)",
-                    display: "flex", fontSize: "0.85rem", fontWeight: 800, gap: "6px"
+                    display: "flex", fontSize: "0.85rem", fontWeight: 650, gap: "6px"
                   }}>
                     <MessageSquareText size={15} aria-hidden /> Nota condivisa opzionale
                   </label>
@@ -231,7 +231,7 @@ function ScoreField({
 }) {
   return (
     <div style={{ display: "grid", gap: "6px" }}>
-      <label htmlFor={id} style={{ color: "var(--navy-950)", fontSize: "0.85rem", fontWeight: 800 }}>{label}</label>
+      <label htmlFor={id} style={{ color: "var(--navy-950)", fontSize: "0.85rem", fontWeight: 650 }}>{label}</label>
       <select
         id={id}
         name={id}

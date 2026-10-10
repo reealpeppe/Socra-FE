@@ -453,7 +453,7 @@ function ProfileStyles() {
         color: var(--muted);
         display: inline-flex;
         font-size: 0.875rem;
-        font-weight: 700;
+        font-weight: 600;
         gap: 6px;
         text-decoration: none;
         width: fit-content;
@@ -517,7 +517,7 @@ function ProfileStyles() {
       .profile-badge-item {
         border-radius: 999px;
         font-size: 0.78rem;
-        font-weight: 850;
+        font-weight: 650;
         padding: 6px 10px;
       }
 
@@ -571,7 +571,7 @@ function ProfileStyles() {
       .profile-section-label {
         color: var(--muted);
         font-size: 0.72rem;
-        font-weight: 900;
+        font-weight: 650;
         letter-spacing: 0.08em;
         margin: 0 0 12px;
         text-transform: uppercase;
@@ -656,7 +656,7 @@ function ProfileStyles() {
 
       .profile-card-title {
         color: var(--navy-950, #07172d);
-        font-weight: 850;
+        font-weight: 650;
         margin: 0 0 6px;
       }
 

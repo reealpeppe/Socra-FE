@@ -379,7 +379,7 @@ export default function SettingsPage() {
         }
         .settings-heading {
           font-size: 1.75rem;
-          font-weight: 800;
+          font-weight: 650;
           color: var(--ink);
           margin: 0;
         }
@@ -410,7 +410,7 @@ export default function SettingsPage() {
         }
         .settings-section-title {
           font-size: 1rem;
-          font-weight: 700;
+          font-weight: 600;
           color: var(--ink);
           margin: 0;
           padding-bottom: 12px;
@@ -586,7 +586,7 @@ export default function SettingsPage() {
         .settings-safety-scenario legend {
           color: var(--ink);
           font-size: 0.76rem;
-          font-weight: 800;
+          font-weight: 650;
           padding: 0;
         }
         .settings-safety-scenario > p {

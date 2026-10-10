@@ -469,7 +469,7 @@ function MatchingStyles() {
 
       .matching-header h1 {
         color: var(--navy-950, #07172d);
-        font-size: clamp(1.8rem, 3.4vw, 3rem);
+        font-size: clamp(1.9rem, 3vw, 2.6rem);
         margin: 0 0 10px;
       }
 
@@ -489,7 +489,7 @@ function MatchingStyles() {
         display: flex;
         flex-wrap: wrap;
         font-size: 0.875rem;
-        font-weight: 750;
+        font-weight: 600;
         gap: 12px;
         justify-content: space-between;
         padding: 12px 16px;
@@ -531,11 +531,11 @@ function MatchingStyles() {
       .matching-filter-btn {
         background: var(--card, white);
         border: 1.5px solid var(--line, #e4e8ef);
-        border-radius: 999px;
+        border-radius: 8px;
         color: var(--muted);
         cursor: pointer;
         font-size: 0.875rem;
-        font-weight: 750;
+        font-weight: 600;
         padding: 8px 18px;
       }
 
@@ -548,7 +548,7 @@ function MatchingStyles() {
       .matching-skeleton-card {
         animation: matchSkeletonPulse 1.4s ease-in-out infinite;
         background: linear-gradient(90deg, #eef2f6, #f8fafc, #eef2f6);
-        border-radius: var(--radius-lg, 16px);
+        border-radius: var(--radius, 12px);
         height: 142px;
       }
 
@@ -582,8 +582,8 @@ function MatchingStyles() {
         align-items: start;
         background: var(--card, white);
         border: 1px solid var(--line, #e4e8ef);
-        border-radius: var(--radius-lg, 16px);
-        box-shadow: var(--shadow-tight, 0 10px 26px rgba(18, 35, 61, 0.06));
+        border-radius: var(--radius, 12px);
+        box-shadow: none;
         display: grid;
         gap: 16px;
         grid-template-columns: auto minmax(0, 1fr) auto;
@@ -623,7 +623,7 @@ function MatchingStyles() {
       .mcc-title-row > span:first-child {
         color: var(--muted);
         font-size: 0.84rem;
-        font-weight: 750;
+        font-weight: 600;
       }
 
       .mcc-score-block {
@@ -642,7 +642,7 @@ function MatchingStyles() {
       .mcc-score-block span {
         color: var(--muted);
         font-size: 0.72rem;
-        font-weight: 800;
+        font-weight: 650;
       }
 
       .mcc-reason {
@@ -654,10 +654,10 @@ function MatchingStyles() {
       .mcc-quality-badge {
         background: #fff8e8;
         border: 1px solid #ffe0a0;
-        border-radius: 999px;
+        border-radius: 8px;
         color: var(--navy-950, #07172d);
         font-size: 0.74rem;
-        font-weight: 850;
+        font-weight: 650;
         padding: 5px 9px;
       }
 
@@ -671,7 +671,7 @@ function MatchingStyles() {
       .mcc-cost {
         color: var(--muted);
         font-size: 0.72rem;
-        font-weight: 750;
+        font-weight: 600;
         max-width: 180px;
         text-align: right;
       }
@@ -679,12 +679,12 @@ function MatchingStyles() {
       .mcc-request-btn {
         background: var(--gold-500, #f5b62f);
         border: none;
-        border-radius: 999px;
+        border-radius: 8px;
         color: var(--navy-950, #07172d);
         cursor: pointer;
         font-size: 0.82rem;
-        font-weight: 900;
-        min-height: 42px;
+        font-weight: 650;
+        min-height: 44px;
         padding: 9px 16px;
         white-space: nowrap;
       }
@@ -711,7 +711,7 @@ function MatchingStyles() {
         color: var(--navy-950, #07172d);
         display: inline-flex;
         font-size: 0.84rem;
-        font-weight: 800;
+        font-weight: 650;
         gap: 4px;
         text-decoration: none;
       }

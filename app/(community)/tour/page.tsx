@@ -139,7 +139,7 @@ function TourContent() {
           border-radius: 999px;
           color: var(--muted);
           display: inline-flex;
-          font-weight: 850;
+          font-weight: 650;
           height: 44px;
           justify-content: center;
           width: 44px;
@@ -183,7 +183,7 @@ function TourContent() {
           border-radius: var(--radius-sm);
           color: var(--blue-600);
           font-size: 0.86rem;
-          font-weight: 700;
+          font-weight: 600;
           line-height: 1.5;
           padding: 13px 15px;
         }

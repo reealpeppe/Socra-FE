@@ -1,0 +1,60 @@
+.main { background: #fff; padding-top: 64px; }
+.hero { display: grid; grid-template-columns: minmax(0, .92fr) minmax(0, 1.08fr); max-width: 1600px; margin: 0 auto; min-height: 650px; }
+.photo { position: relative; min-height: 650px; background: var(--honey-soft); overflow: hidden; }
+.photo img { object-fit: cover; object-position: 48% center; }
+.heroCopy { align-self: center; padding: clamp(36px, 5vw, 80px) clamp(28px, 4.5vw, 72px); }
+.context { color: var(--muted); font-size: .8125rem; font-weight: 500; line-height: 1.5; margin: 0 0 24px; }
+.hero h1 { font-size: clamp(2.25rem, 3.5vw, 3.65rem); font-weight: 550; letter-spacing: -.035em; line-height: 1.12; margin: 0 0 28px; text-wrap: initial; }
+.lead { color: var(--muted); font-size: clamp(1rem, 1.4vw, 1.125rem); line-height: 1.7; margin: 0 0 32px; max-width: 58ch; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.container { max-width: 1240px; margin: 0 auto; }
+.model, .process, .exchange { padding: 64px clamp(20px, 5vw, 80px); }
+.model { border-block: 1px solid var(--line); }
+.sectionLabel { color: var(--muted); font-size: .875rem; font-weight: 500; line-height: 1.4; margin: 0 0 28px; }
+.pillars { display: grid; gap: 40px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pillars h2 { font-size: 1.125rem; font-weight: 600; line-height: 1.45; margin: 0 0 12px; }
+.pillars p, .step p, .rules p { color: var(--muted); font-size: .9375rem; line-height: 1.7; margin: 0; }
+.process { padding-block: 92px; scroll-margin-top: 64px; }
+.sectionTitle { font-size: clamp(1.8rem, 3vw, 2.65rem); font-weight: 550; line-height: 1.2; letter-spacing: -.03em; max-width: 26ch; margin: 0 0 48px; }
+.steps { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 72px; margin-bottom: 20px; }
+.step { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 20px; border-top: 1px solid var(--line); padding: 28px 0 36px; }
+.stepNumber { color: var(--honey-ink); background: var(--honey-soft); border-radius: 8px; display: grid; place-items: center; width: 36px; height: 36px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.step svg { color: var(--muted); margin-bottom: 10px; }
+.step h3, .rules h3 { font-size: 1.125rem; line-height: 1.4; font-weight: 600; margin: 0 0 10px; }
+.exchange { background: var(--paper); padding-block: 80px; }
+.rules { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 48px; }
+.rules article { padding-top: 24px; border-top: 1px solid #caccc8; }
+.close { padding: 88px 24px; background: var(--honey-soft); }
+.close > div { max-width: 740px; margin: 0 auto; text-align: center; }
+.close h2 { font-size: clamp(2rem, 3vw, 2.75rem); font-weight: 550; letter-spacing: -.035em; margin: 0 0 22px; line-height: 1.2; }
+.close p { color: var(--muted); font-size: 1.0625rem; margin: 0 auto 30px; max-width: 58ch; }
+@media (prefers-reduced-motion: no-preference) {
+  .heroCopy { animation: home-arrive 420ms var(--ease-out) both; }
+  .photo img { animation: photo-arrive 620ms var(--ease-out) both; }
+  @keyframes home-arrive { from { opacity: .65; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes photo-arrive { from { clip-path: inset(0 5% 0 0); } to { clip-path: inset(0); } }
+}
+@media (max-width: 1100px) {
+  .hero { min-height: 590px; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); }
+  .photo { min-height: 590px; }
+  .heroCopy { padding: 40px 32px; }
+  .hero h1 { font-size: clamp(2.3rem, 4vw, 2.75rem); }
+  .pillars, .rules { gap: 28px; }
+  .steps { gap: 0 36px; }
+}
+@media (max-width: 760px) {
+  .hero { display: flex; flex-direction: column; }
+  .heroCopy { order: -1; width: 100%; padding: 48px 22px 40px; }
+  .hero h1 { font-size: clamp(2rem, 5.8vw, 2.6rem); letter-spacing: -.035em; margin-bottom: 22px; }
+  .context { margin-bottom: 20px; }
+  .lead { margin-bottom: 26px; font-size: 1rem; }
+  .photo { min-height: 0; aspect-ratio: 4 / 3; }
+  .photo img { object-position: center; }
+  .model, .process, .exchange { padding: 44px 22px; }
+  .pillars, .rules, .steps { grid-template-columns: minmax(0, 1fr); }
+  .pillars { gap: 24px; }
+  .pillars > div + div { border-top: 1px solid var(--line); padding-top: 24px; }
+  .sectionTitle { margin-bottom: 32px; }
+  .step { padding-block: 24px; gap: 16px; }
+  .close { padding: 56px 22px; }
+}

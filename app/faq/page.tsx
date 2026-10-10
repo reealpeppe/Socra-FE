@@ -36,7 +36,7 @@ export default function FaqPage() {
               <h1 style={{
                 color: "#ffffff",
                 fontSize: "clamp(2.2rem, 5vw, 4rem)",
-                fontWeight: 900,
+                fontWeight: 650,
                 margin: "0 0 20px",
                 letterSpacing: "-0.02em",
                 lineHeight: 1.05,
@@ -63,7 +63,7 @@ export default function FaqPage() {
               <p style={{
                 color: "var(--gold-500)",
                 fontSize: "0.75rem",
-                fontWeight: 800,
+                fontWeight: 650,
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
                 margin: "0 0 12px",
@@ -105,7 +105,7 @@ export default function FaqPage() {
             <h2 style={{
               color: "var(--ink)",
               fontSize: "clamp(1.6rem, 3vw, 2.2rem)",
-              fontWeight: 900,
+              fontWeight: 650,
               textAlign: "center",
               margin: "0 0 12px",
               letterSpacing: "-0.02em",
@@ -152,7 +152,7 @@ export default function FaqPage() {
                 }}>
                   <AlertTriangle aria-hidden="true" size={20} color="var(--navy-950)" />
                 </div>
-                <h3 style={{ color: "var(--ink)", fontSize: "1rem", fontWeight: 800, margin: 0 }}>
+                <h3 style={{ color: "var(--ink)", fontSize: "1rem", fontWeight: 650, margin: 0 }}>
                   Problema in un percorso
                 </h3>
                 <p style={{ color: "var(--muted)", fontSize: "0.875rem", lineHeight: 1.55, margin: 0 }}>
@@ -183,7 +183,7 @@ export default function FaqPage() {
                 }}>
                   <ShieldCheck aria-hidden="true" size={20} color="var(--gold-500)" />
                 </div>
-                <h3 style={{ color: "#ffffff", fontSize: "1rem", fontWeight: 800, margin: 0 }}>
+                <h3 style={{ color: "#ffffff", fontSize: "1rem", fontWeight: 650, margin: 0 }}>
                   Prima di iniziare
                 </h3>
                 <p style={{ color: "rgba(255,255,255,0.65)", fontSize: "0.875rem", lineHeight: 1.55, margin: 0 }}>

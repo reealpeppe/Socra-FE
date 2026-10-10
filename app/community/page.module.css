@@ -1,14 +1,14 @@
 .main {
   min-height: 100dvh;
   overflow: hidden;
-  padding-top: 64px;
+  padding-top: 76px;
 }
 
 .hero,
 .principles,
 .roles,
 .pact {
-  padding: clamp(68px, 9vw, 120px) clamp(18px, 5vw, 64px);
+  padding: clamp(56px, 7vw, 88px) clamp(18px, 5vw, 64px);
 }
 
 .inner {
@@ -19,13 +19,10 @@
 
 .hero {
   align-items: center;
-  background:
-    radial-gradient(circle at 78% 22%, rgba(245, 182, 47, 0.17), transparent 26rem),
-    radial-gradient(circle at 4% 100%, rgba(18, 155, 104, 0.11), transparent 24rem),
-    var(--navy-950);
+  background: var(--navy-950);
   color: #fff;
   display: flex;
-  min-height: calc(88svh - 64px);
+  min-height: 520px;
 }
 
 .heroGrid {
@@ -38,7 +35,7 @@
 .eyebrow,
 .eyebrowDark {
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 650;
   letter-spacing: 0.18em;
   margin: 0 0 18px;
   text-transform: uppercase;
@@ -54,12 +51,12 @@
 
 .hero h1 {
   color: #fff;
-  font-size: clamp(3rem, 7vw, 6.5rem);
-  font-weight: 900;
-  letter-spacing: -0.055em;
-  line-height: 0.9;
+  font-size: clamp(2.2rem, 4.5vw, 3.65rem);
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  line-height: 1.12;
   margin: 0;
-  max-width: 10ch;
+  max-width: 20ch;
   text-wrap: balance;
 }
 
@@ -91,7 +88,7 @@
 }
 
 .conversation::before {
-  background: linear-gradient(180deg, transparent, rgba(245, 182, 47, 0.46), transparent);
+  background: rgb(255 255 255 / 15%);
   content: "";
   height: calc(100% + 40px);
   left: 32px;
@@ -102,10 +99,10 @@
 
 .voiceCard {
   align-items: center;
-  backdrop-filter: blur(12px);
-  background: rgba(255, 255, 255, 0.07);
+
+  background: var(--navy-900);
   border: 1px solid rgba(255, 255, 255, 0.13);
-  border-radius: 18px;
+  border-radius: 12px;
   color: #fff;
   display: grid;
   gap: 16px;
@@ -163,10 +160,10 @@
 .roles h2,
 .pact h2 {
   color: var(--ink);
-  font-size: clamp(2rem, 4.8vw, 4.5rem);
-  font-weight: 900;
-  letter-spacing: -0.045em;
-  line-height: 0.98;
+  font-size: clamp(1.8rem, 3.2vw, 2.75rem);
+  font-weight: 650;
+  letter-spacing: -0.025em;
+  line-height: 1.128;
   margin: 0;
   text-wrap: balance;
 }
@@ -189,7 +186,7 @@
 .principleCard {
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: 12px;
   display: grid;
   gap: 18px;
   min-height: 260px;
@@ -244,7 +241,7 @@
 
 .roleCard {
   border: 1px solid var(--line);
-  border-radius: 20px;
+  border-radius: 12px;
   display: grid;
   gap: 18px;
   padding: clamp(28px, 4vw, 44px);
@@ -255,9 +252,7 @@
 }
 
 .roleCard:last-child {
-  background:
-    radial-gradient(circle at 90% 0%, rgba(245, 182, 47, 0.14), transparent 18rem),
-    var(--navy-950);
+  background: var(--navy-950);
 }
 
 .roleCard:last-child h3 {
@@ -271,7 +266,7 @@
 .roleLabel {
   color: #80580c;
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 650;
   letter-spacing: 0.15em;
   text-transform: uppercase;
 }
@@ -281,9 +276,7 @@
 }
 
 .pact {
-  background:
-    linear-gradient(120deg, rgba(245, 182, 47, 0.12), transparent 48%),
-    var(--paper);
+  background: var(--paper);
 }
 
 .pactGrid {
@@ -309,7 +302,7 @@
   align-items: flex-start;
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: 12px;
   display: grid;
   gap: 14px;
   grid-template-columns: 34px minmax(0, 1fr);
@@ -323,7 +316,7 @@
   color: var(--gold-500);
   display: flex;
   font-size: 0.76rem;
-  font-weight: 900;
+  font-weight: 650;
   height: 34px;
   justify-content: center;
   width: 34px;
@@ -362,7 +355,7 @@
   }
 
   .hero h1 {
-    max-width: 12ch;
+    max-width: 20ch;
   }
 
   .conversation {
@@ -387,7 +380,7 @@
 
 @media (max-width: 680px) {
   .hero h1 {
-    font-size: clamp(2.8rem, 14vw, 4.4rem);
+    font-size: clamp(2.2rem, 9vw, 3rem);
     max-width: none;
   }
 

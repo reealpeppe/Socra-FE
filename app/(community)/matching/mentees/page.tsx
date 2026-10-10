@@ -258,7 +258,7 @@ function MenteeMatchingContent() {
         display: flex;
         flex-wrap: wrap;
         font-size: 0.875rem;
-        font-weight: 750;
+        font-weight: 600;
         gap: 12px;
         justify-content: space-between;
         padding: 12px 16px;
@@ -281,7 +281,7 @@ function MenteeMatchingContent() {
           color: var(--navy-950, #07172d);
           display: inline-flex;
           font-size: 0.84rem;
-          font-weight: 850;
+          font-weight: 650;
           gap: 6px;
           justify-self: start;
           text-decoration: none;
@@ -404,7 +404,7 @@ function MenteeMatchingContent() {
         .mentee-goal-score span {
           color: var(--muted);
           font-size: 0.68rem;
-          font-weight: 800;
+          font-weight: 650;
         }
 
         .mentee-goal-focus {
@@ -417,7 +417,7 @@ function MenteeMatchingContent() {
         .mentee-goal-focus span {
           color: var(--muted);
           font-size: 0.68rem;
-          font-weight: 900;
+          font-weight: 650;
           letter-spacing: 0.09em;
           text-transform: uppercase;
         }
@@ -449,7 +449,7 @@ function MenteeMatchingContent() {
           color: white;
           cursor: pointer;
           display: inline-flex;
-          font-weight: 850;
+          font-weight: 650;
           gap: 7px;
           justify-content: center;
           min-height: 44px;

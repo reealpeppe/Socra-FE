@@ -21,7 +21,7 @@
 .eyebrow {
   color: var(--gold-500);
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 650;
   letter-spacing: 0.17em;
   margin: 0 0 18px;
   text-transform: uppercase;
@@ -30,7 +30,7 @@
 .hero h1 {
   color: #fff;
   font-size: clamp(2.6rem, 7vw, 5.5rem);
-  font-weight: 900;
+  font-weight: 650;
   letter-spacing: -0.045em;
   line-height: 0.96;
   margin: 0;

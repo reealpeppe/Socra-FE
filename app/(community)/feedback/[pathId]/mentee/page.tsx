@@ -218,7 +218,7 @@ function LegacyMenteeFeedbackPage() {
                   const id = `feedback-${question.key}`;
                   return (
                     <div key={question.key} style={{ display: "grid", gap: "8px" }}>
-                      <label htmlFor={id} style={{ color: "var(--navy-950)", fontSize: "0.88rem", fontWeight: 800 }}>
+                      <label htmlFor={id} style={{ color: "var(--navy-950)", fontSize: "0.88rem", fontWeight: 650 }}>
                         {question.label}
                       </label>
                       <select
@@ -242,7 +242,7 @@ function LegacyMenteeFeedbackPage() {
 
               <div className="card" style={{ display: "grid", gap: "18px" }}>
                 <div>
-                  <span style={{ alignItems: "center", color: "var(--navy-950)", display: "flex", fontSize: "0.88rem", fontWeight: 800, gap: "6px" }}>
+                  <span style={{ alignItems: "center", color: "var(--navy-950)", display: "flex", fontSize: "0.88rem", fontWeight: 650, gap: "6px" }}>
                     <Award size={16} aria-hidden /> Punti di forza del mentor
                   </span>
                   <p style={{ color: "var(--muted)", fontSize: "0.82rem", margin: "4px 0 0" }}>
@@ -269,7 +269,7 @@ function LegacyMenteeFeedbackPage() {
                   })}
                 </div>
 
-                <label style={{ alignItems: "flex-start", color: "var(--navy-950)", display: "flex", gap: "8px", fontSize: "0.88rem", fontWeight: 800 }}>
+                <label style={{ alignItems: "flex-start", color: "var(--navy-950)", display: "flex", gap: "8px", fontSize: "0.88rem", fontWeight: 650 }}>
                   <input
                     checked={externalPromotion}
                     onChange={(event) => setExternalPromotion(event.target.checked)}
@@ -281,7 +281,7 @@ function LegacyMenteeFeedbackPage() {
                 </label>
 
                 <div style={{ display: "grid", gap: "7px" }}>
-                  <label htmlFor="mentee-competence" style={{ color: "var(--navy-950)", fontSize: "0.88rem", fontWeight: 800 }}>
+                  <label htmlFor="mentee-competence" style={{ color: "var(--navy-950)", fontSize: "0.88rem", fontWeight: 650 }}>
                     Come valuti oggi la tua conoscenza su “{topicLabel}”?
                   </label>
                   <select
@@ -303,7 +303,7 @@ function LegacyMenteeFeedbackPage() {
                 </div>
 
                 <div style={{ display: "grid", gap: "6px" }}>
-                  <label htmlFor="mentee-feedback-note" style={{ alignItems: "center", color: "var(--navy-950)", display: "flex", fontSize: "0.88rem", fontWeight: 800, gap: "6px" }}>
+                  <label htmlFor="mentee-feedback-note" style={{ alignItems: "center", color: "var(--navy-950)", display: "flex", fontSize: "0.88rem", fontWeight: 650, gap: "6px" }}>
                     <MessageSquareText size={15} aria-hidden /> Nota condivisa opzionale
                   </label>
                   <p id="mentee-feedback-note-hint" className="muted" style={{ fontSize: "0.8rem", margin: 0 }}>

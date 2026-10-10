@@ -73,7 +73,7 @@ button {
   align-items: center;
   display: inline-flex;
   gap: 10px;
-  font-weight: 800;
+  font-weight: 650;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -152,7 +152,7 @@ button {
 .topbar-brand {
   color: var(--navy);
   font-size: 1.15rem;
-  font-weight: 900;
+  font-weight: 650;
 }
 
 .topbar-actions {
@@ -194,7 +194,7 @@ button {
   color: white;
   display: inline-flex;
   font-size: 0.72rem;
-  font-weight: 900;
+  font-weight: 650;
   height: 20px;
   justify-content: center;
   min-width: 20px;
@@ -209,7 +209,7 @@ button {
   border: 1px solid var(--line);
   border-radius: 12px;
   color: var(--navy);
-  font-weight: 800;
+  font-weight: 650;
   min-height: 42px;
   padding: 9px 12px;
 }
@@ -239,7 +239,7 @@ button {
 .text-button {
   color: var(--blue);
   font-size: 0.84rem;
-  font-weight: 800;
+  font-weight: 650;
   padding: 0;
 }
 
@@ -280,7 +280,7 @@ button {
 
 .notification-item small {
   color: var(--blue);
-  font-weight: 900;
+  font-weight: 650;
 }
 
 .main {
@@ -341,7 +341,7 @@ button {
 .eyebrow {
   color: var(--muted);
   font-size: 0.78rem;
-  font-weight: 800;
+  font-weight: 650;
   letter-spacing: 0.08em;
   margin: 0 0 8px;
   text-transform: uppercase;
@@ -400,7 +400,7 @@ p {
   border: 1px solid transparent;
   border-radius: 12px;
   display: inline-flex;
-  font-weight: 800;
+  font-weight: 650;
   gap: 8px;
   justify-content: center;
   min-height: 42px;
@@ -437,7 +437,7 @@ p {
 .check label {
   color: var(--navy);
   font-size: 0.88rem;
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .input {
@@ -468,7 +468,7 @@ textarea.input {
   color: #1d4ed8;
   display: inline-flex;
   font-size: 0.82rem;
-  font-weight: 800;
+  font-weight: 650;
   padding: 6px 10px;
 }
 
@@ -573,7 +573,7 @@ textarea.input {
 .public-link-button {
   color: rgba(255, 255, 255, 0.82);
   font-size: 0.92rem;
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .public-nav nav a:hover,
@@ -595,7 +595,7 @@ textarea.input {
   align-items: center;
   border-radius: 999px;
   display: inline-flex;
-  font-weight: 900;
+  font-weight: 650;
   justify-content: center;
   min-height: 46px;
   padding: 12px 18px;
@@ -704,7 +704,7 @@ textarea.input {
   border-radius: 999px;
   color: var(--public-gold-2);
   font-size: 0.88rem;
-  font-weight: 900;
+  font-weight: 650;
   justify-self: start;
   padding: 9px 13px;
 }
@@ -716,7 +716,7 @@ textarea.input {
 
 .hero-trust span {
   color: rgba(255, 255, 255, 0.72);
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .public-page .button.primary {
@@ -733,7 +733,7 @@ textarea.input {
 .public-kicker {
   color: var(--public-gold);
   font-size: 0.78rem;
-  font-weight: 900;
+  font-weight: 650;
   letter-spacing: 0.12em;
   margin: 0;
   text-transform: uppercase;
@@ -802,7 +802,7 @@ textarea.input {
   border-radius: 999px;
   color: var(--public-navy);
   display: inline-flex;
-  font-weight: 900;
+  font-weight: 650;
   height: 54px;
   justify-content: center;
   width: 54px;
@@ -820,7 +820,7 @@ textarea.input {
   border-radius: 999px;
   color: var(--public-gold-2);
   font-size: 0.8rem;
-  font-weight: 900;
+  font-weight: 650;
   padding: 8px 10px;
 }
 
@@ -880,7 +880,7 @@ textarea.input {
   color: white;
   display: inline-flex;
   font-size: 0.76rem;
-  font-weight: 900;
+  font-weight: 650;
   height: 38px;
   justify-content: center;
   min-width: 38px;
@@ -967,7 +967,7 @@ textarea.input {
 .public-step-card span {
   color: var(--public-gold);
   font-size: 2.5rem;
-  font-weight: 900;
+  font-weight: 650;
   line-height: 1;
 }
 
@@ -1009,7 +1009,7 @@ textarea.input {
 .step-number {
   color: var(--public-gold);
   font-size: 2.2rem;
-  font-weight: 900;
+  font-weight: 650;
   line-height: 1;
 }
 
@@ -1123,7 +1123,7 @@ textarea.input {
 .public-level span {
   color: rgba(255, 255, 255, 0.7);
   font-size: 0.84rem;
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .public-safety-section {
@@ -1172,7 +1172,7 @@ textarea.input {
 .public-faq-list summary {
   color: var(--public-navy);
   cursor: pointer;
-  font-weight: 900;
+  font-weight: 650;
 }
 
 .public-faq-list p {
@@ -1236,7 +1236,7 @@ textarea.input {
   border-radius: 999px;
   color: var(--public-gold-2);
   font-size: 0.84rem;
-  font-weight: 900;
+  font-weight: 650;
   padding: 8px 12px;
 }
 
@@ -1490,7 +1490,7 @@ textarea.input {
 
 .ops-meta-row span {
   color: var(--muted);
-  font-weight: 800;
+  font-weight: 650;
 }
 
 .ops-empty {
@@ -1722,7 +1722,7 @@ textarea:focus-visible {
 .nav-group > p {
   color: rgba(255, 255, 255, 0.35);
   font-size: 0.68rem;
-  font-weight: 900;
+  font-weight: 650;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   padding: 20px 16px 6px;
@@ -1841,7 +1841,7 @@ textarea:focus-visible {
   color: var(--navy-950);
   display: inline-flex;
   font-size: 0.88rem;
-  font-weight: 900;
+  font-weight: 650;
   gap: 8px;
   min-height: 42px;
   padding: 9px 13px;
@@ -2010,7 +2010,7 @@ textarea:focus-visible {
 
 .metric-detail {
   color: var(--muted);
-  font-weight: 850;
+  font-weight: 650;
 }
 
 .metric-detail.green {
@@ -2030,7 +2030,7 @@ textarea:focus-visible {
   display: inline-flex;
   gap: 6px;
   font-size: 0.78rem;
-  font-weight: 900;
+  font-weight: 650;
   line-height: 1;
   min-height: 28px;
   padding: 7px 10px;
@@ -2087,7 +2087,7 @@ textarea:focus-visible {
   cursor: pointer;
   display: inline-flex;
   font-size: 0.875rem;
-  font-weight: 700;
+  font-weight: 600;
   gap: 8px;
   justify-content: center;
   min-height: 42px;
@@ -2255,7 +2255,7 @@ textarea:focus-visible {
   border-radius: 999px;
   color: var(--navy-950);
   font-size: 0.875rem;
-  font-weight: 800;
+  font-weight: 650;
   padding: 10px 20px;
   text-decoration: none;
   transition: opacity 0.15s;
@@ -2506,7 +2506,7 @@ textarea:focus-visible {
   border-radius: 50%;
   color: #fff;
   display: inline-flex;
-  font-weight: 700;
+  font-weight: 600;
   justify-content: center;
   line-height: 1;
   flex-shrink: 0;
@@ -2520,7 +2520,7 @@ textarea:focus-visible {
 .level-badge {
   border-radius: 6px;
   font-size: 0.72rem;
-  font-weight: 800;
+  font-weight: 650;
   letter-spacing: 0.04em;
   padding: 3px 8px;
   white-space: nowrap;
@@ -2585,7 +2585,7 @@ textarea:focus-visible {
   color: var(--muted);
   display: flex;
   font-size: 0.75rem;
-  font-weight: 800;
+  font-weight: 650;
   height: 28px;
   justify-content: center;
   width: 28px;
@@ -2607,7 +2607,7 @@ textarea:focus-visible {
 }
 .progress-step.active .progress-step-label {
   color: var(--ink);
-  font-weight: 800;
+  font-weight: 650;
 }
 .progress-step-line {
   background: var(--line);
@@ -2628,7 +2628,7 @@ textarea:focus-visible {
 .metric-stat-value {
   color: var(--ink);
   font-size: 2rem;
-  font-weight: 800;
+  font-weight: 650;
   line-height: 1;
 }
 .metric-stat-label {
@@ -2664,7 +2664,7 @@ textarea:focus-visible {
 .mentor-card-name {
   color: var(--ink);
   font-size: 1rem;
-  font-weight: 700;
+  font-weight: 600;
   margin: 0;
 }
 .mentor-card-title {
@@ -2681,7 +2681,7 @@ textarea:focus-visible {
 .mentor-card-match-pct {
   color: var(--mint-600);
   font-size: 1.1rem;
-  font-weight: 800;
+  font-weight: 650;
 }
 
 /* ── Targeted viewport and accessibility safeguards ── */
@@ -2700,7 +2700,7 @@ textarea:focus-visible {
   border-radius: 8px;
   color: var(--navy-950);
   font-size: 0.875rem;
-  font-weight: 900;
+  font-weight: 650;
   left: 16px;
   padding: 10px 14px;
   position: fixed;
@@ -3067,7 +3067,7 @@ summary:focus-visible,
   color: var(--ink);
   display: flex;
   font-size: 0.88rem;
-  font-weight: 750;
+  font-weight: 600;
   gap: 10px;
   padding: 9px 10px;
 }
@@ -3244,7 +3244,7 @@ summary:focus-visible,
   border-radius: var(--radius-sm);
   color: var(--muted);
   flex: 0 0 auto;
-  font-weight: 800;
+  font-weight: 650;
   min-height: 44px;
   padding: 9px 14px;
   white-space: nowrap;

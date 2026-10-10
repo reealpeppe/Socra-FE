@@ -186,7 +186,7 @@ export default function WalletPage() {
         }
 	        .wallet-heading {
 	          font-size: 1.75rem;
-	          font-weight: 800;
+	          font-weight: 650;
 	          color: var(--ink);
 	          margin: 0;
 	        }
@@ -232,7 +232,7 @@ export default function WalletPage() {
         }
         .wallet-stat-value {
           font-size: 3rem;
-          font-weight: 800;
+          font-weight: 650;
           line-height: 1;
         }
         .wallet-stat-sub {
@@ -253,7 +253,7 @@ export default function WalletPage() {
         }
         .wallet-ledger-title {
           font-size: 1.1rem;
-          font-weight: 700;
+          font-weight: 600;
           color: var(--ink);
           margin: 0;
         }
@@ -290,7 +290,7 @@ export default function WalletPage() {
         .wallet-tx-badge {
           display: inline-block;
           font-size: 0.75rem;
-          font-weight: 700;
+          font-weight: 600;
           padding: 3px 8px;
           border-radius: 999px;
           white-space: nowrap;
@@ -321,7 +321,7 @@ export default function WalletPage() {
         }
         .wallet-tx-amount {
           font-size: 1.0625rem;
-          font-weight: 800;
+          font-weight: 650;
           white-space: nowrap;
           flex-shrink: 0;
         }

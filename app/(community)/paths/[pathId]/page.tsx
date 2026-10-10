@@ -28,7 +28,7 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span style={{
       background: s.bg, color: s.color,
-      borderRadius: "999px", fontSize: "0.75rem", fontWeight: 800,
+      borderRadius: "999px", fontSize: "0.75rem", fontWeight: 650,
       padding: "4px 10px", whiteSpace: "nowrap"
     }}>{s.label}</span>
   );
@@ -254,7 +254,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
           href={pathsHref}
           style={{
             alignItems: "center", color: "var(--muted)", display: "inline-flex",
-            fontSize: "0.85rem", fontWeight: 700, gap: "4px", textDecoration: "none"
+            fontSize: "0.85rem", fontWeight: 600, gap: "4px", textDecoration: "none"
           }}
         >
           <ChevronLeft size={16} /> Torna ai percorsi
@@ -296,7 +296,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                   <span style={{
                     background: "var(--blue-100)", border: "1px solid #cfdbff",
                     borderRadius: "999px", color: "var(--blue-600)",
-                    fontSize: "0.78rem", fontWeight: 800, padding: "4px 10px"
+                    fontSize: "0.78rem", fontWeight: 650, padding: "4px 10px"
                   }}>
                     {path.goal.topic}
                   </span>
@@ -350,7 +350,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                   }}>
                     <Video size={18} aria-hidden />
                   </span>
-                  <h2 style={{ fontSize: "1rem", fontWeight: 800, margin: 0 }}>Prima sessione</h2>
+                  <h2 style={{ fontSize: "1rem", fontWeight: 650, margin: 0 }}>Prima sessione</h2>
                 </div>
                 <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0 }}>
                   {firstCallCompleted
@@ -365,7 +365,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                   borderRadius: "999px",
                   color: firstCallCompleted ? "var(--mint-600)" : "#8a6111",
                   fontSize: "0.75rem",
-                  fontWeight: 800,
+                  fontWeight: 650,
                   padding: "5px 10px"
                 }}>
                   {firstCallCompleted ? "Prima sessione verificata" : "Prima sessione da completare"}
@@ -374,7 +374,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                 {isCompleted ? (
                   <span style={{
                     background: "var(--line)", borderRadius: "999px", color: "var(--muted)",
-                    fontSize: "0.8rem", fontWeight: 800, padding: "5px 12px", alignSelf: "start"
+                    fontSize: "0.8rem", fontWeight: 650, padding: "5px 12px", alignSelf: "start"
                   }}>
                     Riunione chiusa
                   </span>
@@ -390,7 +390,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                       {callRoom.provider_meeting_code && (
                         <span style={{
                           background: "var(--blue-100)", borderRadius: "999px", color: "var(--blue-600)",
-                          fontSize: "0.75rem", fontWeight: 800, padding: "3px 8px"
+                          fontSize: "0.75rem", fontWeight: 650, padding: "3px 8px"
                         }}>
                           {callRoom.provider_meeting_code}
                         </span>
@@ -421,7 +421,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
 
             <div className="card">
               <div style={{ display: "grid", gap: "14px" }}>
-                <h2 style={{ fontSize: "1rem", fontWeight: 800, margin: 0 }}>
+                <h2 style={{ fontSize: "1rem", fontWeight: 650, margin: 0 }}>
                   {isCompleted ? "Percorso completato" : ownClosed ? "Il tuo lato è chiuso" : "Concludi il percorso"}
                 </h2>
                 {!role ? (
@@ -440,7 +440,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                   </p>
                 ) : (
                   <>
-                    <label htmlFor="closure-notes" style={{ color: "var(--navy-950)", fontSize: "0.85rem", fontWeight: 800 }}>
+                    <label htmlFor="closure-notes" style={{ color: "var(--navy-950)", fontSize: "0.85rem", fontWeight: 650 }}>
                       Nota privata opzionale
                     </label>
                     <textarea
@@ -475,7 +475,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
               <div style={{ display: "grid", gap: "14px" }}>
                 <div>
                   <p className="eyebrow">Privato tra voi</p>
-                  <h2 style={{ fontSize: "1rem", fontWeight: 800, margin: 0 }}>Note del percorso</h2>
+                  <h2 style={{ fontSize: "1rem", fontWeight: 650, margin: 0 }}>Note del percorso</h2>
                 </div>
                 <p style={{ color: "var(--muted)", fontSize: "0.84rem", margin: 0 }}>
                   Questi testi sono visibili soltanto a mentor, apprendista e admin. Non compaiono nei profili o nei matching futuri.
@@ -497,7 +497,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
           ) : null}
 
           <details className="card" style={{ borderColor: "#fda29b" }}>
-            <summary style={{ alignItems: "center", cursor: "pointer", display: "flex", gap: "8px", fontWeight: 800 }}>
+            <summary style={{ alignItems: "center", cursor: "pointer", display: "flex", gap: "8px", fontWeight: 650 }}>
                 <AlertTriangle size={18} color="#c43f31" aria-hidden />
                 Segnala un problema
             </summary>
@@ -505,7 +505,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
               <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0 }}>
                 Descrivi cosa è successo: la segnalazione sarà esaminata dal team Socra.
               </p>
-              <label htmlFor="path-report" style={{ color: "var(--navy-950)", fontSize: "0.85rem", fontWeight: 800 }}>
+              <label htmlFor="path-report" style={{ color: "var(--navy-950)", fontSize: "0.85rem", fontWeight: 650 }}>
                 Descrizione
               </label>
               <textarea
@@ -564,8 +564,8 @@ function PersonCard({ role, name }: { role: string; name: string | undefined }) 
         <UserRound size={18} aria-hidden />
       </span>
       <div style={{ minWidth: 0 }}>
-        <p style={{ color: "var(--muted)", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.08em", margin: "0 0 2px", textTransform: "uppercase" }}>{role}</p>
-        <p style={{ color: "var(--navy-950)", fontWeight: 700, margin: 0, overflowWrap: "anywhere" }}>{name || initial}</p>
+        <p style={{ color: "var(--muted)", fontSize: "0.72rem", fontWeight: 650, letterSpacing: "0.08em", margin: "0 0 2px", textTransform: "uppercase" }}>{role}</p>
+        <p style={{ color: "var(--navy-950)", fontWeight: 600, margin: 0, overflowWrap: "anywhere" }}>{name || initial}</p>
       </div>
     </div>
   );
@@ -580,7 +580,7 @@ function ClosePill({ label, closed }: { label: string; closed: boolean }) {
       color: closed ? "var(--mint-600)" : "#b07d1a",
       display: "inline-flex",
       fontSize: "0.78rem",
-      fontWeight: 800,
+      fontWeight: 650,
       gap: "5px",
       padding: "5px 12px"
     }}>
