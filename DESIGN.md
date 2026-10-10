@@ -175,7 +175,7 @@ components:
 
 Il brief approvato richiede un'interfaccia pulita e minimale, accogliente ma professionale, con un font professionale e senza grafica AI generica. Il codice finale traduce questa direzione in superfici chiare, testo grafite, accenti miele e gerarchie tipografiche sobrie. Spaziatura e bordi distinguono le aree; le decorazioni non competono con i contenuti.
 
-Il movimento accompagna gli stati con piccoli spostamenti e variazioni di colore. Il contenuto rimane visibile anche senza animazioni; `prefers-reduced-motion` disattiva animazioni e transizioni. La home impiega un'immagine illustrativa di apprendimento: non va letta come una testimonianza di persone o incontri reali.
+Il movimento accompagna gli stati con piccoli spostamenti e variazioni di colore. Il contenuto rimane visibile anche senza animazioni; `prefers-reduced-motion` disattiva animazioni e transizioni. La home si basa sulla tipografia, senza fotografie.
 
 **Key Characteristics:**
 
@@ -246,7 +246,7 @@ La dashboard è larga al massimo (1240px), con due colonne proporzionali (1.1fr 
 
 La navigazione pubblica è fissa, alta (64px). Sotto 900px usa il menu mobile; sotto 600px riduce il padding e le CTA di sezione diventano larghe quanto il contenitore. Il footer passa da tre aree a due e poi a una colonna.
 
-La home limita il contenitore principale a (1240px) e la hero a (1600px). La hero ha immagine e testo in due colonne; sotto 760px il testo precede l'immagine, che assume rapporto (4 / 3). Pilastri e regole passano da tre colonne a una; i passi da due a una. La home alterna superfici e separatori anziché trasformare ogni blocco in una card. Questa composizione appartiene alla home e non è un requisito per tutte le schermate.
+La home limita il contenitore principale e la hero a (1240px). La hero ha una sola colonna con testo centrato, larghezza massima (960px) e altezza minima (540px). Sotto 760px il testo è allineato a sinistra e l'altezza segue il contenuto. Pilastri e regole passano da tre colonne a una; i passi da due a una. La home alterna superfici e separatori anziché trasformare ogni blocco in una card. Questa composizione appartiene alla home e non è un requisito per tutte le schermate.
 
 I form di autenticazione sono centrati, larghi al massimo (510px), oppure (600px) per la registrazione; i campi affiancati diventano una colonna sotto 600px. La spaziatura estratta nel frontmatter raccoglie valori ricorrenti osservati, senza imporre una nuova griglia a tutte le pagine.
 
@@ -299,7 +299,7 @@ La navigazione pubblica è bianca; la pagina attiva ha una sottolineatura miele 
 
 I tab si appoggiano a un contenitore neutro con padding (4px); il tab attivo è bianco e usa l'ombra compatta. Altezza minima (44px) e scorrimento orizzontale preservano lo spazio su schermi stretti.
 
-I token condivisi sono `duration-press` (120ms), `duration-ui` (180ms), `duration-reveal` (260ms), `ease-out` e `ease-in-out`; la presenza di un token non impone il suo utilizzo su ogni elemento. Dropdown e dialog entrano con opacità e piccoli spostamenti solo all'inserimento, senza nascondere il contenuto come stato predefinito. La home osservata ha due animazioni locali (420ms) e (620ms), limitate a `no-preference`. Reduced-motion disattiva animazioni, transizioni e smooth scrolling.
+I token condivisi sono `duration-press` (120ms), `duration-ui` (180ms), `duration-reveal` (260ms), `ease-out` e `ease-in-out`; la presenza di un token non impone il suo utilizzo su ogni elemento. Dropdown e dialog entrano con opacità e piccoli spostamenti solo all'inserimento, senza nascondere il contenuto come stato predefinito. La home osservata ha un reveal del testo (420ms), limitato a `no-preference`. Reduced-motion disattiva animazioni, transizioni e smooth scrolling.
 
 ## Do's and Don'ts
 
@@ -317,6 +317,6 @@ I token condivisi sono `duration-press` (120ms), `duration-ui` (180ms), `duratio
 
 - **Don't** recuperare gradienti, blur o decorazioni dei vecchi globals quando il tema finale li sostituisce.
 - **Don't** aggiungere ombre decorative alle card o ai pulsanti.
-- **Don't** aggiungere grafica AI generica o trattare l'immagine illustrativa della home come prova di incontri reali.
+- **Don't** aggiungere grafica AI generica o fotografie nella hero della home: la scelta corrente è tipografica.
 - **Don't** inventare regole di prodotto, etichette di stato o nuovi comportamenti partendo dai token visivi.
 - **Don't** considerare questa estrazione statica un collaudo browser o una verifica di accessibilità completa.

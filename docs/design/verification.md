@@ -6,11 +6,11 @@ Data: 10/10/2026. Branch locale `design/grafite-miele`.
 
 La baseline `455b5a2` fotografa il frontend corrente, incluse le modifiche preesistenti di altre chat, nel worktree isolato `output/frontend-grafite-miele` del workspace. Il checkout frontend originale e il backend non sono stati modificati da questa slice. Le modifiche grafiche successive alla baseline hanno un commit separato: per la review usare `git diff 455b5a2`, senza attribuire alla grafica il contenuto dello snapshot.
 
-Testi, link, condizioni, chiamate API, salvataggi, autorizzazioni e logica applicativa restano invariati. La home riordina il markup e aggiunge una fotografia decorativa; gli altri TSX cambiano attributi/stili di presentazione. La wiki non cambia: nessuna regola, visibilità o contratto è stato modificato. Nessun push, deploy o provider aggiunto.
+Testi, link, condizioni, chiamate API, salvataggi, autorizzazioni e logica applicativa restano invariati. La home riordina il markup e usa una hero tipografica senza fotografie; gli altri TSX cambiano attributi/stili di presentazione. La wiki non cambia: nessuna regola, visibilità o contratto è stato modificato. Nessun push, deploy o provider aggiunto.
 
 ## Sistema realizzato
 
-Manrope variabile locale con licenza OFL; grafite per testo e navigazione, miele per azioni principali e selezioni, superfici bianche e carta. Stati semantici distinti. Pulsanti 8px, card 12px (auth 16px), input 16px e bordo controllo #8d9295, focus visibile. Shell, home, dashboard, matching, auth e pagine informative condividono tipografia e stati. Transizioni CSS 120/180ms, reveal home, menu e dialoghi; reduced-motion disabilita animazioni e transizioni. Foto generata illustrativa, prompt incorporato nel PNG e salvato accanto a questo documento.
+Manrope variabile locale con licenza OFL; grafite per testo e navigazione, miele per azioni principali e selezioni, superfici bianche e carta. Stati semantici distinti. Pulsanti 8px, card 12px (auth 16px), input 16px e bordo controllo #8d9295, focus visibile. Shell, home, dashboard, matching, auth e pagine informative condividono tipografia e stati. Transizioni CSS 120/180ms, reveal home, menu e dialoghi; reduced-motion disabilita animazioni e transizioni. La fotografia iniziale è stata rimossa, insieme al suo asset e al prompt, su richiesta esplicita dell'utente.
 
 ## Verifiche tecniche
 
@@ -34,3 +34,7 @@ La [prima review indipendente](review-round-1.md) ha richiesto: catture con dati
 La matrice grafica non è il gate UX funzionale completo degli 8 criteri: non verifica i salvataggi della survey/contesto, l’invio delle richieste e il loro lifecycle. Nessuna prova PostgreSQL o provider esterni. Admin, survey completa, dettagli percorso e tutti gli stati errore non sono stati acquisiti individualmente. Il badge Next nei PNG appartiene alla modalità sviluppo.
 
 Per ripetere la cattura, avviare la stessa slice su un backend locale con dati sintetici. Configurare `SOCRA_API_BASE_URL` per Next. Da root frontend impostare `DESIGN_BASE_URL` (solo localhost), `DESIGN_FIXTURE_PATH` (fixture generata dal backend) e `DESIGN_ROUND`, poi `node scripts/capture-design.mjs`. In un worktree isolato la fixture richiede un percorso esplicito. I risultati restano locali e sono ignorati da Git.
+
+## Correzione home senza fotografia
+
+Su richiesta del responsabile prodotto, rimossi fotografia, asset e animazione fotografica. Hero su una colonna, centrata su desktop e allineata a sinistra su mobile. Testi e destinazioni invariati. Il riferimento corrente della home è `output/playwright/design/home-no-photo`, non la home fotografica delle review storiche precedenti. Playwright: zero immagini nel main, font attivo, nessun overflow o errore JavaScript a 1440×1000 e 390×844. Typecheck e controllo del confine grafico passati. La [nuova review indipendente della home](review-home-no-photo.md) approva questo scope con SHIP; il resto del sito non è stato riesaminato in questa correzione.

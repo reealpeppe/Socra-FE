@@ -43,9 +43,12 @@ try {
     page.on('pageerror', error => report.errors.push(error.message));
     await page.goto('/');
     await expect(page.getByRole('link', { name: 'Inizia ora', exact: true })).toBeVisible();
-    await expect(page.locator('main img')).toBeVisible();
-    await expect(page.locator('main img')).toHaveJSProperty('complete', true);
+    await expect(page.locator('main img')).toHaveCount(0);
     await capture(page, `${device}-home`);
+    if (process.env.DESIGN_HOME_ONLY === '1') {
+      await context.close();
+      continue;
+    }
     if (device === 'mobile') {
       await page.getByRole('button', { name: 'Apri menu' }).click();
       await expect(page.locator('#public-mobile-menu')).toBeVisible();

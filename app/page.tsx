@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 import styles from "./Home.module.css";
 import { GraduationCap, Target, Users, BookOpen, TrendingUp } from "lucide-react";
 import { PublicNavbar, PublicFooter } from "@/components/PublicLayout";
@@ -75,9 +74,6 @@ export default function HomePage() {
       <PublicNavbar />
       <main id="main-content" tabIndex={-1} className={styles.main}>
         <section className={styles.hero}>
-          <div className={styles.photo} aria-hidden="true">
-            <Image src="/images/socra-learning.png" alt="" fill priority sizes="(max-width: 760px) 100vw, 44vw" />
-          </div>
           <div className={styles.heroCopy}>
             <p className={styles.context}>Finanza e investimenti da persona a persona</p>
             <h1>Se lo sai insegnalo,<br />se non lo sai imparalo.</h1>
