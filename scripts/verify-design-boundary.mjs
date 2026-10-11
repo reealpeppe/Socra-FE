@@ -3,10 +3,25 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import ts from 'typescript';
 
-const baseline = '455b5a2';
+const baseline = process.env.DESIGN_BASELINE || '5933b7bfa3ab068ff80c6b7457ab45a38ffb276c';
 const changed = execFileSync('git', ['diff', '--name-only', baseline], { encoding: 'utf8' }).trim().split('\n').filter(Boolean);
 const printer = ts.createPrinter({ removeComments: true });
 const visualAttributes = new Set(['style', 'className', 'fontFamily', 'fontWeight', 'fill']);
+// The release gate requires the adopted Next security patch. No other dependency
+// changes are allowed by this presentation check.
+for (const file of ['package.json', 'package-lock.json']) {
+  const before = JSON.parse(execFileSync('git', ['show', `${baseline}:${file}`], { encoding: 'utf8' }));
+  const after = JSON.parse(readFileSync(file, 'utf8'));
+  if (file === 'package.json') before.dependencies.next = '16.3.8';
+  else {
+    before.packages[''].dependencies.next = '16.3.8';
+    for (const location of Object.keys(before.packages).filter(key => key === 'node_modules/next' || key === 'node_modules/@next/env' || key.startsWith('node_modules/@next/swc-'))) {
+      assert.equal(after.packages[location].version, '16.3.8', `Unexpected Next patch: ${location}`);
+      before.packages[location] = after.packages[location];
+    }
+  }
+  assert.deepEqual(after, before, `Unrelated dependency change: ${file}`);
+}
 function parse(file, source) { return ts.createSourceFile(file, source.replaceAll('\r\n', '\n'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX); }
 function semantics(file, source) {
   const tree = parse(file, source);
@@ -51,7 +66,7 @@ function dashboardContract(source) {
   return { dataflow, actions: actions.sort(), texts: texts.sort() };
 }
 for (const file of changed) {
-  assert.ok(file.endsWith('.css') || file.endsWith('.tsx') || file === 'DESIGN.md' || file.startsWith('.impeccable/') || file.startsWith('docs/') || file.startsWith('scripts/verify-design') || file === 'scripts/verify-dashboard-design.mjs' || file.startsWith('scripts/capture-design') || file.startsWith('public/fonts/') || file.startsWith('public/images/'), `Unexpected non-presentation change: ${file}`);
+  assert.ok(file.endsWith('.css') || file.endsWith('.tsx') || ['package.json', 'package-lock.json', 'DESIGN.md'].includes(file) || file.startsWith('.impeccable/') || file.startsWith('docs/') || file.startsWith('scripts/verify-design') || file === 'scripts/verify-dashboard-design.mjs' || file.startsWith('scripts/capture-design') || file.startsWith('public/fonts/') || file.startsWith('public/images/'), `Unexpected non-presentation change: ${file}`);
   if (!file.endsWith('.tsx')) continue;
   const before = execFileSync('git', ['show', `${baseline}:${file}`], { encoding: 'utf8' });
   const after = readFileSync(file, 'utf8');

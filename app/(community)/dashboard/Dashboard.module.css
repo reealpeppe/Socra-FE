@@ -1,8 +1,9 @@
 .page { display: grid; gap: 24px; margin: 0 auto; max-width: 1240px; padding-bottom: 24px; width: 100%; }
 .intro { align-items: center; display: flex; gap: 24px; justify-content: space-between; padding: 0 0 12px; }
+.intro > div { min-width: 0; }
 .eyebrow { color: var(--muted); font-size: .8125rem; font-weight: 500; margin: 0 0 12px; }
 .eyebrow span { color: #a5a7a7; margin: 0 7px; }
-.intro h1 { color: var(--ink); font-size: 2rem; font-weight: 550; letter-spacing: -.035em; line-height: 1.15; margin: 0; }
+.intro h1 { color: var(--ink); font-size: 2rem; font-weight: 550; letter-spacing: -.035em; line-height: 1.15; margin: 0; overflow-wrap: anywhere; }
 .wave { display: none; }
 .introCopy { color: var(--muted); font-size: 1rem; line-height: 1.6; margin: 12px 0 0; }
 .wallet { align-items: center; background: #fff; border: 1px solid var(--line); border-radius: 10px; color: var(--ink); display: flex; flex: none; gap: 12px; min-width: 142px; padding: 12px 14px; transition: background-color var(--duration-ui) ease; }
@@ -94,6 +95,8 @@
 .success { border: 1px solid #bed6c4; background: var(--success-surface); color: var(--success-text); border-radius: 10px; padding: 14px 18px; font-size: .9375rem; }
 .goalTags, .topicList { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
 .goalTags span, .topicList span { background: var(--paper); border-radius: 6px; color: var(--muted); font-size: .8125rem; padding: 5px 9px; }
+.goalDetails { position: relative; z-index: 1; border-bottom: 1px solid var(--line); padding: 10px 0; }
+.goalDetails summary { cursor: pointer; min-height: 44px; }
 .availability { align-items: center; color: var(--muted); display: flex; font-size: .8125rem; gap: 8px; margin-top: 20px; }
 .availabilityDotOff { background: #8c9091; }
 .learningArt, .mentorArt, .goalArt, .skillsArt { display: none; }
