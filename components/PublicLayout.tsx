@@ -71,7 +71,7 @@ export function PublicNavbar() {
     <>
       <a className="skip-link" href="#main-content">Vai al contenuto principale</a>
       <nav className={styles.nav} aria-label="Navigazione pubblica">
-        <Link
+        <Link prefetch={true}
           href="/"
           className={styles.brandLink}
           aria-current={pathname === "/" ? "page" : undefined}
@@ -82,7 +82,7 @@ export function PublicNavbar() {
         </Link>
         <div className={styles.navLinks}>
           {navLinks.map(l => (
-            <Link
+            <Link prefetch={true}
               key={l.href}
               href={l.href}
               className={styles.navLink}
@@ -94,14 +94,14 @@ export function PublicNavbar() {
         </div>
         <div className={styles.navActions}>
           {sessionState === "authenticated" ? (
-            <Link href="/dashboard" aria-label="Torna alla community" className={styles.navCta} onClick={closeMobileMenu}>
+            <Link prefetch={true} href="/dashboard" aria-label="Torna alla community" className={styles.navCta} onClick={closeMobileMenu}>
               <span className={styles.fullCta}>Torna alla community</span>
               <span className={styles.shortCta}>Community</span>
             </Link>
           ) : sessionState === "anonymous" ? (
             <>
-              <Link href="/login" className={styles.loginLink} aria-current={pathname === "/login" ? "page" : undefined}>Accedi</Link>
-              <Link href="/register" aria-label="Inizia ora" className={styles.navCta} aria-current={pathname === "/register" ? "page" : undefined} onClick={closeMobileMenu}>
+              <Link prefetch={true} href="/login" className={styles.loginLink} aria-current={pathname === "/login" ? "page" : undefined}>Accedi</Link>
+              <Link prefetch={true} href="/register" aria-label="Inizia ora" className={styles.navCta} aria-current={pathname === "/register" ? "page" : undefined} onClick={closeMobileMenu}>
                 <span className={styles.fullCta}>Inizia ora</span>
                 <span className={styles.shortCta}>Inizia</span>
               </Link>
@@ -126,7 +126,7 @@ export function PublicNavbar() {
         {mobileOpen ? (
           <div className={styles.mobilePanel} id="public-mobile-menu">
             {navLinks.map((link) => (
-              <Link
+              <Link prefetch={true}
                 aria-current={isCurrent(link.href) ? "page" : undefined}
                 className={styles.navLink}
                 href={link.href}
@@ -138,9 +138,9 @@ export function PublicNavbar() {
             ))}
             <div aria-hidden="true" className={styles.mobileDivider} />
             {sessionState === "authenticated" ? (
-              <Link className={styles.navLink} href="/dashboard" onClick={closeMobileMenu}>Torna alla community</Link>
+              <Link prefetch={true} className={styles.navLink} href="/dashboard" onClick={closeMobileMenu}>Torna alla community</Link>
             ) : sessionState === "anonymous" ? (
-              <Link aria-current={pathname === "/login" ? "page" : undefined} className={styles.loginLink} href="/login" onClick={closeMobileMenu}>Accedi al tuo account</Link>
+              <Link prefetch={true} aria-current={pathname === "/login" ? "page" : undefined} className={styles.loginLink} href="/login" onClick={closeMobileMenu}>Accedi al tuo account</Link>
             ) : sessionState === "error" ? (
               <p className={styles.sessionMessage}>Sessione non verificabile. Riprova dal pulsante in alto.</p>
             ) : null}
@@ -159,7 +159,7 @@ export function PublicFooter() {
     <footer className={styles.footer}>
       <div className={styles.footerInner}>
         <div className={styles.footerBrand}>
-          <Link className={styles.brandLink} href="/" aria-label="Socra, pagina iniziale">
+          <Link prefetch={true} className={styles.brandLink} href="/" aria-label="Socra, pagina iniziale">
             <Brand variant="light" />
           </Link>
           <p className={styles.footerTagline}>Incontri tra persone, obiettivi chiari e responsabilità reciproca.</p>
@@ -168,7 +168,7 @@ export function PublicFooter() {
           <p className={styles.footerNavLabel}>Esplora</p>
           <nav aria-label="Navigazione nel piè di pagina" className={styles.footerNav}>
           {navLinks.map(l => (
-              <Link
+              <Link prefetch={true}
                 aria-current={pathname === l.href ? "page" : undefined}
                 className={styles.footerLink}
                 key={l.href}
@@ -181,14 +181,14 @@ export function PublicFooter() {
         </div>
         <div className={styles.footerMeta}>
           <nav aria-label="Informazioni legali" className={styles.footerNav}>
-            <Link
+            <Link prefetch={true}
               aria-current={pathname === "/termini" ? "page" : undefined}
               className={styles.footerLink}
               href="/termini"
             >
               Termini
             </Link>
-            <Link
+            <Link prefetch={true}
               aria-current={pathname === "/privacy" ? "page" : undefined}
               className={styles.footerLink}
               href="/privacy"

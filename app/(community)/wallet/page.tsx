@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
-import { clientGet, formatCredits } from "@/lib/api";
+import { clientGet, formatCredits, cachedClientValue, hasCachedClientValues } from "@/lib/api";
 import type { Wallet, WalletTransaction } from "@/lib/types";
 import { advanceExplanation, availableCredits } from "@/lib/credits";
 
@@ -39,13 +39,13 @@ function safeTransactionDate(value: string): string {
 }
 
 export default function WalletPage() {
-  const [wallet, setWallet] = useState<Wallet | null>(null);
-  const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [wallet, setWallet] = useState<Wallet | null>(() => cachedClientValue<Wallet>("/wallet/me") ?? null);
+  const [transactions, setTransactions] = useState<WalletTransaction[]>(() => cachedClientValue<WalletTransaction[]>("/wallet/me/transactions") ?? []);
+  const [loading, setLoading] = useState(() => !hasCachedClientValues("/wallet/me", "/wallet/me/transactions"));
   const [error, setError] = useState<string | null>(null);
   const [retryVersion, setRetryVersion] = useState(0);
-  const [walletReady, setWalletReady] = useState(false);
-  const [transactionsReady, setTransactionsReady] = useState(false);
+  const [walletReady, setWalletReady] = useState(() => hasCachedClientValues("/wallet/me"));
+  const [transactionsReady, setTransactionsReady] = useState(() => hasCachedClientValues("/wallet/me/transactions"));
   const currencyLabel = formatCredits(wallet?.currency_label);
   const anticipation = advanceExplanation(wallet);
   const creditTotal = transactions.filter((row) => row.amount > 0).reduce((total, row) => total + row.amount, 0);
@@ -55,10 +55,10 @@ export default function WalletPage() {
     let active = true;
     queueMicrotask(() => {
       if (!active) return;
-      setLoading(true);
+      if (!hasCachedClientValues("/wallet/me", "/wallet/me/transactions")) setLoading(true);
       setError(null);
-      setWalletReady(false);
-      setTransactionsReady(false);
+      setWalletReady(hasCachedClientValues("/wallet/me"));
+      setTransactionsReady(hasCachedClientValues("/wallet/me/transactions"));
     });
     Promise.allSettled([
       clientGet<Wallet>("/wallet/me"),

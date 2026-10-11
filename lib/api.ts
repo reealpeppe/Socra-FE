@@ -3,11 +3,18 @@ import { cachedRequest, clearRequestCache, peekRequestCache } from "@/lib/reques
 
 export function cachedClientValue<T>(path: string): T | undefined { return peekRequestCache<T>(path); }
 
+export function hasCachedClientValues(...paths: string[]): boolean {
+  return paths.every(path => cachedClientValue(path) !== undefined);
+}
+
 const CACHE_TTL: Record<string, number> = {
   "/skills/catalog": 300_000,
   "/auth/me": 30_000, "/surveys/onboarding/me": 30_000,
   "/surveys/goal/catalog": 300_000,
   "/goals/me": 5_000, "/matching/requests/me?role=mentee": 5_000,
+  "/matching/requests/me?role=all": 5_000,
+  "/paths/me": 5_000, "/skills/me": 5_000, "/profiles/me": 5_000,
+  "/wallet/me": 5_000, "/wallet/me/transactions": 5_000,
 };
 let sessionInvalid = false;
 if (typeof window !== "undefined") {
@@ -248,7 +255,8 @@ function friendlyErrorMessage(error: ApiError | null, status: number): string {
 }
 
 export async function clientGet<T>(path: string): Promise<T> {
-  return cachedRequest(path, CACHE_TTL[path] || 0, () => request<T>(`/api/backend/${path.replace(/^\//, "")}`));
+  const ttl = CACHE_TTL[path] || (/^\/profiles\/[^/?]+$/.test(path) ? 5_000 : 0);
+  return cachedRequest(path, ttl, () => request<T>(`/api/backend/${path.replace(/^\//, "")}`));
 }
 
 export async function clientPost<T>(path: string, payload?: unknown): Promise<T> {

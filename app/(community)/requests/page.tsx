@@ -10,7 +10,7 @@ import { CheckCircle2, XCircle } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
 import { TabPanel, Tabs } from "@/components/Ui";
-import { ClientApiError, clientGet, clientPost } from "@/lib/api";
+import { ClientApiError, clientGet, clientPost, cachedClientValue, hasCachedClientValues } from "@/lib/api";
 import { parseApiDate } from "@/lib/date";
 import type { MatchRequestItem, UserMe, Wallet } from "@/lib/types";
 import { availableCredits } from "@/lib/credits";
@@ -73,17 +73,17 @@ function RequestsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const requestedTab: "received" | "sent" = searchParams.get("tab") === "sent" ? "sent" : "received";
-  const [me, setMe] = useState<UserMe | null>(null);
-  const [requests, setRequests] = useState<RequestWithCost[]>([]);
-  const [wallet, setWallet] = useState<Wallet | null>(null);
+  const [me, setMe] = useState<UserMe | null>(() => cachedClientValue<UserMe>("/auth/me") ?? null);
+  const [requests, setRequests] = useState<RequestWithCost[]>(() => cachedClientValue<RequestWithCost[]>("/matching/requests/me?role=all") ?? []);
+  const [wallet, setWallet] = useState<Wallet | null>(() => cachedClientValue<Wallet>("/wallet/me") ?? null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [tab, setTab] = useState<"received" | "sent">(requestedTab);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !hasCachedClientValues("/auth/me", "/matching/requests/me?role=all", "/wallet/me"));
   const [pendingResponses, setPendingResponses] = useState<Set<string>>(new Set());
 
   async function load() {
-    setLoading(true);
+    if (!hasCachedClientValues("/auth/me", "/matching/requests/me?role=all", "/wallet/me")) setLoading(true);
     setError(null);
     const [userResult, requestsResult, walletResult] = await Promise.allSettled([
       clientGet<UserMe>("/auth/me"),

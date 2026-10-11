@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { clientGet, ClientApiError } from "@/lib/api";
+import { clientGet, ClientApiError, cachedClientValue } from "@/lib/api";
 import { ButtonLink, Card } from "@/components/Ui";
 import type { UserMe } from "@/lib/types";
 
 export function EmailVerificationGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const restricted = /^\/(matching|profiles|requests|dashboard|tour)(\/|$)/.test(pathname);
-  const [user, setUser] = useState<UserMe | null>(null);
+  const [user, setUser] = useState<UserMe | null>(() => cachedClientValue<UserMe>("/auth/me") ?? null);
   const [error, setError] = useState<number | null>(null);
   const [retry, setRetry] = useState(0);
 

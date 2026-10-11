@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { AlertTriangle, ShieldCheck } from "lucide-react";
-import { PublicNavbar, PublicFooter } from "@/components/PublicLayout";
 import publicStyles from "@/components/PublicLayout.module.css";
 import { FaqTabs } from "./FaqTabs";
 import tabStyles from "./FaqTabs.module.css";
@@ -14,9 +13,7 @@ export const metadata: Metadata = {
 
 export default function FaqPage() {
   return (
-    <>
-      <PublicNavbar />
-      <main id="main-content" tabIndex={-1} style={{ paddingTop: "64px" }}>
+    <>      <main id="main-content" tabIndex={-1} style={{ paddingTop: "64px" }}>
         <section style={{
           background: "var(--navy-950)",
           padding: "clamp(56px,8vw,96px) clamp(16px,4vw,40px)",
@@ -202,8 +199,6 @@ export default function FaqPage() {
             `}</style>
           </div>
         </section>
-      </main>
-      <PublicFooter />
-    </>
+      </main>    </>
   );
 }

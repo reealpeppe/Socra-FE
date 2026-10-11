@@ -8,7 +8,7 @@ import { AppShell } from "@/components/AppShell";
 import { TOPIC_SAFETY_SCENARIOS, isMentorEligible } from "@/components/TopicCompetenceMatrix";
 import { UserAvatar } from "@/components/Ui";
 import { ProfileEditor } from "@/components/ProfileEditor";
-import { authPost, ClientApiError, clientGet, clientPatch, clientPut } from "@/lib/api";
+import { authPost, ClientApiError, clientGet, clientPatch, clientPut, cachedClientValue, hasCachedClientValues } from "@/lib/api";
 import { instrumentOptions } from "@/lib/options";
 import type { OwnProfile, SkillProfile, TopicCompetenceSnapshot, TopicCompetenceSnapshotItem, UserMe } from "@/lib/types";
 import { SkillCatalogBoundary } from "@/components/SkillCatalogBoundary";
@@ -25,16 +25,16 @@ const GENERAL_MENTOR_GUARDRAIL_FLAGS = new Set([
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [me, setMe] = useState<UserMe | null>(null);
-  const [profile, setProfile] = useState<OwnProfile | null>(null);
+  const [me, setMe] = useState<UserMe | null>(() => cachedClientValue<UserMe>("/auth/me") ?? null);
+  const [profile, setProfile] = useState<OwnProfile | null>(() => cachedClientValue<OwnProfile>("/profiles/me") ?? null);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [savingMentorStatus, setSavingMentorStatus] = useState(false);
   const [competences, setCompetences] = useState<TopicCompetenceSnapshot | null>(null);
-  const [skills, setSkills] = useState<SkillProfile | null | undefined>(undefined);
+  const [skills, setSkills] = useState<SkillProfile | null | undefined>(() => cachedClientValue<SkillProfile | null>("/skills/me"));
   const [savingTopic, setSavingTopic] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !hasCachedClientValues("/auth/me", "/skills/me", "/profiles/me"));
   const [retryVersion, setRetryVersion] = useState(0);
   const sharing = competences?.onboarding_policy === ONBOARDING_POLICY;
   const topicEligible = (item: TopicCompetenceSnapshotItem) => sharing ? item.mentor_eligible === true : isMentorEligible(item);
@@ -43,7 +43,7 @@ export default function SettingsPage() {
     let active = true;
     queueMicrotask(() => {
       if (!active) return;
-      setLoading(true);
+      if (!hasCachedClientValues("/auth/me", "/skills/me", "/profiles/me")) setLoading(true);
       setError(null);
     });
     Promise.all([

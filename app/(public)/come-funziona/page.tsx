@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { GraduationCap, Target, Users, BookOpen, TrendingUp, ShieldCheck } from "lucide-react";
-import { PublicNavbar, PublicFooter } from "@/components/PublicLayout";
 import publicStyles from "@/components/PublicLayout.module.css";
 
 export const metadata: Metadata = {
@@ -67,9 +66,7 @@ const differences = [
 
 export default function ComeFunzionaPage() {
   return (
-    <>
-      <PublicNavbar />
-      <main id="main-content" tabIndex={-1} style={{ paddingTop: "76px" }}>
+    <>      <main id="main-content" tabIndex={-1} style={{ paddingTop: "76px" }}>
 
         {/* ── Header ── */}
         <section style={{
@@ -278,8 +275,6 @@ export default function ComeFunzionaPage() {
           </div>
         </section>
 
-      </main>
-      <PublicFooter />
-    </>
+      </main>    </>
   );
 }

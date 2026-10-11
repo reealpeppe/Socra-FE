@@ -1,8 +1,8 @@
 # Architettura frontend Socra
 
-Anticipo crediti locale dell'11/10: [lib/credits.ts](../../lib/credits.ts) interpreta il totale spendibile e la spiegazione del DTO wallet; saldo, dashboard e conferma proposte lo riusano. Idoneità e compensazione restano nel backend, come da wiki 05/07 di Socra-BE. Nessun nuovo box, provider, componente cloud o confine nella wiki 13. [Collaudo e review indipendente](../testing/credit-advance-2026-10-11.md).
+Anticipo crediti dell'11/10: [lib/credits.ts](../../lib/credits.ts) interpreta il totale spendibile e la spiegazione del DTO wallet; saldo, dashboard e conferma proposte lo riusano. Idoneità e compensazione restano nel backend, come da wiki 05/07 di Socra-BE. Nessun nuovo box, provider, componente cloud o confine nella wiki 13. [Collaudo e review indipendente](../testing/credit-advance-2026-10-11.md).
 
-Aggiornato: 06/10/2026. Proprietario dei confini tecnici locali; la [guida](../agent/README.md) risolve wiki e architettura condivisa del backend sul ref del task.
+Aggiornato: 11/10/2026. Proprietario dei confini tecnici locali; la [guida](../agent/README.md) risolve wiki e architettura condivisa del backend sul ref del task.
 
 La V4 è pubblicata dal 03/10 su `release/v3-20260919`: BE `f53226aab35c93722c0fad8dbee4efef31d66e28`, FE `996fb361167132b7667a4fc4df79626159a0b411`. Backend e frontend corretto verificati: il clipping mobile con username lunghi rilevato nella prima review live è stato corretto e ricollaudato il 03/10. Deployment ed evidenze nel [rapporto backend del 03/10](https://github.com/reealpeppe/Socra-BE/blob/release/v3-20260919/docs/releases/2026-10-03-skills-production.md). Stato operativo e regole restano nel backend; registrazione/verifica email, confine BFF, CSP e monitoraggio sono preservati.
 
@@ -10,7 +10,7 @@ La V4 è pubblicata dal 03/10 su `release/v3-20260919`: BE `f53226aab35c93722c0f
 
 | Parte | Implementazione e responsabilità |
 |---|---|
-| App Router | [app](../../app), layout del route group `(community)` e [AppShell](../../components/AppShell.tsx): shell persistente e navigazione; gli URL non assumono il nome del route group |
+| App Router | [app](../../app), layout dei route group `(public)` e `(community)`: navbar/footer pubblici e [AppShell](../../components/AppShell.tsx) persistenti; gli URL non assumono il nome del route group. Navigazione con prefetch completo, contenuto corrente conservato durante la risposta route |
 | Sessione e BFF | [lib/server.ts](../../lib/server.ts) e [route API](../../app/api): token nel cookie HTTP-only, chiamate server-side al backend; la configurazione viene da `SOCRA_API_BASE_URL` |
 | API client e cache | [lib/api.ts](../../lib/api.ts), [request-cache](../../lib/request-cache.ts): deduplica/cache e invalidazione coerenti con mutazioni, logout e cambio account. Il backend resta autorevole |
 | Survey e obiettivo | [OnboardingSurvey](../../components/OnboardingSurvey.tsx), [onboarding](../../lib/onboarding.ts), [DiscussionPreferences](../../components/DiscussionPreferences.tsx): rendering/draft e scelte; cataloghi e regole della wiki/backend, non una nuova formula FE |
@@ -41,7 +41,15 @@ La finalità del contesto è in una disclosure nativa accessibile con tastiera e
 
 [SkillPreparation](../../components/SkillPreparation.tsx) rende `known_count/total_count`, `preparation_percent` e `confirmed_count` dal profilo pubblico; l’elenco delle offerte resta distinto. Nella rivalutazione le barre descrivono il profilo già salvato, mentre il form modifica la nuova selezione. Dashboard e lista percorsi leggono gli obiettivi concordati dallo snapshot. Le schede matching mostrano `match_score` come compatibilità; la copertura è un dettaglio espandibile per scegliere il sottoinsieme da concordare, senza percentuali derivate sul client né deduzioni sulla disponibilità temporale.
 
-La dashboard attende anche `/profiles/{id}` prima di uscire dal caricamento principale: un profilo ancora in corso non è un elenco vuoto. Un errore del profilo viene segnalato nella scheda esperienza e nel recupero generale; «Riprova» include una nuova lettura del profilo. Crediti restano indipendenti. I confini, gli endpoint e gli schemi condivisi della wiki 13 non cambiano. Conferma dell'ultima offerta, layout email e prove successive al rilascio V4 sono nel [rapporto backend del 04/10](https://github.com/reealpeppe/Socra-BE/blob/release/v3-20260919/docs/releases/2026-10-04-mentor-availability.md).
+Nel branch prestazioni dell'11/10 la dashboard carica `/profiles/{id}` indipendentemente dal contenuto principale, insieme ai crediti già separati. La scheda esperienza mostra «Caricamento esperienza…» finché manca il risultato verificato: un profilo ancora in corso non è un elenco vuoto. Un errore viene segnalato nella scheda e nel recupero generale; «Riprova» rilegge anche il profilo. Obiettivi e percorsi restano disponibili durante questa attesa. Conferma dell'ultima offerta, layout email e prove precedenti della V4 sono nel [rapporto backend del 04/10](https://github.com/reealpeppe/Socra-BE/blob/release/v3-20260919/docs/releases/2026-10-04-mentor-availability.md).
+
+## Navigazione e prestazioni — branch locale 11/10
+
+Implementazione `fix/page-performance-20261011`, base FE `4198c0d`; documentazione condivisa BE `docs/page-performance-20261011`, base `8bf12a2`. Il [layout pubblico](<../../app/(public)/layout.tsx>) possiede navbar/footer, compresi accesso, registrazione e azioni email/password. Le pagine conservano URL, metadata e contenuti. I fallback globali di route sono rimossi: una transizione conserva la pagina precedente mentre Next recupera la nuova. I caricamenti locali continuano a distinguere dati assenti, verifiche, errori e stato vuoto.
+
+Sessione, gate email, catalogo e viste inizializzano lo stato soltanto da risposte ancora valide nella cache di memoria della stessa scheda. Dati operativi (percorsi, capacità, profili, crediti/transazioni e richieste) hanno TTL di cinque secondi; sessione/onboarding conservano trenta secondi e cataloghi cinque minuti. Un `null` verificato è diverso da un dato non ancora caricato. Mutazioni, cambio account/logout e ritorno alla scheda invalidano la cache; richieste pendenti di una sessione precedente vengono scartate. Nessun payload viene salvato in localStorage o condiviso dal server. Le azioni restano validate sullo stato corrente dal backend.
+
+Nonce CSP, HTML/RSC `private, no-store`, cookie HttpOnly, BFF, provider e DB online conservano i confini esistenti. Questa modifica non abilita cache CDN e non attesta un rilascio. [Piano e decisioni](../plans/2026-10-11-page-performance.md), [confronto e verifiche](../testing/page-performance-2026-10-11.md); la wiki 13 backend include la vista locale dei nuovi collegamenti.
 
 Test locali di riferimento: [auth/BFF](../../tests/auth-bff.test.mjs), [cache](../../tests/request-cache.mjs), [date](../../tests/date.test.mjs), [browser](../../tests/e2e). La configurazione e il runner distinguono mock e server esterno; i risultati browser con mock non verificano API/provider reali.
 

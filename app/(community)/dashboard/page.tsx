@@ -9,27 +9,33 @@ import { OnboardingGate } from "@/components/OnboardingGate";
 import { UserAvatar } from "@/components/Ui";
 import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
 import { SkillPreparation } from "@/components/SkillPreparation";
-import { clientGet } from "@/lib/api";
+import { clientGet, cachedClientValue, hasCachedClientValues } from "@/lib/api";
 import type { GoalsMe, PathItem, PublicProfile, UserMe, Wallet, SkillProfile } from "@/lib/types";
 import styles from "./Dashboard.module.css";
 
 type DashboardErrorKey = "user" | "wallet" | "goals" | "paths" | "profile" | "context";
+const dashboardReady = () => hasCachedClientValues("/auth/me", "/goals/me", "/paths/me", "/skills/me");
+const cachedProfile = () => {
+  const user = cachedClientValue<UserMe>("/auth/me");
+  return user ? cachedClientValue<PublicProfile>(`/profiles/${user.id}`) : undefined;
+};
 
 export default function DashboardPage() {
-  const [me, setMe] = useState<UserMe | null>(null);
-  const [ownSkills, setOwnSkills] = useState<SkillProfile | null | undefined>(undefined);
-  const [wallet, setWallet] = useState<Wallet | null>(null);
-  const [goals, setGoals] = useState<GoalsMe | null>(null);
-  const [paths, setPaths] = useState<PathItem[]>([]);
-  const [profile, setProfile] = useState<PublicProfile | null>(null);
+  const [me, setMe] = useState<UserMe | null>(() => cachedClientValue<UserMe>("/auth/me") ?? null);
+  const [ownSkills, setOwnSkills] = useState<SkillProfile | null | undefined>(() => cachedClientValue<SkillProfile | null>("/skills/me"));
+  const [wallet, setWallet] = useState<Wallet | null>(() => cachedClientValue<Wallet>("/wallet/me") ?? null);
+  const [goals, setGoals] = useState<GoalsMe | null>(() => cachedClientValue<GoalsMe>("/goals/me") ?? null);
+  const [paths, setPaths] = useState<PathItem[]>(() => cachedClientValue<PathItem[]>("/paths/me") ?? []);
+  const [profile, setProfile] = useState<PublicProfile | null>(() => cachedProfile() ?? null);
+  const [profileLoading, setProfileLoading] = useState(() => !cachedProfile());
   const [errors, setErrors] = useState<Partial<Record<DashboardErrorKey, string>>>({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !dashboardReady());
   const [dashboardRetryVersion, setDashboardRetryVersion] = useState(0);
   const [experienceSaved, setExperienceSaved] = useState(false);
 
   useEffect(() => {
     let active = true;
-    queueMicrotask(() => { if (active) setLoading(true); });
+    queueMicrotask(() => { if (active && !dashboardReady()) setLoading(true); });
 
 
     // The wallet can load independently of the main dashboard.
@@ -41,20 +47,11 @@ export default function DashboardPage() {
       clientGet<GoalsMe>("/goals/me"),
       clientGet<PathItem[]>("/paths/me"),
       clientGet<SkillProfile | null>("/skills/me")
-    ]).then(async ([userResult, goalResult, pathResult, skillsResult]) => {
+    ]).then(([userResult, goalResult, pathResult, skillsResult]) => {
       if (!active) return;
       const nextErrors: Partial<Record<DashboardErrorKey, string>> = {};
       if (userResult.status === "fulfilled") {
         setMe(userResult.value);
-        try {
-          const nextProfile = await clientGet<PublicProfile>(`/profiles/${userResult.value.id}`);
-          if (!active) return;
-          setProfile(nextProfile);
-        } catch (error) {
-          if (!active) return;
-          setProfile(null);
-          nextErrors.profile = error instanceof Error ? error.message : "Esperienza non disponibile";
-        }
       } else {
         setProfile(null);
         nextErrors.user = userResult.reason?.message || "Profilo non disponibile";
@@ -65,12 +62,31 @@ export default function DashboardPage() {
       else nextErrors.goals = goalResult.reason?.message || "Obiettivi non disponibili";
       if (pathResult.status === "fulfilled") setPaths(Array.isArray(pathResult.value) ? pathResult.value : []);
       else nextErrors.paths = pathResult.reason?.message || "Percorsi non disponibili";
-      setErrors(current => ({ wallet: current.wallet, ...nextErrors }));
+      setErrors(current => ({ wallet: current.wallet, profile: current.profile, ...nextErrors }));
       setLoading(false);
     });
 
     return () => { active = false; };
   }, [dashboardRetryVersion]);
+
+  useEffect(() => {
+    if (!me?.id) return;
+    let active = true;
+    const path = `/profiles/${me.id}`;
+    queueMicrotask(() => {
+      if (!active) return;
+      setProfileLoading(!cachedClientValue<PublicProfile>(path));
+      setErrors(current => ({ ...current, profile: undefined }));
+    });
+    clientGet<PublicProfile>(path).then(value => {
+      if (active) setProfile(value);
+    }).catch(error => {
+      if (!active) return;
+      setProfile(null);
+      setErrors(current => ({ ...current, profile: error instanceof Error ? error.message : "Esperienza non disponibile" }));
+    }).finally(() => { if (active) setProfileLoading(false); });
+    return () => { active = false; };
+  }, [me?.id, dashboardRetryVersion]);
 
   useEffect(() => {
     if (!me?.id) return;
@@ -221,7 +237,7 @@ export default function DashboardPage() {
               <section className={`${styles.card} ${styles.skills}`} aria-labelledby="skills-title">
                 <div className={styles.smallCardHead}><span className={styles.cardIcon}><Sparkles size={21} aria-hidden="true" /></span><span className={styles.sectionIndex}>04 / La tua esperienza</span><Link href="/competenze" aria-label="Vai alle tue competenze"><ChevronRight size={19} aria-hidden="true" /></Link></div>
                 <h2 id="skills-title">Competenze e disponibilità</h2>
-                {errors.profile || errors.user ? <p className={styles.cardMessage}>La tua esperienza non è disponibile. Usa “Riprova” in alto.</p> : profile?.skill_model ? profile.skill_groups?.length ? <div className={styles.preparation} aria-label="Preparazione per argomento"><small className={styles.preparationLabel}>Preparazione · attività conosciute</small>{profile.skill_groups.slice(0, 3).map(group => <SkillPreparation group={group} compact key={group.topic} />)}</div> : <p className={styles.cardMessage}>Nessuna attività conosciuta indicata.</p> : mentorTopics.length ? <div className={styles.topicList} aria-label="Topic di competenza">{mentorTopics.slice(0, 3).map(topic => <span key={topic}>{topic}</span>)}{mentorTopics.length > 3 ? <span>+{mentorTopics.length - 3}</span> : null}</div> : <p className={styles.cardMessage}>Nessun argomento ancora disponibile.</p>}
+                {errors.profile || errors.user ? <p className={styles.cardMessage}>La tua esperienza non è disponibile. Usa “Riprova” in alto.</p> : profileLoading ? <p className={styles.cardMessage} role="status">Caricamento esperienza…</p> : profile?.skill_model ? profile.skill_groups?.length ? <div className={styles.preparation} aria-label="Preparazione per argomento"><small className={styles.preparationLabel}>Preparazione · attività conosciute</small>{profile.skill_groups.slice(0, 3).map(group => <SkillPreparation group={group} compact key={group.topic} />)}</div> : <p className={styles.cardMessage}>Nessuna attività conosciuta indicata.</p> : mentorTopics.length ? <div className={styles.topicList} aria-label="Topic di competenza">{mentorTopics.slice(0, 3).map(topic => <span key={topic}>{topic}</span>)}{mentorTopics.length > 3 ? <span>+{mentorTopics.length - 3}</span> : null}</div> : <p className={styles.cardMessage}>Nessun argomento ancora disponibile.</p>}
                 <div className={styles.availability}><span className={me?.is_coach ? styles.availabilityDot : styles.availabilityDotOff} />{me?.is_coach ? "Disponibile come mentor" : "Disponibilità mentor disattivata"}</div>
                 <div className={styles.skillsArt} aria-hidden="true"><BarChart3 size={30} /></div>
               </section>
