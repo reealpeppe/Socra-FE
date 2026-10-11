@@ -40,6 +40,10 @@ async function mockSuccessfulSession(page: Page) {
   }));
   await page.route("**/api/backend/matching/requests/me?role=all", async (route) => route.fulfill({ json: [] }));
   await page.route("**/api/backend/paths/me", async (route) => route.fulfill({ json: [] }));
+  await page.route("**/api/backend/skills/me", async (route) => route.fulfill({ json: null }));
+  await page.route("**/api/backend/profiles/u1", async (route) => route.fulfill({
+    json: { user_id: "u1", nickname: "User", top_topics: [] }
+  }));
   await page.route("**/api/backend/notifications/me", async (route) => route.fulfill({ json: [] }));
 }
 

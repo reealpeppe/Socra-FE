@@ -112,7 +112,7 @@ for (const source of ["settings", "experience"] as const) {
   });
 }
 
-test("dashboard waits for preparation and retries a profile error without showing an empty profile", async ({ page }) => {
+test("dashboard loads preparation independently and retries a profile error without showing an empty profile", async ({ page }) => {
   let releaseProfile!: () => void;
   const pending = new Promise<void>(resolve => { releaseProfile = resolve; });
   let requests = 0;
@@ -127,7 +127,8 @@ test("dashboard waits for preparation and retries a profile error without showin
   await page.goto("/dashboard");
   await expect.poll(() => requests).toBe(1);
   await expect(page.getByText("Nessun argomento ancora disponibile.", { exact: true })).toHaveCount(0);
-  await expect(page.getByRole("status").filter({ hasText: "Caricamento dashboard" })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Caricamento esperienza" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Il tuo percorso di apprendimento" })).toBeVisible();
   releaseProfile();
   await expect(page.getByText("La tua esperienza non è disponibile. Usa “Riprova” in alto.", { exact: true })).toBeVisible();
   await expect(page.getByText("Nessun argomento ancora disponibile.", { exact: true })).toHaveCount(0);

@@ -121,7 +121,7 @@ async function main() {
       writeFileSync(resolve(artifactDirectory, `${name}-process.json`), JSON.stringify({ status: result.status, signal: result.signal, error: result.error?.message, stderr: result.stderr }, null, 2));
     }
     const { ESLint } = await import('eslint');
-    const config = await new ESLint({ cwd }).calculateConfigForFile(resolve(cwd, 'app/page.tsx'));
+    const config = await new ESLint({ cwd }).calculateConfigForFile(resolve(cwd, 'app/(public)/page.tsx'));
     requireCondition(config, 'Unable to inspect effective ESLint configuration');
     const summary = evaluateAudits({
       full, runtime,

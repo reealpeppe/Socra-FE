@@ -10,7 +10,8 @@ import { evaluateAudits } from '../scripts/audit-dependencies.mjs';
 const readJson = (path) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8').replace(/^\uFEFF/, ''));
 const fullReport = readJson('./fixtures/dependency-audit/full-2026-10-03.json');
 const runtimeReport = readJson('./fixtures/dependency-audit/runtime-2026-10-03.json');
-const lockfile = readJson('../package-lock.json');
+// Keep the historical exception paired with its reviewed graph, not today's dependencies.
+const lockfile = readJson('./fixtures/dependency-audit/lock-2026-10-03-chain.json');
 const processResult = (report, status) => ({ stdout: JSON.stringify(report), stderr: '', status, signal: null });
 
 function input() {
@@ -46,6 +47,14 @@ test('a genuinely clean full report needs no exception even after its expiry', (
   const result = evaluateAudits(value);
   assert.equal(result.fullVulnerabilities, 0);
   assert.deepEqual(result.knownExceptions, []);
+});
+
+test('the upgraded live dependency graph cannot reuse the historical exception', () => {
+  const value = input();
+  value.lockfile = readJson('../package-lock.json');
+  assert.throws(() => evaluateAudits(value), /Unreviewed chain version/);
+  value.now = new Date('2026-10-11T00:00:00Z');
+  assert.throws(() => evaluateAudits(value), /expired/);
 });
 
 const invalidCases = [
@@ -91,8 +100,8 @@ for (const [name, mutate, message] of invalidCases) {
 function runCli(t, full, runtime) {
   const directory = mkdtempSync(join(tmpdir(), 'socra-audit-'));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
-  mkdirSync(join(directory, 'app'));
-  writeFileSync(join(directory, 'app/page.tsx'), 'export default function Page() { return null; }');
+  mkdirSync(join(directory, 'app/(public)'), { recursive: true });
+  writeFileSync(join(directory, 'app/(public)/page.tsx'), 'export default function Page() { return null; }');
   writeFileSync(join(directory, 'eslint.config.mjs'), 'export default [{ files: ["**/*.tsx"], settings: {} }];');
   writeFileSync(join(directory, 'package-lock.json'), JSON.stringify(lockfile));
   writeFileSync(join(directory, 'responses.json'), JSON.stringify({ full, runtime }));

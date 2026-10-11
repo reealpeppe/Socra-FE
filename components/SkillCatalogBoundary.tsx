@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { ClientApiError, clientGet } from "@/lib/api";
+import { ClientApiError, clientGet, cachedClientValue } from "@/lib/api";
 import type { SkillCatalog } from "@/lib/types";
 
 /** Only an explicit 404 selects the legacy UI; outages never change the model. */
 export function SkillCatalogBoundary({ children, legacy }: { children: (catalog: SkillCatalog) => ReactNode; legacy: ReactNode }) {
-  const [catalog, setCatalog] = useState<SkillCatalog | null>(null);
+  const [catalog, setCatalog] = useState<SkillCatalog | null>(() => {
+    const value = cachedClientValue<SkillCatalog>("/skills/catalog");
+    return value?.topics?.length && value.discussion_modes?.length ? value : null;
+  });
   const [missing, setMissing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);

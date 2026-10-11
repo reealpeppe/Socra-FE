@@ -2,7 +2,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import Link from 'next/link';
-import {clientGet,clientPut} from '@/lib/api';
+import {clientGet,clientPut,cachedClientValue,hasCachedClientValues} from '@/lib/api';
 import {useConfirmation} from '@/components/ConfirmationDialog';
 import {useUnsavedChangesGuard} from '@/lib/use-unsaved-changes-guard';
 import type {Goal,GoalSelection,GoalsMe,MatchRequestItem,SkillCatalog,SkillProfile} from '@/lib/types';
@@ -10,13 +10,15 @@ import styles from './SkillLearning.module.css';
 
 function selections(goals:Goal[]) {return goals.filter(g=>g.skill_model).map(g=>({topic:g.topic_code!,objective_codes:g.objective_codes||[],discussion_mode:g.discussion_mode||''}));}
 const marker=()=>{try{return localStorage.getItem('socra-session-change');}catch{return null;}};
+const cachedGoals=()=>{const data=cachedClientValue<GoalsMe>('/goals/me');return data?.active_goals||data?.goals.filter(g=>g.is_active!==false)||[];};
+const goalsReady=()=>hasCachedClientValues('/goals/me','/skills/me','/matching/requests/me?role=mentee');
 
 export function MultiGoalForm({catalog}:{catalog:SkillCatalog}) {
   const router=useRouter();
-  const [chosen,setChosen]=useState<GoalSelection[]>([]);
-  const [original,setOriginal]=useState<Goal[]>([]);
-  const [pending,setPending]=useState<MatchRequestItem[]>([]);
-  const [loaded,setLoaded]=useState(false),[missing,setMissing]=useState(false),[busy,setBusy]=useState(false),[dirty,setDirty]=useState(false);
+  const [chosen,setChosen]=useState<GoalSelection[]>(()=>selections(cachedGoals()));
+  const [original,setOriginal]=useState<Goal[]>(cachedGoals);
+  const [pending,setPending]=useState<MatchRequestItem[]>(()=>cachedClientValue<MatchRequestItem[]>('/matching/requests/me?role=mentee')?.filter(r=>r.status==='pending')||[]);
+  const [loaded,setLoaded]=useState(goalsReady),[missing,setMissing]=useState(()=>cachedClientValue<SkillProfile|null>('/skills/me')===null),[busy,setBusy]=useState(false),[dirty,setDirty]=useState(false);
   const [error,setError]=useState<string|null>(null),[limit,setLimit]=useState<string|null>(null),[attempt,setAttempt]=useState(0);
   const owner=useRef<string|null>(null), request=useRef<{payload:string;key:string}|null>(null);
   const {confirm,confirmationDialog}=useConfirmation();

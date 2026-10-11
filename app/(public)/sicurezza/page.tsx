@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Shield, Lock, Video, AlertTriangle, Users, Star, CheckCircle } from "lucide-react";
-import { PublicNavbar, PublicFooter } from "@/components/PublicLayout";
 import publicStyles from "@/components/PublicLayout.module.css";
 
 export const metadata: Metadata = {
@@ -51,9 +50,7 @@ const rules = [
 
 export default function SicurezzaPage() {
   return (
-    <>
-      <PublicNavbar />
-      <main id="main-content" tabIndex={-1} style={{ paddingTop: "76px" }}>
+    <>      <main id="main-content" tabIndex={-1} style={{ paddingTop: "76px" }}>
 
         {/* ── Hero ── */}
         <section style={{
@@ -300,8 +297,6 @@ export default function SicurezzaPage() {
           </div>
         </section>
 
-      </main>
-      <PublicFooter />
-    </>
+      </main>    </>
   );
 }

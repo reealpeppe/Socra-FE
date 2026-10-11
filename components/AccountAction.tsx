@@ -3,9 +3,8 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Brand } from "@/components/Brand";
-import { PublicFooter, PublicNavbar } from "@/components/PublicLayout";
 import { accountPost, ClientApiError } from "@/lib/api";
-import styles from "@/app/login/auth.module.css";
+import styles from "@/app/(public)/login/auth.module.css";
 
 type Action = "verify" | "forgot" | "reset";
 const copy = {
@@ -45,9 +44,7 @@ export function AccountAction({ action }: { action: Action }) {
     } finally { setBusy(false); }
   }
 
-  return <div className={styles.page}>
-    <PublicNavbar />
-    <main className={styles.main} id="main-content" tabIndex={-1}>
+  return <div className={styles.page}>    <main className={styles.main} id="main-content" tabIndex={-1}>
       <section className={styles.card} aria-labelledby="account-action-title">
         <div className={styles.brandRow}><Link href="/" className={styles.brandLink} aria-label="Torna alla pagina iniziale di Socra"><Brand variant="dark" /></Link></div>
         <h1 className={styles.title} id="account-action-title">{copy[action].title}</h1>
@@ -64,7 +61,5 @@ export function AccountAction({ action }: { action: Action }) {
         <p className={styles.footerText}><Link href={action === "verify" ? "/settings" : "/login"} className={styles.footerLink}>{action === "verify" ? "Vai al tuo account" : "Torna all’accesso"}</Link></p>
         {action === "reset" && !success ? <p className={styles.footerText}><Link href="/forgot-password" className={styles.footerLink}>Richiedi un nuovo link</Link></p> : null}
       </section>
-    </main>
-    <PublicFooter />
-  </div>;
+    </main>  </div>;
 }

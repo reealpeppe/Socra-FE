@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Compass, Handshake, MessageCircle, Target, UsersRound } from "lucide-react";
-import { PublicFooter, PublicNavbar } from "@/components/PublicLayout";
 import publicStyles from "@/components/PublicLayout.module.css";
 import styles from "./page.module.css";
 
@@ -49,9 +48,7 @@ const pact = [
 
 export default function CommunityPage() {
   return (
-    <>
-      <PublicNavbar />
-      <main className={styles.main} id="main-content" tabIndex={-1}>
+    <>      <main className={styles.main} id="main-content" tabIndex={-1}>
         <section className={styles.hero}>
           <div className={`${styles.inner} ${styles.heroGrid}`}>
             <div>
@@ -183,8 +180,6 @@ export default function CommunityPage() {
             </div>
           </div>
         </section>
-      </main>
-      <PublicFooter />
-    </>
+      </main>    </>
   );
 }
