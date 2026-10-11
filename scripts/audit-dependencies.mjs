@@ -1,22 +1,11 @@
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-const ADVISORY = 'GHSA-vfj7-8cjw-p6xm';
-const EXPIRES = new Date('2026-10-10T00:00:00.000Z');
 const SEVERITIES = ['info', 'low', 'moderate', 'high', 'critical'];
-// This is one reviewed dependency graph, not an advisory-wide allowlist.
-const CHAIN = [
-  ['eslint-config-next', '16.3.6', '^16.3.6'],
-  ['@next/eslint-plugin-next', '16.3.6', '16.3.6'],
-  ['fast-glob', '3.3.1', '3.3.1'],
-  ['micromatch', '4.0.8', '^4.0.4'],
-  ['braces', '3.0.3', '^3.0.3'],
-];
 
 const object = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
-const equal = (left, right) => JSON.stringify(left) === JSON.stringify(right);
 function requireCondition(condition, message) {
   if (!condition) throw new Error(message);
 }
@@ -42,66 +31,15 @@ function parseAudit(result, label) {
   return report;
 }
 
-function verifyLockfile(lockfile) {
-  requireCondition(lockfile?.lockfileVersion === 3 && object(lockfile.packages) && object(lockfile.packages['']), 'Invalid lockfile schema');
-  const packages = lockfile.packages;
-  const expectedConsumers = new Set();
-  for (const [index, [name, version, range]] of CHAIN.entries()) {
-    const location = `node_modules/${name}`;
-    const entry = packages[location];
-    requireCondition(entry?.dev === true, `Exception requires dev-only package: ${name}`);
-    requireCondition(entry.version === version, `Unreviewed chain version: ${name}`);
-    const locations = Object.keys(packages).filter((key) => key === location || key.endsWith(`/${location}`));
-    requireCondition(equal(locations, [location]), `Unreviewed chain install location: ${name}`);
-    const parent = index === 0 ? '' : `node_modules/${CHAIN[index - 1][0]}`;
-    const type = index === 0 ? 'devDependencies' : 'dependencies';
-    requireCondition(packages[parent]?.[type]?.[name] === range, `Unreviewed chain edge: ${parent} -> ${name}`);
-    expectedConsumers.add(`${parent}|${type}|${name}`);
-  }
-  for (const [location, entry] of Object.entries(packages)) {
-    for (const type of ['dependencies', 'devDependencies', 'optionalDependencies', 'peerDependencies']) {
-      for (const [name] of CHAIN) {
-        if (entry[type]?.[name] !== undefined) {
-          requireCondition(expectedConsumers.has(`${location}|${type}|${name}`), `Unreviewed chain consumer: ${location || 'root'} -> ${name}`);
-        }
-      }
-    }
-  }
-}
-
-export function evaluateAudits({ full, runtime, lockfile, now = new Date(), nextRootDir }) {
-  requireCondition(now instanceof Date && Number.isFinite(now.getTime()), 'Invalid audit clock');
+export function evaluateAudits({ full, runtime, nextRootDir }) {
   const runtimeReport = parseAudit(runtime, 'runtime');
   requireCondition(runtimeReport.metadata.vulnerabilities.total === 0, 'The runtime audit must have zero vulnerabilities');
-  const report = parseAudit(full, 'full');
-  if (report.metadata.vulnerabilities.total === 0) {
-    return { fullVulnerabilities: 0, runtimeVulnerabilities: 0, knownExceptions: [], message: 'Dependency audit: full 0 vulnerabilities; runtime 0 vulnerabilities; 0 known exceptions.' };
-  }
-  requireCondition(now < EXPIRES, `Known exception ${ADVISORY} expired at ${EXPIRES.toISOString()}`);
-  requireCondition(nextRootDir === undefined, 'Exception requires settings.next.rootDir to remain unset');
-  requireCondition(equal(Object.keys(report.vulnerabilities).sort(), CHAIN.map(([name]) => name).sort()), 'Unreviewed vulnerability chain');
-  for (const [index, [name]] of CHAIN.entries()) {
-    const item = report.vulnerabilities[name];
-    requireCondition(item.severity === 'high' && item.isDirect === (index === 0)
-      && equal(item.nodes, [`node_modules/${name}`])
-      && equal(item.effects, index === 0 ? [] : [CHAIN[index - 1][0]]), `Unreviewed chain record: ${name}`);
-    if (name === 'braces') {
-      const advisory = item.via[0];
-      requireCondition(item.via.length === 1 && object(advisory) && advisory.source === 1240992
-        && advisory.name === 'braces' && advisory.dependency === 'braces' && advisory.severity === 'high'
-        && advisory.url === `https://github.com/advisories/${ADVISORY}` && advisory.range === '<=3.0.3', 'Unreviewed braces advisory');
-    } else {
-      requireCondition(equal(item.via, [CHAIN[index + 1][0]]), `Unreviewed chain advisory route: ${name}`);
-    }
-  }
-  verifyLockfile(lockfile);
-  return {
-    fullVulnerabilities: 5,
-    runtimeVulnerabilities: 0,
-    knownExceptions: [ADVISORY],
-    expiresAt: EXPIRES.toISOString(),
-    message: `Dependency audit: full 5 high findings; runtime 0 vulnerabilities; 1 known exception (${ADVISORY}, reviewed dev-only chain), expires ${EXPIRES.toISOString()}.`,
-  };
+  const fullReport = parseAudit(full, 'full');
+  requireCondition(fullReport.metadata.vulnerabilities.total === 0, 'The full audit must have zero vulnerabilities');
+  // tinyglobby has different directory expansion/absolute-path defaults. The
+  // scoped alias is reviewed only for Socra's existing single-project config.
+  requireCondition(nextRootDir === undefined, 'Reviewed lint replacement requires settings.next.rootDir to remain unset');
+  return { fullVulnerabilities: 0, runtimeVulnerabilities: 0, knownExceptions: [], message: 'Dependency audit: full 0 vulnerabilities; runtime 0 vulnerabilities; 0 known exceptions.' };
 }
 
 async function main() {
@@ -123,11 +61,7 @@ async function main() {
     const { ESLint } = await import('eslint');
     const config = await new ESLint({ cwd }).calculateConfigForFile(resolve(cwd, 'app/(public)/page.tsx'));
     requireCondition(config, 'Unable to inspect effective ESLint configuration');
-    const summary = evaluateAudits({
-      full, runtime,
-      lockfile: JSON.parse(readFileSync(resolve(cwd, 'package-lock.json'), 'utf8')),
-      nextRootDir: config.settings?.next?.rootDir,
-    });
+    const summary = evaluateAudits({ full, runtime, nextRootDir: config.settings?.next?.rootDir });
     writeFileSync(resolve(artifactDirectory, 'summary.json'), JSON.stringify({ status: 'passed', ...summary }, null, 2));
     console.log(summary.message);
   } catch (error) {

@@ -25,6 +25,8 @@ jobs:
           include-hidden-files: true
           retention-days: 14
       - run: npm run test:security
+      - name: Session-scoped request cache regressions
+        run: node --test tests/request-cache.mjs tests/client-cache.test.mjs
       - run: npm run test:ux:gate
       - run: npm run typecheck
       - run: npm run lint

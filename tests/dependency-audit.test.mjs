@@ -10,7 +10,7 @@ import { evaluateAudits } from '../scripts/audit-dependencies.mjs';
 const readJson = (path) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8').replace(/^\uFEFF/, ''));
 const fullReport = readJson('./fixtures/dependency-audit/full-2026-10-03.json');
 const runtimeReport = readJson('./fixtures/dependency-audit/runtime-2026-10-03.json');
-// Keep the historical exception paired with its reviewed graph, not today's dependencies.
+// This graph accompanies the stored historical report; the current gate grants no exception.
 const lockfile = readJson('./fixtures/dependency-audit/lock-2026-10-03-chain.json');
 const processResult = (report, status) => ({ stdout: JSON.stringify(report), stderr: '', status, signal: null });
 
@@ -30,68 +30,59 @@ function changeReport(value, kind, mutate) {
   value[kind].stdout = JSON.stringify(report);
 }
 
-test('the captured npm report passes only with five high findings and one explicit temporary exception', () => {
-  const result = evaluateAudits(input());
-  assert.equal(result.fullVulnerabilities, 5);
-  assert.equal(result.runtimeVulnerabilities, 0);
-  assert.deepEqual(result.knownExceptions, ['GHSA-vfj7-8cjw-p6xm']);
-  assert.match(result.message, /5 high/);
-  assert.match(result.message, /1 known exception/);
-  assert.match(result.message, /2026-10-10T00:00:00.000Z/);
+test('the retired advisory is blocked even before the former exception deadline', () => {
+  assert.throws(() => evaluateAudits(input()), /full audit must have zero/);
 });
 
-test('a genuinely clean full report needs no exception even after its expiry', () => {
+test('a genuinely clean report passes with no exception', () => {
   const value = input();
   value.full = processResult(runtimeReport, 0);
-  value.now = new Date('2026-10-11T00:00:00Z');
   const result = evaluateAudits(value);
   assert.equal(result.fullVulnerabilities, 0);
+  assert.equal(result.runtimeVulnerabilities, 0);
   assert.deepEqual(result.knownExceptions, []);
+  assert.equal(result.expiresAt, undefined);
 });
 
-test('the upgraded live dependency graph cannot reuse the historical exception', () => {
+test('new root-directory glob configuration requires review even with clean audits', () => {
+  const value=input(); value.full=processResult(runtimeReport,0); value.nextRootDir=['apps/**'];
+  assert.throws(()=>evaluateAudits(value),/rootDir/);
+});
+
+test('the current graph cannot exempt the historical finding at any date', () => {
   const value = input();
   value.lockfile = readJson('../package-lock.json');
-  assert.throws(() => evaluateAudits(value), /Unreviewed chain version/);
+  assert.throws(() => evaluateAudits(value), /full audit must have zero/);
   value.now = new Date('2026-10-11T00:00:00Z');
-  assert.throws(() => evaluateAudits(value), /expired/);
+  assert.throws(() => evaluateAudits(value), /full audit must have zero/);
 });
 
 const invalidCases = [
-  ['expires at the first instant of October 10 UTC', (v) => { v.now = new Date('2026-10-10T00:00:00Z'); }, /expired/],
-  ['rejects an invalid clock', (v) => { v.now = new Date('invalid'); }, /clock/],
-  ['rejects the same advisory in the runtime audit', (v) => { v.runtime = processResult(fullReport, 1); }, /runtime/],
-  ['rejects missing runtime output', (v) => { v.runtime.stdout = ''; }, /runtime.*JSON/],
-  ['rejects a network error report', (v) => { v.full = processResult({ error: { code: 'ENOTFOUND' } }, 1); }, /error|schema/],
-  ['rejects a killed audit process', (v) => { v.full.status = null; v.full.signal = 'SIGTERM'; }, /process/],
-  ['rejects a failed process even with a cached valid report', (v) => { v.full.error = new Error('ETIMEDOUT'); }, /process/],
-  ['rejects unexpected exit codes', (v) => { v.full.status = 2; }, /process/],
-  ['rejects invalid full JSON', (v) => { v.full.stdout = 'registry unavailable'; }, /JSON/],
-  ['rejects an unknown report schema', (v) => changeReport(v, 'full', (r) => { r.auditReportVersion = 3; }), /schema/],
-  ['rejects missing severity counts', (v) => changeReport(v, 'full', (r) => { delete r.metadata.vulnerabilities.high; }), /metadata/],
-  ['rejects counts that hide findings', (v) => changeReport(v, 'full', (r) => { r.metadata.vulnerabilities.total = 0; }), /metadata/],
-  ['rejects a severity downgrade in one transitive record', (v) => changeReport(v, 'full', (r) => { r.vulnerabilities.braces.severity = 'moderate'; }), /metadata|chain/],
-  ['rejects a new advisory on an already exempted package', (v) => changeReport(v, 'full', (r) => { r.vulnerabilities.braces.via.push({ ...r.vulnerabilities.braces.via[0], url: 'https://github.com/advisories/GHSA-new-advisory', source: 999999 }); }), /advisory/],
-  ['rejects replacement of the allowed advisory', (v) => changeReport(v, 'full', (r) => { r.vulnerabilities.braces.via[0].url = 'https://github.com/advisories/GHSA-other'; }), /advisory/],
-  ['rejects another high dependency', (v) => changeReport(v, 'full', (r) => { r.vulnerabilities.other = { ...r.vulnerabilities.braces, name: 'other' }; r.metadata.vulnerabilities.high++; r.metadata.vulnerabilities.total++; }), /chain/],
-  ['rejects a new low advisory rather than silently widening the exception', (v) => changeReport(v, 'full', (r) => { r.vulnerabilities.other = { ...r.vulnerabilities.braces, name: 'other', severity: 'low' }; r.metadata.vulnerabilities.low++; r.metadata.vulnerabilities.total++; }), /chain/],
-  ['rejects an extra affected install path', (v) => changeReport(v, 'full', (r) => { r.vulnerabilities.braces.nodes.push('node_modules/other/node_modules/braces'); }), /chain/],
-  ['rejects an alternate transitive route', (v) => changeReport(v, 'full', (r) => { r.vulnerabilities['fast-glob'].via = ['braces']; }), /chain/],
-  ['rejects a lockfile package that is no longer dev-only', (v) => { delete v.lockfile.packages['node_modules/braces'].dev; }, /dev-only/],
-  ['rejects an unreviewed chain version', (v) => { v.lockfile.packages['node_modules/micromatch'].version = '4.0.9'; }, /version/],
-  ['rejects a nested copy of the package in the lockfile', (v) => { v.lockfile.packages['node_modules/other/node_modules/braces'] = { ...v.lockfile.packages['node_modules/braces'] }; }, /chain/],
-  ['rejects an additional consumer even when dev-only', (v) => { v.lockfile.packages['node_modules/another-tool'] = { version: '1.0.0', dev: true, dependencies: { braces: '^3.0.3' } }; }, /chain/],
-  ['rejects a root runtime dependency on the affected package', (v) => { v.lockfile.packages[''].dependencies.braces = '3.0.3'; }, /chain/],
-  ['rejects a changed declared chain edge', (v) => { v.lockfile.packages['node_modules/fast-glob'].dependencies.micromatch = '*'; }, /chain/],
-  ['rejects malformed lock metadata', (v) => { delete v.lockfile.packages; }, /lockfile/],
-  ['rejects newly configured Next root globs', (v) => { v.nextRootDir = ['apps/**']; }, /rootDir/],
+  ['rejects the former exception after its original deadline', v => { v.now = new Date('2026-10-11T00:00:00Z'); }, /full audit must have zero/],
+  ['rejects the same advisory in the runtime audit', v => { v.runtime = processResult(fullReport, 1); }, /runtime/],
+  ['rejects missing runtime output', v => { v.runtime.stdout = ''; }, /runtime.*JSON/],
+  ['rejects a network error report', v => { v.full = processResult({error:{code:'ENOTFOUND'}},1); }, /error|schema/],
+  ['rejects a killed audit process', v => { v.full.status = null; v.full.signal = 'SIGTERM'; }, /process/],
+  ['rejects a failed process even with a cached valid report', v => { v.full.error = new Error('ETIMEDOUT'); }, /process/],
+  ['rejects unexpected exit codes', v => { v.full.status = 2; }, /process/],
+  ['rejects invalid full JSON', v => { v.full.stdout = 'registry unavailable'; }, /JSON/],
+  ['rejects unknown report schema', v => changeReport(v,'full',r=>{r.auditReportVersion=3;}), /schema/],
+  ['rejects missing severity counts', v => changeReport(v,'full',r=>{delete r.metadata.vulnerabilities.high;}), /metadata/],
+  ['rejects counts that hide findings', v => changeReport(v,'full',r=>{r.metadata.vulnerabilities.total=0;}), /metadata/],
+  ['rejects inconsistent severities', v => changeReport(v,'full',r=>{r.vulnerabilities.braces.severity='moderate';}), /metadata/],
+  ['rejects a clean report with a failed process status', v => {v.full=processResult(runtimeReport,1);}, /status/],
 ];
-
 for (const [name, mutate, message] of invalidCases) {
-  test(name, () => {
-    const value = input();
-    mutate(value);
-    assert.throws(() => evaluateAudits(value), message);
+  test(name, () => { const value=input(); mutate(value); assert.throws(()=>evaluateAudits(value),message); });
+}
+for (const severity of ['info','low','moderate','high','critical']) {
+  test('rejects a new '+severity+' advisory with otherwise consistent metadata',()=>{
+    const value=input();
+    const report=structuredClone(runtimeReport);
+    report.vulnerabilities.other={...structuredClone(fullReport.vulnerabilities.braces),name:'other',severity};
+    report.metadata.vulnerabilities[severity]=1;report.metadata.vulnerabilities.total=1;
+    value.full=processResult(report,1);
+    assert.throws(()=>evaluateAudits(value),/full audit must have zero/);
   });
 }
 

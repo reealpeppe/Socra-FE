@@ -9,7 +9,7 @@
     "preview": "next build && next start -p 3000",
     "lint": "eslint .",
     "audit:security": "node scripts/audit-dependencies.mjs",
-    "test:security": "node --test tests/web-security.test.mjs tests/auth-bff.test.mjs tests/monitoring-bff.test.mjs tests/monitoring-proxy.test.mjs tests/dependency-audit.test.mjs",
+    "test:security": "node --test tests/web-security.test.mjs tests/auth-bff.test.mjs tests/monitoring-bff.test.mjs tests/monitoring-proxy.test.mjs tests/dependency-audit.test.mjs tests/lint-glob.test.mjs",
     "typecheck": "tsc --noEmit",
     "test:e2e": "npm run build && node scripts/run-e2e.mjs",
     "test:ux:capture": "node scripts/run-ux-review.mjs",
@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "lucide-react": "^1.27.0",
-    "next": "^16.3.8",
+    "next": "16.3.8",
     "react": "^19.2.7",
     "react-dom": "^19.2.7"
   },
@@ -33,6 +33,9 @@
   },
   "overrides": {
     "postcss": "8.5.23",
-    "sharp": "0.35.5"
+    "sharp": "0.35.5",
+    "@next/eslint-plugin-next": {
+      "fast-glob": "npm:tinyglobby@0.2.16"
+    }
   }
 }

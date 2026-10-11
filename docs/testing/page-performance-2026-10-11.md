@@ -1,5 +1,11 @@
 # Attese di navigazione — correzione e collaudo 11/10/2026
 
+Questo documento conserva il collaudo della preview originale. GR l'ha provata
+e ha autorizzato la pubblicazione; il candidato di rilascio integra anche
+la grafica corrente e la rimozione braces dell'altra chat. Il precedente
+blocco audit è risolto: audit completo0/runtime0/eccezioni0 verificato sul
+candidato integrato. Stato e nuovi controlli nel [rapporto di rilascio](page-performance-release-2026-10-11.md).
+
 Branch FE `fix/page-performance-20261011`, base `4198c0d`; documentazione
 condivisa BE `docs/page-performance-20261011`, base `8bf12a2`. Worktree isolati,
 checkout e server delle altre chat conservati. Implementazione locale, nessun
