@@ -51,7 +51,7 @@ test.beforeEach(async ({ baseURL, context, page }) => {
     eligible_mentor_topics: [],
     is_coach: true
   } }));
-  await page.route("**/api/backend/wallet/me", async (route) => route.fulfill({ json: { balance: 10, debt: 0, currency_label: "coin" } }));
+  await page.route("**/api/backend/wallet/me", async (route) => route.fulfill({ json: { balance: 10, available_balance: 10, advance_available: 0, advance_used: 0, currency_label: "coin" } }));
   await page.route("**/api/backend/wallet/me/transactions", async (route) => route.fulfill({ json: [] }));
   await page.route("**/api/backend/notifications/me", async (route) => route.fulfill({ json: [
     { id: "n1", type: "path_opened", payload: { message: "Percorso aperto.", link: "/paths/p1" }, read_at: null, created_at: new Date().toISOString() }

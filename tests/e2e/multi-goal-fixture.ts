@@ -29,7 +29,7 @@ export async function fixture(page: Page, baseURL: string, options: {empty?:bool
       '/skills/catalog':catalog,'/skills/me':profileSaved?{...state.profile,profile_completion:{experience_completed:true,context_completed:answered===5,context_answered_count:answered,context_total_count:5}}:null,
       '/skills/me/context':{...state.profile,profile_completion:{experience_completed:true,context_completed:answered===5,context_answered_count:answered,context_total_count:5}},
       '/surveys/onboarding/me':{latest_answer_id:'done',user_id:'u1'},'/surveys/onboarding/me/draft':null,
-      '/goals/me':goals,'/goals/me/selection':goals,'/paths/me':[], '/notifications/me':[], '/wallet/me':{balance:5,debt:0},
+      '/goals/me':goals,'/goals/me/selection':goals,'/paths/me':[], '/notifications/me':[], '/wallet/me':{balance:5,available_balance:5,advance_available:0,advance_used:0,currency_label:'crediti'},
       '/profiles/u1':{skill_model:true,user_id:'u1',skill_groups:[],completed_paths:0,public_badges:[],aggregate_metrics:{},public_reviews:[]},
       '/matching/requests/me':options.pending?[{id:'r1',mentee_id:'u1',mentor_id:'m-0',goal_id:'g-etf',status:'pending',initiator_role:'mentee',expires_at:'2026-12-01',created_at:'2026-10-05',goal:etf}]:[],
       '/matching/candidates/all':{items:body?.cursor?[card(10),card(11)]:Array.from({length:10},(_,i)=>card(i)),next_cursor:body?.cursor?null:'page-two'},

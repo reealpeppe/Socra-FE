@@ -1,4 +1,5 @@
 "use client";
+import { availableCredits } from "@/lib/credits";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -133,9 +134,9 @@ export default function DashboardPage() {
               <h1>Ciao {displayName}<span className={styles.wave} aria-hidden="true">✳</span></h1>
               <p className={styles.introCopy}>Un posto per imparare, condividere e seguire ciò che conta per te.</p>
             </div>
-            <Link className={styles.wallet} href="/wallet" aria-label={`Crediti: ${errors.wallet ? "non disponibili" : wallet?.balance ?? "in caricamento"}. Apri il portafoglio`}>
+            <Link className={styles.wallet} href="/wallet" aria-label={`Crediti: ${errors.wallet ? "non disponibili" : availableCredits(wallet) ?? "in caricamento"}${wallet?.advance_available === 1 ? ", anticipato" : wallet?.advance_used === 1 ? ", anticipo utilizzato" : ""}. Apri il portafoglio`}>
               <span className={styles.walletIcon}><Coins size={21} aria-hidden="true" /></span>
-              <span><small>Crediti</small><strong>{errors.wallet ? "—" : wallet?.balance ?? "—"}</strong></span>
+              <span><small>Crediti{wallet?.advance_available === 1 ? " · anticipato" : ""}</small><strong style={wallet?.advance_available === 1 ? { color: "var(--honey-ink)" } : undefined}>{errors.wallet ? "—" : availableCredits(wallet) ?? "—"}</strong></span>
               <ChevronRight size={17} aria-hidden="true" />
             </Link>
           </header>

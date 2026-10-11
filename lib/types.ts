@@ -42,7 +42,9 @@ export type NotificationItem = {
 
 export type Wallet = {
   balance: number;
-  debt: number;
+  available_balance: number;
+  advance_available: number;
+  advance_used: number;
   currency_label: string;
 };
 
@@ -51,7 +53,7 @@ export type WalletTransaction = {
   type: string;
   amount: number;
   balance_after: number;
-  debt_after: number;
+  advance_after: number;
   description: string;
   reason: string;
   path_id: string | null;

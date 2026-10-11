@@ -20,7 +20,7 @@ async function session(page: Page, context: BrowserContext, baseURL: string) {
   await page.route("**/api/backend/surveys/onboarding/me", route => route.fulfill({ json: { latest_answer_id: "a1" } }));
   await page.route("**/api/backend/surveys/competences-v2/me", route => route.fulfill({ json: null }));
   await page.route("**/api/backend/notifications/me", route => route.fulfill({ json: [] }));
-  await page.route("**/api/backend/wallet/me", route => route.fulfill({ json: { balance: 10, debt: 0, currency_label: "crediti" } }));
+  await page.route("**/api/backend/wallet/me", route => route.fulfill({ json: { balance: 10, available_balance: 10, advance_available: 0, advance_used: 0, currency_label: "crediti" } }));
   await page.route("**/api/backend/goals/me", route => route.fulfill({ json: { current: goal, goals: [goal] } }));
   await page.route("**/api/backend/matching/requests/me?**", route => route.fulfill({ json: [] }));
   await page.route("**/api/backend/paths/me", route => route.fulfill({ json: [] }));

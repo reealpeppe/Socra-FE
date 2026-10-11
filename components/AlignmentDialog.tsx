@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { EmailSharingNotice } from "@/components/EmailSharingNotice";
-import type { SkillCoverage, GoalMatch } from "@/lib/types";
+import type { SkillCoverage, GoalMatch, Wallet } from "@/lib/types";
+import { clientGet } from "@/lib/api";
 import { GoalMatchChoices } from './GoalMatchChoices';
 import { CoverageSummary } from "@/components/SkillSummary";
 import styles from "./SkillLearning.module.css";
@@ -20,11 +21,19 @@ export function AlignmentDialog({ name, mentorProposal = false, coverage, matche
   const [busy, setBusy] = useState(false);
   const [emailSharing, setEmailSharing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [wallet, setWallet] = useState<Wallet | null>(null);
   const [agreed, setAgreed] = useState<string[]>([]);
   const [selectedGoalId, setSelectedGoalId] = useState<string | null>(matches?.length === 1 ? matches[0].goal_id : null);
   const selectedCoverage = matches ? matches.find(m => m.goal_id === selectedGoalId) : coverage;
   const needsAgreement = !!matches?.length || coverage?.skill_model === true;
   useEffect(() => { dialog.current?.showModal(); }, []);
+  useEffect(() => {
+    if (mentorProposal) return;
+    let active = true;
+    clientGet<Wallet>("/wallet/me").then(value => { if (active) setWallet(value); })
+      .catch(() => { if (active) setWallet(null); });
+    return () => { active = false; };
+  }, [mentorProposal]);
   return <dialog ref={dialog} className={styles.alignmentDialog} aria-labelledby="alignment-title" onCancel={(event) => {
     event.preventDefault();
     if (!busy) onClose();
@@ -39,6 +48,7 @@ export function AlignmentDialog({ name, mentorProposal = false, coverage, matche
       finally { setBusy(false); }
     }}>
       <h2 id="alignment-title">Un primo messaggio per {name}</h2>
+      {!mentorProposal && wallet?.advance_available === 1 ? <p className="muted">Quando la proposta verrà accettata, questo percorso utilizzerà il tuo credito anticipato. La disponibilità sarà verificata all’accettazione.</p> : null}
       {matches ? <fieldset disabled={busy} style={{border:0,padding:0}}><GoalMatchChoices matches={matches} selectedGoalId={selectedGoalId} onSelect={id=>{setSelectedGoalId(id);setAgreed([]);}}/></fieldset> : null}
       {needsAgreement && selectedCoverage ? <fieldset className={styles.fieldset} disabled={busy}><legend>Concordate gli obiettivi</legend><CoverageSummary coverage={selectedCoverage} /><p className="muted">Seleziona le attività da proporre. L’altra persona accetterà questo elenco completo.</p><div className={styles.choices}>{selectedCoverage.covered_objective_codes?.map((code, index) => <label className={styles.check} key={code}><input type="checkbox" checked={agreed.includes(code)} onChange={event => setAgreed(current => event.target.checked ? [...current, code] : current.filter(item => item !== code))} /><span>{selectedCoverage.covered_objective_labels?.[index] || code}</span></label>)}</div></fieldset> : null}
       <p className="muted">{mentorProposal

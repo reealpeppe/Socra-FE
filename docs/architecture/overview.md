@@ -1,5 +1,7 @@
 # Architettura frontend Socra
 
+Anticipo crediti dell'11/10: [lib/credits.ts](../../lib/credits.ts) interpreta il totale spendibile e la spiegazione del DTO wallet; saldo, dashboard e conferma proposte lo riusano. Idoneità e compensazione restano nel backend, come da wiki 05/07 di Socra-BE. Nessun nuovo box, provider, componente cloud o confine nella wiki 13. [Collaudo e review indipendente](../testing/credit-advance-2026-10-11.md).
+
 Aggiornato: 11/10/2026. Proprietario dei confini tecnici locali; la [guida](../agent/README.md) risolve wiki e architettura condivisa del backend sul ref del task.
 
 La V4 è pubblicata dal 03/10 su `release/v3-20260919`: BE `f53226aab35c93722c0fad8dbee4efef31d66e28`, FE `996fb361167132b7667a4fc4df79626159a0b411`. Backend e frontend corretto verificati: il clipping mobile con username lunghi rilevato nella prima review live è stato corretto e ricollaudato il 03/10. Deployment ed evidenze nel [rapporto backend del 03/10](https://github.com/reealpeppe/Socra-BE/blob/release/v3-20260919/docs/releases/2026-10-03-skills-production.md). Stato operativo e regole restano nel backend; registrazione/verifica email, confine BFF, CSP e monitoraggio sono preservati.

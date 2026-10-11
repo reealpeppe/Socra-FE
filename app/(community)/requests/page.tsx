@@ -13,6 +13,7 @@ import { TabPanel, Tabs } from "@/components/Ui";
 import { ClientApiError, clientGet, clientPost, cachedClientValue, hasCachedClientValues } from "@/lib/api";
 import { parseApiDate } from "@/lib/date";
 import type { MatchRequestItem, UserMe, Wallet } from "@/lib/types";
+import { availableCredits } from "@/lib/credits";
 
 type RequestWithCost = MatchRequestItem & {
   cost_at_request?: number;
@@ -120,8 +121,14 @@ function RequestsContent() {
     if (accept) {
       if (request.email_sharing_accepted !== true) return;
       const cost = request.initiator_role === "mentor" ? request.cost_at_request : 0;
+      const currentWallet = typeof cost === "number" && cost > 0
+        ? await clientGet<Wallet>("/wallet/me").catch(() => null) : wallet;
+      if (typeof cost === "number" && cost > 0 && !currentWallet) {
+        setError("Non riusciamo a verificare i crediti disponibili. Riprova.");
+        return;
+      }
       const costCopy = typeof cost === "number" && cost > 0
-        ? ` Il percorso costerà ${cost} ${cost === 1 ? "credito" : "crediti"}. Crediti disponibili: ${wallet?.balance ?? "non disponibili"}.`
+        ? ` Il percorso costerà ${cost} ${cost === 1 ? "credito" : "crediti"}. Crediti disponibili: ${availableCredits(currentWallet) ?? "non disponibili"}.${cost === 1 && currentWallet?.advance_available === 1 ? " Questo percorso utilizzerà il tuo credito anticipato." : ""}`
         : "";
       if (!await confirm(`Vuoi accettare e aprire questo percorso?${costCopy}`, { emailSharing: true })) return;
     }

@@ -33,7 +33,7 @@ async function mockSuccessfulSession(page: Page) {
     });
   });
   await page.route("**/api/backend/wallet/me", async (route) => route.fulfill({
-    json: { balance: 10, debt: 0, currency_label: "coin" }
+    json: { balance: 10, available_balance: 10, advance_available: 0, advance_used: 0, currency_label: "coin" }
   }));
   await page.route("**/api/backend/goals/me", async (route) => route.fulfill({
     json: { current: null, goals: [], history: [] }

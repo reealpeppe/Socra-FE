@@ -37,7 +37,7 @@ test.beforeEach(async ({ page, context: browser, baseURL }) => {
       "/auth/me": user, "/profiles/me": ownProfile,
       "/skills/catalog": catalog, "/skills/me": { version: 1, known_skills: [], mentor_skills: [], section_d: context, mentor_available: true },
       "/surveys/onboarding/me": { user_id: "u1", latest_answer_id: "done" },
-      "/surveys/onboarding/me/draft": null, "/notifications/me": [], "/wallet/me": { balance: 2, debt: 0 },
+      "/surveys/onboarding/me/draft": null, "/notifications/me": [], "/wallet/me": { balance: 2, available_balance: 2, advance_available: 0, advance_used: 0, currency_label: "crediti" },
       "/goals/me": { current: goal, goals: [goal] }, "/paths/me": [], "/paths/p1": path,
       "/matching/candidates": [candidate], "/matching/candidates/all": {items:[aggregate(candidate)],next_cursor:null}, "/matching/requests/me": [],
       "/calls/capabilities": { google_meet_available: false },

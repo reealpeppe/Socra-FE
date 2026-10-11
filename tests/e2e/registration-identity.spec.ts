@@ -14,7 +14,7 @@ async function session(page: Page, baseURL: string, verified = false) {
   await page.route("**/api/backend/surveys/onboarding/me", r => r.fulfill({ json: { latest_answer_id: "saved-survey" } }));
   await page.route("**/api/backend/surveys/competences-v2/me", r => r.fulfill({ json: null }));
   await page.route("**/api/backend/goals/me", r => r.fulfill({ json: { goals: [], current: null } }));
-  await page.route("**/api/backend/wallet/me", r => r.fulfill({ json: { balance: 2, debt: 0 } }));
+  await page.route("**/api/backend/wallet/me", r => r.fulfill({ json: { balance: 2, available_balance: 2, advance_available: 0, advance_used: 0, currency_label: "crediti" } }));
   await page.route("**/api/backend/matching/requests/me?**", r => r.fulfill({ json: [] }));
   return state;
 }
