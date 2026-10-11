@@ -64,6 +64,7 @@ test("used advance keeps zero spendable credits and explains compensation", asyn
   await fixture(page, "used");
   await page.goto("/wallet");
   const balance = page.locator(".wallet-stat-card");
+  await expect(balance).toHaveCount(1);
   await expect(balance.locator(".wallet-stat-value")).toHaveText("0");
   await expect(balance).toContainText("Il prossimo credito guadagnato come mentor compenserà l’anticipo.");
   await expect(page.getByText("Credito anticipato utilizzato", { exact: true })).toBeVisible();
