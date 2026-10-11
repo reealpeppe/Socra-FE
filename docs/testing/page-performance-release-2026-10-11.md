@@ -38,6 +38,14 @@ La review tecnica finale dell'integrazione non ha individuato bug concreti;
   con riepiloghi e aiuto ETF aperti. Gate finale PASS,162 hash verificati.
 - Documenti canonici:32 BE/5 FE/10 workspace,0 errori.
 
+La prima CI Linux è stata fermata da `npm ci`: mancava il peer opzionale
+`@emnapi/core`1.11.3 richiesto dal tooling WASM. Windows/npm11 non rilevava
+il difetto. Ripristinato l'unico record dal lockfile della release grafica,
+senza variazioni delle dipendenze applicative. La verifica npm10 con
+OS Linux passa dopo il ripristino, mentre prima falliva; installazione Windows,
+audit0 e108 test sicurezza ripetuti e passati. Il cambiamento al lockfile richiede
+una nuova cattura/gate UX prima del merge; la run10:48 resta evidenza storica.
+
 La [preview originale](page-performance-2026-10-11.md) misura il confronto
 controllato delle viste private: mediana344→45ms desktop e360→36ms mobile.
 Questi valori sono locali e non vengono attribuiti alla produzione.
