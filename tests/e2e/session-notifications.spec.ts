@@ -162,7 +162,7 @@ test("responding to an incoming request removes its banner while the notificatio
   await page.route("**/api/backend/surveys/onboarding/me", route => route.fulfill({ json: {
     user_id: "recipient-1", level: "L2", is_coach: true, latest_answer_id: "answer-1",
   } }));
-  await page.route("**/api/backend/wallet/me", route => route.fulfill({ json: { balance: 10, debt: 0, currency_label: "coin" } }));
+  await page.route("**/api/backend/wallet/me", route => route.fulfill({ json: { balance: 10, available_balance: 10, advance_available: 0, advance_used: 0, currency_label: "coin" } }));
   await page.route("**/api/backend/notifications/me", route => route.fulfill({ json: [incomingProposal] }));
   await page.route("**/api/backend/matching/requests/me?role=all", route => route.fulfill({ json: [{ ...pendingRequest, status: requestStatus }] }));
   await page.route("**/api/backend/matching/requests/request-1/respond", route => {

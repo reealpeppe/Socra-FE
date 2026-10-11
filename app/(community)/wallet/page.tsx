@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { clientGet, formatCredits } from "@/lib/api";
 import type { Wallet, WalletTransaction } from "@/lib/types";
+import { advanceExplanation, availableCredits } from "@/lib/credits";
 
 const dateFormatter = new Intl.DateTimeFormat("it-IT", {
   day: "2-digit",
@@ -17,13 +18,14 @@ const TX_TYPE_STYLES: Record<string, { background: string; color: string; label:
   reward: { background: "#d1fae5", color: "#059669", label: "Percorso completato" },
   bonus: { background: "#fef3c7", color: "#b07d1a", label: "Bonus" },
   spend: { background: "#fee2e2", color: "#dc2626", label: "Utilizzo" },
-  debt:  { background: "#fff4dd", color: "#9a6700", label: "Margine utilizzato" }
 };
 
 const TX_REASON_LABELS: Record<string, string> = {
   initial_grant: "Dotazione iniziale",
   path_payment: "Apertura percorso",
   path_reward: "Percorso completato",
+  credit_advance_used: "Apertura percorso con anticipo",
+  credit_advance_settled: "Credito maturato destinato all’anticipo",
   invitation_bonus: "Bonus invito"
 };
 
@@ -45,6 +47,7 @@ export default function WalletPage() {
   const [walletReady, setWalletReady] = useState(false);
   const [transactionsReady, setTransactionsReady] = useState(false);
   const currencyLabel = formatCredits(wallet?.currency_label);
+  const anticipation = advanceExplanation(wallet);
   const creditTotal = transactions.filter((row) => row.amount > 0).reduce((total, row) => total + row.amount, 0);
   const debitTotal = transactions.filter((row) => row.amount < 0).reduce((total, row) => total + Math.abs(row.amount), 0);
 
@@ -102,20 +105,13 @@ export default function WalletPage() {
         <div className="wallet-stats-grid">
           <div className="card wallet-stat-card">
             <p className="wallet-stat-label">Crediti disponibili</p>
-            <div className="wallet-stat-value" style={{ color: "var(--ink)" }}>
-              {loading || !walletReady ? "—" : wallet?.balance ?? "—"}
+            <div className="wallet-stat-line">
+              <div className="wallet-stat-value" style={{ color: wallet?.advance_available === 1 ? "var(--honey-ink, #8b5a0b)" : "var(--ink)" }}>
+                {loading || !walletReady ? "—" : availableCredits(wallet) ?? "—"}
+              </div>
+              {!loading && walletReady && wallet?.advance_available === 1 ? <span className="wallet-advance-label">Anticipato</span> : null}
             </div>
-            <p className="wallet-stat-sub">{currencyLabel}</p>
-          </div>
-          <div className="card wallet-stat-card">
-            <p className="wallet-stat-label">Margine utilizzato</p>
-            <div
-              className="wallet-stat-value"
-              style={{ color: wallet && wallet.debt > 0 ? "#dc2626" : "var(--mint-600)" }}
-            >
-              {loading || !walletReady ? "—" : wallet?.debt ?? "—"}
-            </div>
-            <p className="wallet-stat-sub">L’eventuale margine disponibile dipende dal profilo e viene verificato prima di aprire un percorso.</p>
+            <p className="wallet-stat-sub">{!loading && walletReady && anticipation ? anticipation : currencyLabel}</p>
           </div>
         </div>
 
@@ -140,7 +136,9 @@ export default function WalletPage() {
           ) : (
             <div className="wallet-tx-list">
               {transactions.map((row) => {
-                const typeStyle = TX_TYPE_STYLES[row.type] ?? { background: "#f3f4f6", color: "#6b7280", label: row.type };
+                const typeStyle = row.reason === "credit_advance_used" || row.reason === "credit_advance_settled"
+                  ? { background: "var(--honey-soft, #fff4dd)", color: "var(--honey-ink, #8b5a0b)", label: row.reason === "credit_advance_used" ? "Anticipo" : "Compensazione" }
+                  : TX_TYPE_STYLES[row.type] ?? { background: "#f3f4f6", color: "#6b7280", label: row.type };
                 const isPositive = row.amount >= 0;
                 return (
                   <div className="wallet-tx-row" key={row.id}>
@@ -157,7 +155,7 @@ export default function WalletPage() {
                         <span className="wallet-tx-date">
                           {safeTransactionDate(row.created_at)}
                           {" · "}saldo {row.balance_after}
-                          {" · "}margine utilizzato {row.debt_after}
+                          {row.advance_after > 0 ? " · 1 anticipo da compensare" : null}
                         </span>
                       </div>
                     </div>
@@ -209,7 +207,7 @@ export default function WalletPage() {
         }
         .wallet-stats-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: 1fr;
           gap: 16px;
         }
         @media (max-width: 600px) {
@@ -222,6 +220,8 @@ export default function WalletPage() {
           flex-direction: column;
           gap: 6px;
         }
+        .wallet-stat-line { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+        .wallet-advance-label { background: var(--honey-soft, #fff4dd); color: var(--honey-ink, #8b5a0b); border-radius: 6px; padding: 5px 9px; font-size: .8125rem; font-weight: 600; }
         .wallet-stat-label {
           font-size: 0.8125rem;
           font-weight: 600;

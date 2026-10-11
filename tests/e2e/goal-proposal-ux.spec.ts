@@ -37,7 +37,7 @@ test.beforeEach(async ({ baseURL, context, page }) => {
   await page.route("**/api/backend/goals/me", route => route.fulfill({ json: { current: null, goals: [] } }));
   await page.route("**/api/backend/matching/requests/me?role=all", route => route.fulfill({ json: [] }));
   await page.route("**/api/backend/matching/requests/me?role=mentee", route => route.fulfill({ json: [] }));
-  await page.route("**/api/backend/wallet/me", route => route.fulfill({ json: { balance: 2, debt: 0, currency_label: "crediti" } }));
+  await page.route("**/api/backend/wallet/me", route => route.fulfill({ json: { balance: 2, available_balance: 2, advance_available: 0, advance_used: 0, currency_label: "crediti" } }));
   await page.route("**/api/backend/notifications/me", route => route.fulfill({ json: [] }));
   await page.route("**/api/backend/paths/me", route => route.fulfill({ json: [] }));
 });
