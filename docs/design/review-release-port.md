@@ -1,5 +1,7 @@
 # Disposition
 
+Nota del coordinatore 11/10: questo rapporto documenta il porting precedente alla correzione della dipendenza dev. La proposta di proroga non è stata approvata né applicata. Catena vulnerabile ed eccezione sono ora rimosse; il verdetto successivo è nella [review finale](review-lint-remediation.md).
+
 **SHIP grafica sul candidato isolato; confine porting PASS. Pubblicazione HOLD per la decisione sull’eccezione dev scaduta.** Review del candidato `output/frontend-graphics-only-20261011`, branch `release/grafite-miele-graphics-only-20261011`, HEAD `4198c0d`, contro produzione `5933b7bfa3ab068ff80c6b7457ab45a38ffb276c`, 11/10/2026. Il coordinatore comunica l’esito finale E2E: 328 passed, 1.8 minuti, sessione 7524, exit 0.
 
 Il precedente checkout `output/frontend-release-grafite-miele` contiene lavoro parallelo ai crediti: **non è il candidato deployabile**. Le sue prove non autorizzano a pubblicarne il working tree. Il nuovo checkout risolve il problema di isolamento rilevato dalla review precedente.
