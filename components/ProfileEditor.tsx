@@ -125,7 +125,7 @@ export function ProfileEditor({ initialProfile, user, onUpdated }: {
       .profile-editor { display: grid; gap: 18px; }
       .profile-editor-intro { display: flex; align-items: center; gap: 14px; }
       .profile-editor-intro p { line-height: 1.6; font-size: .875rem; margin: 0; }
-      label { font-weight: 700; font-size: .9rem; }
+      label { font-weight: 600; font-size: .9rem; }
       .profile-editor-photo, .profile-editor-verification { border-top: 1px solid var(--line); padding-top: 18px; }
       .profile-editor-verification h3, .profile-editor-verification p { margin: 0; }
       .profile-editor-verification h3 { font-size: 1rem; }

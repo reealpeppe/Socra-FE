@@ -53,7 +53,7 @@ export default function SicurezzaPage() {
   return (
     <>
       <PublicNavbar />
-      <main id="main-content" tabIndex={-1} style={{ paddingTop: "64px" }}>
+      <main id="main-content" tabIndex={-1} style={{ paddingTop: "76px" }}>
 
         {/* ── Hero ── */}
         <section style={{
@@ -73,11 +73,11 @@ export default function SicurezzaPage() {
             <div>
               <h1 style={{
                 color: "var(--ink)",
-                fontSize: "clamp(2.2rem, 5vw, 4rem)",
-                fontWeight: 900,
+                fontSize: "clamp(2.2rem, 4.5vw, 3.65rem)",
+                fontWeight: 600,
                 margin: "0 0 24px",
                 letterSpacing: "-0.02em",
-                lineHeight: 1.05,
+                lineHeight: 1.12,
               }}>
                 Sicurezza concreta,<br />regole chiare.
               </h1>
@@ -105,14 +105,14 @@ export default function SicurezzaPage() {
 
             <div className="sic-hero-mark" style={{ display: "flex", justifyContent: "center" }}>
               <div style={{
-                width: "140px",
-                height: "140px",
+                width: "120px",
+                height: "120px",
                 borderRadius: "50%",
-                background: "linear-gradient(135deg, var(--gold-500), #ffd36a)",
+                background: "var(--honey-soft)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                boxShadow: "0 24px 60px rgba(245,182,47,0.3)",
+                boxShadow: "none",
               }}>
                 <Shield size={64} color="var(--navy-950)" />
               </div>
@@ -136,7 +136,7 @@ export default function SicurezzaPage() {
             <h2 style={{
               color: "var(--ink)",
               fontSize: "clamp(1.6rem, 3.5vw, 2.4rem)",
-              fontWeight: 900,
+              fontWeight: 600,
               textAlign: "center",
               margin: "0 0 40px",
               letterSpacing: "-0.02em",
@@ -157,7 +157,7 @@ export default function SicurezzaPage() {
                   <div key={f.title} style={{
                     background: "#ffffff",
                     border: "1px solid var(--line)",
-                    borderRadius: "14px",
+                    borderRadius: "12px",
                     padding: "28px 24px",
                     display: "flex",
                     flexDirection: "column",
@@ -174,7 +174,7 @@ export default function SicurezzaPage() {
                     }}>
                       <Icon size={20} color="var(--gold-500)" />
                     </div>
-                    <h3 style={{ color: "var(--ink)", fontSize: "1rem", fontWeight: 800, margin: 0 }}>
+                    <h3 style={{ color: "var(--ink)", fontSize: "1rem", fontWeight: 600, margin: 0 }}>
                       {f.title}
                     </h3>
                     <p style={{ color: "var(--muted)", fontSize: "0.875rem", lineHeight: 1.6, margin: 0 }}>
@@ -215,7 +215,7 @@ export default function SicurezzaPage() {
               <h2 style={{
                 color: "var(--ink)",
                 fontSize: "clamp(1.6rem, 3.5vw, 2.4rem)",
-                fontWeight: 900,
+                fontWeight: 600,
                 margin: "0 0 24px",
                 letterSpacing: "-0.02em",
               }}>
@@ -244,14 +244,14 @@ export default function SicurezzaPage() {
             <div style={{
               background: "var(--paper)",
               border: "1px solid var(--line)",
-              borderRadius: "16px",
+              borderRadius: "12px",
               padding: "32px",
               display: "flex",
               flexDirection: "column",
               gap: "20px",
             }}>
               <Users size={32} color="var(--navy-950)" />
-              <h3 style={{ color: "var(--ink)", fontSize: "1.2rem", fontWeight: 800, margin: 0 }}>
+              <h3 style={{ color: "var(--ink)", fontSize: "1.2rem", fontWeight: 600, margin: 0 }}>
                 La sicurezza è una responsabilità condivisa
               </h3>
               <p style={{ color: "var(--muted)", fontSize: "0.9rem", lineHeight: 1.6, margin: 0 }}>
@@ -280,7 +280,7 @@ export default function SicurezzaPage() {
             <h2 style={{
               color: "#ffffff",
               fontSize: "clamp(1.6rem, 3.5vw, 2.4rem)",
-              fontWeight: 900,
+              fontWeight: 600,
               margin: "0 0 16px",
               letterSpacing: "-0.02em",
             }}>

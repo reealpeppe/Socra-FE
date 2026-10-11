@@ -25,7 +25,7 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span style={{
       background: s.bg, color: s.color,
-      borderRadius: "999px", fontSize: "0.75rem", fontWeight: 800,
+      borderRadius: "999px", fontSize: "0.75rem", fontWeight: 650,
       padding: "4px 10px", whiteSpace: "nowrap"
     }}>{s.label}</span>
   );
@@ -115,7 +115,7 @@ function PathsContent() {
             <GraduationCap size={18} aria-hidden />
           </span>
           <div>
-            <p style={{ color: "var(--muted)", fontSize: "0.75rem", fontWeight: 800, letterSpacing: "0.08em", margin: "0 0 2px", textTransform: "uppercase" }}>Come apprendista</p>
+            <p style={{ color: "var(--muted)", fontSize: "0.75rem", fontWeight: 650, letterSpacing: "0.08em", margin: "0 0 2px", textTransform: "uppercase" }}>Come apprendista</p>
             <strong style={{ color: "var(--navy-950)", fontSize: "1.5rem", lineHeight: 1 }}>{loading || error ? "—" : menteePaths.length}</strong>
           </div>
         </div>
@@ -128,7 +128,7 @@ function PathsContent() {
             <UsersRound size={18} aria-hidden />
           </span>
           <div>
-            <p style={{ color: "var(--muted)", fontSize: "0.75rem", fontWeight: 800, letterSpacing: "0.08em", margin: "0 0 2px", textTransform: "uppercase" }}>Come mentor</p>
+            <p style={{ color: "var(--muted)", fontSize: "0.75rem", fontWeight: 650, letterSpacing: "0.08em", margin: "0 0 2px", textTransform: "uppercase" }}>Come mentor</p>
             <strong style={{ color: "var(--navy-950)", fontSize: "1.5rem", lineHeight: 1 }}>{loading || error ? "—" : mentorPaths.length}</strong>
           </div>
         </div>
@@ -165,7 +165,7 @@ function PathsContent() {
           alignItems: "center", borderStyle: "dashed", boxShadow: "none",
           display: "flex", flexDirection: "column", gap: "8px", padding: "48px 24px", textAlign: "center"
         }}>
-          <p style={{ color: "var(--muted)", fontWeight: 700, margin: 0 }}>Nessun percorso</p>
+          <p style={{ color: "var(--muted)", fontWeight: 600, margin: 0 }}>Nessun percorso</p>
           <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0 }}>
             {paths.length === 0
               ? "Quando una richiesta viene accettata, appare qui."
@@ -213,7 +213,7 @@ function PathsContent() {
                       color: "white",
                       display: "inline-flex",
                       flexShrink: 0,
-                      fontWeight: 800,
+                      fontWeight: 650,
                       height: "42px",
                       justifyContent: "center",
                       width: "42px",
@@ -222,7 +222,7 @@ function PathsContent() {
                       {initial}
                     </div>
                     <div style={{ minWidth: 0 }}>
-                      <p style={{ fontWeight: 700, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <p style={{ fontWeight: 600, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {counterpart}
                       </p>
                       <p style={{ color: "var(--muted)", fontSize: "0.8rem", margin: 0 }}>{goalTag}</p>

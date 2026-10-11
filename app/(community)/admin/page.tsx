@@ -82,7 +82,7 @@ function SeverityBadge({ severity }: { severity: string }) {
   return (
     <span style={{
       background: s.bg, color: s.color,
-      borderRadius: "999px", fontSize: "0.75rem", fontWeight: 800,
+      borderRadius: "999px", fontSize: "0.75rem", fontWeight: 650,
       padding: "4px 10px", whiteSpace: "nowrap", textTransform: "capitalize"
     }}>
       {SEVERITY_LABELS[severity.toLowerCase()] || "Da valutare"}
@@ -102,7 +102,7 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span style={{
       background: s.bg, color: s.color,
-      borderRadius: "999px", fontSize: "0.75rem", fontWeight: 800,
+      borderRadius: "999px", fontSize: "0.75rem", fontWeight: 650,
       padding: "4px 10px", whiteSpace: "nowrap"
     }}>
       {s.label}
@@ -236,7 +236,7 @@ export default function AdminPage() {
         {/* Coda di verifica */}
         {!loading && !error ? <div className="card">
           <div style={{ display: "grid", gap: "16px" }}>
-            <h2 style={{ color: "var(--navy-950)", fontSize: "1.1rem", fontWeight: 800, margin: 0 }}>
+            <h2 style={{ color: "var(--navy-950)", fontSize: "1.1rem", fontWeight: 650, margin: 0 }}>
               Coda di verifica
             </h2>
 
@@ -246,7 +246,7 @@ export default function AdminPage() {
                 borderRadius: "var(--radius-sm)", display: "flex",
                 flexDirection: "column", gap: "8px", padding: "48px 24px", textAlign: "center"
               }}>
-                <p style={{ color: "var(--muted)", fontWeight: 700, margin: 0 }}>Nessun elemento</p>
+                <p style={{ color: "var(--muted)", fontWeight: 600, margin: 0 }}>Nessun elemento</p>
                 <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0 }}>Le segnalazioni e anomalie appariranno qui.</p>
               </div>
             ) : (
@@ -269,10 +269,10 @@ export default function AdminPage() {
                       gap: "10px", justifyContent: "space-between", flexWrap: "wrap"
                     }}>
                       <div>
-                        <p style={{ color: "var(--muted)", fontSize: "0.72rem", fontWeight: 800, letterSpacing: "0.08em", margin: "0 0 2px", textTransform: "uppercase" }}>
+                        <p style={{ color: "var(--muted)", fontSize: "0.72rem", fontWeight: 650, letterSpacing: "0.08em", margin: "0 0 2px", textTransform: "uppercase" }}>
                           Sorgente
                         </p>
-                        <p style={{ color: "var(--navy-950)", fontWeight: 700, margin: 0 }}>{SOURCE_LABELS[item.source_type] || "Elemento da verificare"}</p>
+                        <p style={{ color: "var(--navy-950)", fontWeight: 600, margin: 0 }}>{SOURCE_LABELS[item.source_type] || "Elemento da verificare"}</p>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
                         <SeverityBadge severity={item.severity} />
@@ -287,7 +287,7 @@ export default function AdminPage() {
                         border: "1px solid var(--line)", borderRadius: "var(--radius-sm)",
                         display: "flex", gap: "10px", justifyContent: "space-between", padding: "8px 12px"
                       }}>
-                        <span style={{ color: "var(--muted)", fontSize: "0.82rem", fontWeight: 700 }}>Riferimento</span>
+                        <span style={{ color: "var(--muted)", fontSize: "0.82rem", fontWeight: 600 }}>Riferimento</span>
                         <strong style={{ color: "var(--ink)", fontSize: "0.82rem", wordBreak: "break-all" }}>{item.source_id}</strong>
                       </div>
                       {safePayloadEntries(item.payload).map(([key, value]) => (
@@ -299,7 +299,7 @@ export default function AdminPage() {
                             display: "flex", gap: "10px", justifyContent: "space-between", padding: "8px 12px"
                           }}
                         >
-                          <span style={{ color: "var(--muted)", fontSize: "0.82rem", fontWeight: 700 }}>{PAYLOAD_LABELS[key] || "Informazione"}</span>
+                          <span style={{ color: "var(--muted)", fontSize: "0.82rem", fontWeight: 600 }}>{PAYLOAD_LABELS[key] || "Informazione"}</span>
                           <strong style={{ color: "var(--ink)", fontSize: "0.82rem", wordBreak: "break-all" }}>
                             {readableValue(value)}
                           </strong>
@@ -351,7 +351,7 @@ function MetricCard({
   return (
     <div className="card" style={{ display: "grid", gap: "12px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-        <p style={{ color: "var(--muted)", fontSize: "0.75rem", fontWeight: 800, letterSpacing: "0.08em", margin: 0, textTransform: "uppercase" }}>
+        <p style={{ color: "var(--muted)", fontSize: "0.75rem", fontWeight: 650, letterSpacing: "0.08em", margin: 0, textTransform: "uppercase" }}>
           {label}
         </p>
         <span style={{

@@ -69,7 +69,7 @@ export default function ComeFunzionaPage() {
   return (
     <>
       <PublicNavbar />
-      <main id="main-content" tabIndex={-1} style={{ paddingTop: "64px" }}>
+      <main id="main-content" tabIndex={-1} style={{ paddingTop: "76px" }}>
 
         {/* ── Header ── */}
         <section style={{
@@ -81,7 +81,7 @@ export default function ComeFunzionaPage() {
             <h1 style={{
               color: "var(--ink)",
               fontSize: "clamp(2.2rem, 5vw, 3.6rem)",
-              fontWeight: 900,
+              fontWeight: 600,
               margin: "0 0 20px",
               letterSpacing: "-0.02em",
             }}>
@@ -108,7 +108,7 @@ export default function ComeFunzionaPage() {
             <p style={{
               color: "#80580c",
               fontSize: "0.72rem",
-              fontWeight: 900,
+              fontWeight: 600,
               letterSpacing: "0.17em",
               margin: "0 0 12px",
               textTransform: "uppercase",
@@ -118,7 +118,7 @@ export default function ComeFunzionaPage() {
             <h2 style={{
               color: "var(--ink)",
               fontSize: "clamp(1.7rem, 3.8vw, 2.7rem)",
-              fontWeight: 900,
+              fontWeight: 600,
               letterSpacing: "-0.025em",
               margin: 0,
               textWrap: "balance",
@@ -128,7 +128,7 @@ export default function ComeFunzionaPage() {
           </header>
           <div style={{
             display: "grid",
-            gridTemplateColumns: "repeat(5, minmax(0,1fr))",
+            gridTemplateColumns: "repeat(3, minmax(0,1fr))",
             gap: "20px",
             maxWidth: "1200px",
             margin: "0 auto",
@@ -139,8 +139,9 @@ export default function ComeFunzionaPage() {
               const Icon = step.icon;
               return (
                 <div key={step.num} style={{
-                  border: "1px solid var(--line)",
-                  borderRadius: "16px",
+                  border: "none",
+                  borderTop: "1px solid var(--line)",
+                  borderRadius: "0",
                   padding: "28px 22px",
                   display: "flex",
                   flexDirection: "column",
@@ -157,16 +158,16 @@ export default function ComeFunzionaPage() {
                     background: "var(--navy-950)",
                     color: "var(--gold-500)",
                     fontSize: "0.9rem",
-                    fontWeight: 900,
+                    fontWeight: 600,
                     flexShrink: 0,
                   }}>
                     {step.num}
                   </span>
                   <Icon size={28} color="var(--navy-950)" />
-                  <h3 style={{ color: "var(--ink)", fontSize: "1rem", fontWeight: 800, margin: 0 }}>
+                  <h3 style={{ color: "var(--ink)", fontSize: "1rem", fontWeight: 600, margin: 0 }}>
                     {step.title}
                   </h3>
-                  <p style={{ color: "var(--muted)", fontSize: "0.875rem", lineHeight: 1.6, margin: 0 }}>
+                  <p style={{ color: "var(--muted)", fontSize: "0.95rem", lineHeight: 1.6, margin: 0 }}>
                     {step.body}
                   </p>
                 </div>
@@ -196,7 +197,7 @@ export default function ComeFunzionaPage() {
             <h2 style={{
               color: "var(--ink)",
               fontSize: "clamp(1.6rem, 3.5vw, 2.4rem)",
-              fontWeight: 900,
+              fontWeight: 600,
               textAlign: "center",
               margin: "0 0 40px",
               letterSpacing: "-0.02em",
@@ -206,7 +207,7 @@ export default function ComeFunzionaPage() {
 
             <div style={{
               display: "grid",
-              gridTemplateColumns: "repeat(5, minmax(0,1fr))",
+              gridTemplateColumns: "repeat(3, minmax(0,1fr))",
               gap: "16px",
             }}
               className="cf-diff-grid"
@@ -214,18 +215,19 @@ export default function ComeFunzionaPage() {
               {differences.map((d) => (
                 <div key={d.title} style={{
                   background: "#ffffff",
-                  border: "1px solid var(--line)",
-                  borderRadius: "12px",
+                  border: "none",
+                  borderTop: "1px solid var(--line)",
+                  borderRadius: "0",
                   padding: "24px 20px",
                   display: "flex",
                   flexDirection: "column",
                   gap: "10px",
                 }}>
                   <ShieldCheck size={22} color="var(--gold-500)" />
-                  <h3 style={{ color: "var(--ink)", fontSize: "0.9rem", fontWeight: 800, margin: 0 }}>
+                  <h3 style={{ color: "var(--ink)", fontSize: "0.9rem", fontWeight: 600, margin: 0 }}>
                     {d.title}
                   </h3>
-                  <p style={{ color: "var(--muted)", fontSize: "0.82rem", lineHeight: 1.55, margin: 0 }}>
+                  <p style={{ color: "var(--muted)", fontSize: "0.9rem", lineHeight: 1.55, margin: 0 }}>
                     {d.body}
                   </p>
                 </div>
@@ -256,7 +258,7 @@ export default function ComeFunzionaPage() {
             <h2 style={{
               color: "#ffffff",
               fontSize: "clamp(1.6rem, 3.5vw, 2.4rem)",
-              fontWeight: 900,
+              fontWeight: 600,
               margin: "0 0 16px",
               letterSpacing: "-0.02em",
             }}>

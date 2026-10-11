@@ -15,7 +15,7 @@ export function EmailSharingNotice({ accepted, onChange, disabled = false }: {
     <style jsx>{`
       .email-sharing-notice { background: var(--paper); border: 1px solid var(--line); border-left: 3px solid var(--gold-500); border-radius: 12px; display: grid; gap: 12px; padding: 14px 16px; }
       p { color: var(--muted); font-size: .84rem; line-height: 1.6; margin: 0; }
-      label { align-items: flex-start; cursor: pointer; display: flex; gap: 10px; font-size: .86rem; font-weight: 700; line-height: 1.5; }
+      label { align-items: flex-start; cursor: pointer; display: flex; gap: 10px; font-size: .86rem; font-weight: 600; line-height: 1.5; }
       input { accent-color: var(--navy-950); flex-shrink: 0; height: 18px; margin-top: 2px; width: 18px; }
       input:focus-visible { outline: 3px solid var(--gold-500); outline-offset: 3px; }
     `}</style>

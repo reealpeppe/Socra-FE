@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, BarChart3, BookOpen, ChevronRight, Coins, GraduationCap, Sparkles, Target, UsersRound } from "lucide-react";
+import { ArrowRight, BarChart3, BookOpen, ChevronRight, Coins, GraduationCap, Info, Sparkles, Target, UsersRound } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
 import { UserAvatar } from "@/components/Ui";
@@ -149,6 +149,15 @@ export default function DashboardPage() {
                   <span className={styles.sectionIndex}>01 / Impara</span>
                   {activeMenteePath ? <span className={styles.status}>{activeMenteePath.status === "feedback_pending" ? "Feedback in corso" : "In corso"}</span> : null}
                 </div>
+                <div className={styles.learningBody}>
+                <div className={styles.learningNext}>
+                  {errors.paths ? null : activeMenteePath ? <p className={styles.supporting}>Hai già un percorso attivo come apprendista.</p> : <p className={styles.supporting}>{pendingGoalReview ? "Rivedi l’obiettivo prima di cercare un nuovo mentor." : activeGoal ? "Nessun percorso attivo come apprendista. Trova la persona giusta per iniziare." : "Scegli cosa desideri imparare e costruisci il tuo percorso."}</p>}
+                <div className={styles.cardBottom}>
+                  <span className={styles.cardMeta}><BookOpen size={17} aria-hidden="true" /> {errors.paths ? "Stato non disponibile" : activeMenteePath ? "1 percorso attivo su 1" : "0 percorsi attivi su 1"}</span>
+                  <Link className={styles.actionDark} href={learningHref}>{learningAction}<ArrowRight size={18} aria-hidden="true" /></Link>
+                </div>
+                </div>
+                <div className={styles.learningFocus}>
                 <h2 id="learning-title">Il tuo percorso di apprendimento</h2>
                 {errors.paths ? <p className={styles.cardMessage}>I percorsi non sono disponibili. Usa “Riprova” in alto.</p>
                   : activeMenteePath ? <>
@@ -156,16 +165,12 @@ export default function DashboardPage() {
                     {activeMenteePath.skill_model ? <DashboardTopicExplanation topic={activeMenteePath.goal?.topic} /> : null}
                     {activeMenteePath.skill_model ? <DashboardObjectives labels={activeMenteePath.agreed_objective_labels || []} agreed /> : null}
                     <div className={styles.person}><UserAvatar name={activeMenteePath.mentor?.nickname || "Mentor Socra"} size="sm" /><span><strong>{activeMenteePath.mentor?.nickname || "Mentor Socra"}</strong><small>Il tuo mentor</small></span></div>
-                    <p className={styles.supporting}>Hai già un percorso attivo come apprendista.</p>
                   </> : <>
                     <p className={styles.featureTitle}>{errors.goals ? "Il tuo prossimo passo" : goalTitle || "Inizia da un obiettivo"}</p>
                     {!errors.goals && activeGoal?.skill_model ? <DashboardTopicExplanation topic={activeGoal.topic} /> : null}
                     {!errors.goals && goalObjectives.length ? <DashboardObjectives labels={goalObjectives} /> : null}
-                    <p className={styles.supporting}>{pendingGoalReview ? "Rivedi l’obiettivo prima di cercare un nuovo mentor." : activeGoal ? "Nessun percorso attivo come apprendista. Trova la persona giusta per iniziare." : "Scegli cosa desideri imparare e costruisci il tuo percorso."}</p>
                   </>}
-                <div className={styles.cardBottom}>
-                  <span className={styles.cardMeta}><BookOpen size={17} aria-hidden="true" /> {errors.paths ? "Stato non disponibile" : activeMenteePath ? "1 percorso attivo su 1" : "0 percorsi attivi su 1"}</span>
-                  <Link className={styles.actionDark} href={learningHref}>{learningAction}<ArrowRight size={18} aria-hidden="true" /></Link>
+                </div>
                 </div>
                 <div className={styles.learningArt} aria-hidden="true"><i /><i /><i /><span /></div>
               </section>
@@ -232,5 +237,8 @@ function DashboardObjectives({ labels, agreed = false }: { labels: string[]; agr
 }
 
 function DashboardTopicExplanation({ topic }: { topic?: string | null }) {
-  return topic === "ETF" ? <p className={styles.topicExplanation}>ETF significa Exchange Traded Fund: un fondo quotato in borsa.</p> : null;
+  return topic === "ETF" ? <details className={styles.topicExplanation}>
+    <summary><Info size={16} aria-hidden="true" /><span>Cos’è un ETF?</span><ChevronRight size={14} aria-hidden="true" /></summary>
+    <p>ETF significa Exchange Traded Fund: un fondo quotato in borsa.</p>
+  </details> : null;
 }

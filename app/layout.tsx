@@ -1,9 +1,18 @@
 import type { Metadata, Viewport } from "next";
+import localFont from "next/font/local";
 import "./globals.css";
+import "./theme.css";
 import { PerformanceDiagnostics } from "@/components/PerformanceDiagnostics";
 
 // A fresh CSP nonce must be attached to Next's scripts on every request.
 export const dynamic = "force-dynamic";
+
+const manrope = localFont({
+  src: "../public/fonts/manrope-variable.ttf",
+  variable: "--font-socra",
+  display: "swap",
+  weight: "200 800"
+});
 
 export const metadata: Metadata = {
   applicationName: "Socra",
@@ -41,7 +50,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="it">
-      <body><PerformanceDiagnostics />{children}</body>
+      <body className={manrope.variable}><PerformanceDiagnostics />{children}</body>
     </html>
   );
 }

@@ -379,7 +379,7 @@ export function TopicCompetenceStyles() {
   return (
     <style jsx global>{`
       .topic-step { gap: 18px; }
-      .topic-question { color: var(--navy-950); font-size: 1rem; font-weight: 850; line-height: 1.45; margin: 0 0 5px; }
+      .topic-question { color: var(--navy-950); font-size: 1rem; font-weight: 650; line-height: 1.45; margin: 0 0 5px; }
       .topic-intro { font-size: 0.84rem; line-height: 1.55; margin: 0; }
       .topic-legend { display: grid; gap: 8px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
       .topic-legend > div { background: #f7faf8; border: 1px solid var(--line); border-radius: 12px; display: grid; gap: 4px; padding: 10px; }
@@ -394,9 +394,9 @@ export function TopicCompetenceStyles() {
       .topic-matrix td { border-bottom: 1px solid var(--line); padding: 10px 7px; text-align: center; vertical-align: middle; }
       .topic-matrix tr:last-child th,
       .topic-matrix tr:last-child td { border-bottom: 0; }
-      .topic-matrix thead th { color: var(--muted); font-size: 0.67rem; font-weight: 850; line-height: 1.25; }
+      .topic-matrix thead th { color: var(--muted); font-size: 0.67rem; font-weight: 650; line-height: 1.25; }
       .topic-matrix thead th:first-child { text-align: left; width: 25%; }
-      .topic-matrix tbody th { color: var(--navy-950); font-size: 0.76rem; font-weight: 800; line-height: 1.25; text-align: left; }
+      .topic-matrix tbody th { color: var(--navy-950); font-size: 0.76rem; font-weight: 650; line-height: 1.25; text-align: left; }
       .topic-matrix tbody th small { color: var(--muted); display: block; font-size: 0.75rem; font-weight: 500; line-height: 1.4; margin-top: 4px; }
       .topic-radio { align-items: center; border: 1px solid transparent; border-radius: 10px; cursor: pointer; display: flex; justify-content: center; min-height: 44px; padding: 6px; transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease; }
       .topic-radio:hover { background: #f7f8f7; border-color: var(--line); }
@@ -406,12 +406,12 @@ export function TopicCompetenceStyles() {
       .topic-mobile-option { display: none; }
       .topic-matrix-row.disabled { background: #f5f6f5; }
       .topic-matrix-row.disabled th { color: #8a918d; }
-      .topic-disabled-cell { color: #747c77; font-size: 0.72rem; font-weight: 700; text-align: left !important; }
-      .topic-completion { color: var(--muted); font-size: 0.75rem; font-weight: 700; margin: -8px 0 0; text-align: right; }
+      .topic-disabled-cell { color: #747c77; font-size: 0.72rem; font-weight: 600; text-align: left !important; }
+      .topic-completion { color: var(--muted); font-size: 0.75rem; font-weight: 600; margin: -8px 0 0; text-align: right; }
       .topic-inline-notice { background: #f7f8f7; border-left: 3px solid var(--gold-500); border-radius: 8px; color: var(--muted); font-size: 0.8rem; line-height: 1.5; margin: 0; padding: 10px 12px; }
       .topic-safety-scenario { background: #fffaf0; border: 1px solid #efd59b; border-radius: 14px; display: grid; gap: 10px; margin: 0; padding: 14px; }
-      .topic-safety-scenario legend { color: var(--navy-950); font-size: 0.78rem; font-weight: 850; padding-inline: 5px; }
-      .topic-safety-scenario > p { color: var(--navy-950); font-size: 0.82rem; font-weight: 700; line-height: 1.45; margin: 0; }
+      .topic-safety-scenario legend { color: var(--navy-950); font-size: 0.78rem; font-weight: 650; padding-inline: 5px; }
+      .topic-safety-scenario > p { color: var(--navy-950); font-size: 0.82rem; font-weight: 600; line-height: 1.45; margin: 0; }
       .topic-safety-options { display: grid; gap: 8px; }
       .topic-safety-options label { align-items: flex-start; background: white; border: 1px solid #eadfc7; border-radius: 10px; cursor: pointer; display: flex; font-size: 0.76rem; gap: 9px; line-height: 1.4; min-height: 44px; padding: 9px 10px; }
       .topic-safety-options label:focus-within { outline: 3px solid rgba(37, 156, 105, 0.25); outline-offset: 2px; }
@@ -441,7 +441,7 @@ export function TopicCompetenceStyles() {
         .topic-matrix tbody th { border: 0; font-size: 0.88rem; grid-column: 1 / -1; padding: 0 0 4px; }
         .topic-matrix tbody td { border: 0; padding: 0; }
         .topic-radio { border-color: var(--line); gap: 8px; justify-content: flex-start; min-height: 48px; padding: 9px 10px; }
-        .topic-mobile-option { color: var(--navy-950); display: inline; font-size: 0.75rem; font-weight: 750; line-height: 1.25; }
+        .topic-mobile-option { color: var(--navy-950); display: inline; font-size: 0.75rem; font-weight: 600; line-height: 1.25; }
         .topic-disabled-cell { grid-column: 1 / -1; }
         .topic-completion { text-align: left; }
       }
