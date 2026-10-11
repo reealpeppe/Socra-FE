@@ -33,7 +33,9 @@ La review tecnica finale dell'integrazione non ha individuato bug concreti;
 - Cattura API vere locale con fixture dedicata, email/Meet disabilitati:
   `output/playwright/ux-review/2026-10-11T10-48-38-275Z`,50 scenari.
   Fingerprint `1b419b77dd72ad3ab29dc80a9a42885b58472c2bc3336dcc22c7c72df3e388d9`;
-  build UX `omTKfKGGt_gWTbAPrrVzJ`. Review semantica in corso.
+  build UX `omTKfKGGt_gWTbAPrrVzJ`. Review indipendente:30/30 criteri2/2,
+  nessun difetto;66 immagini fresche esaminate, incluse quattro supplementari
+  con riepiloghi e aiuto ETF aperti. Gate finale PASS,162 hash verificati.
 - Documenti canonici:32 BE/5 FE/10 workspace,0 errori.
 
 La [preview originale](page-performance-2026-10-11.md) misura il confronto
