@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Brand } from "@/components/Brand";
-import { PublicFooter, PublicNavbar } from "@/components/PublicLayout";
 import { authPost, ClientApiError } from "@/lib/api";
 import styles from "./auth.module.css";
 
@@ -45,9 +44,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className={styles.page}>
-      <PublicNavbar />
-      <main className={styles.main} id="main-content" tabIndex={-1}>
+    <div className={styles.page}>      <main className={styles.main} id="main-content" tabIndex={-1}>
         <section className={styles.card} aria-labelledby="login-title">
           <div className={styles.brandRow}>
             <Link className={styles.brandLink} href="/" aria-label="Torna alla pagina iniziale di Socra">
@@ -124,9 +121,7 @@ export default function LoginPage() {
             <Link className={styles.footerLink} href="/register">Crea il tuo profilo</Link>
           </p>
         </section>
-      </main>
-      <PublicFooter />
-    </div>
+      </main>    </div>
   );
 }
 

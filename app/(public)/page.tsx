@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import styles from "./Home.module.css";
 import { GraduationCap, Target, Users, BookOpen, TrendingUp } from "lucide-react";
-import { PublicNavbar, PublicFooter } from "@/components/PublicLayout";
 import publicStyles from "@/components/PublicLayout.module.css";
 
 export const metadata: Metadata = {
@@ -70,9 +69,7 @@ const pathRules = [
 
 export default function HomePage() {
   return (
-    <>
-      <PublicNavbar />
-      <main id="main-content" tabIndex={-1} className={styles.main}>
+    <>      <main id="main-content" tabIndex={-1} className={styles.main}>
         <section className={styles.hero}>
           <div className={styles.heroCopy}>
             <p className={styles.context}>Finanza e investimenti da persona a persona</p>
@@ -144,8 +141,6 @@ export default function HomePage() {
             <Link className={publicStyles.actionGold} href="/register">Crea il tuo profilo</Link>
           </div>
         </section>
-      </main>
-      <PublicFooter />
-    </>
+      </main>    </>
   );
 }

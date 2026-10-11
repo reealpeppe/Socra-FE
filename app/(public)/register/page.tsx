@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Brand } from "@/components/Brand";
-import { PublicFooter, PublicNavbar } from "@/components/PublicLayout";
 import { authPost, ClientApiError } from "@/lib/api";
 import styles from "../login/auth.module.css";
 
@@ -50,9 +49,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className={styles.page}>
-      <PublicNavbar />
-      <main className={styles.main} id="main-content" tabIndex={-1}>
+    <div className={styles.page}>      <main className={styles.main} id="main-content" tabIndex={-1}>
         <section className={`${styles.card} ${styles.registerCard}`} aria-labelledby="register-title">
           <div className={styles.brandRow}>
             <Link className={styles.brandLink} href="/" aria-label="Torna alla pagina iniziale di Socra">
@@ -192,8 +189,6 @@ export default function RegisterPage() {
             <Link className={styles.footerLink} href="/login">Accedi</Link>
           </p>
         </section>
-      </main>
-      <PublicFooter />
-    </div>
+      </main>    </div>
   );
 }

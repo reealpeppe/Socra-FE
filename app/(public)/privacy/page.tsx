@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PublicFooter, PublicNavbar } from "@/components/PublicLayout";
 import publicStyles from "@/components/PublicLayout.module.css";
 import styles from "./legal.module.css";
 
@@ -11,9 +10,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <>
-      <PublicNavbar />
-      <main className={styles.main} id="main-content" tabIndex={-1}>
+    <>      <main className={styles.main} id="main-content" tabIndex={-1}>
         <header className={styles.hero}>
           <div className={styles.heroInner}>
             <p className={styles.eyebrow}>Informazioni sui dati</p>
@@ -185,8 +182,6 @@ export default function PrivacyPage() {
             </div>
           </section>
         </div>
-      </main>
-      <PublicFooter />
-    </>
+      </main>    </>
   );
 }

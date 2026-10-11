@@ -10,7 +10,8 @@ import { evaluateAudits } from '../scripts/audit-dependencies.mjs';
 const readJson = (path) => JSON.parse(readFileSync(new URL(path, import.meta.url), 'utf8').replace(/^\uFEFF/, ''));
 const fullReport = readJson('./fixtures/dependency-audit/full-2026-10-03.json');
 const runtimeReport = readJson('./fixtures/dependency-audit/runtime-2026-10-03.json');
-const lockfile = readJson('../package-lock.json');
+// This graph accompanies the stored historical report; the current gate grants no exception.
+const lockfile = readJson('./fixtures/dependency-audit/lock-2026-10-03-chain.json');
 const processResult = (report, status) => ({ stdout: JSON.stringify(report), stderr: '', status, signal: null });
 
 function input() {
@@ -48,6 +49,14 @@ test('new root-directory glob configuration requires review even with clean audi
   assert.throws(()=>evaluateAudits(value),/rootDir/);
 });
 
+test('the current graph cannot exempt the historical finding at any date', () => {
+  const value = input();
+  value.lockfile = readJson('../package-lock.json');
+  assert.throws(() => evaluateAudits(value), /full audit must have zero/);
+  value.now = new Date('2026-10-11T00:00:00Z');
+  assert.throws(() => evaluateAudits(value), /full audit must have zero/);
+});
+
 const invalidCases = [
   ['rejects the former exception after its original deadline', v => { v.now = new Date('2026-10-11T00:00:00Z'); }, /full audit must have zero/],
   ['rejects the same advisory in the runtime audit', v => { v.runtime = processResult(fullReport, 1); }, /runtime/],
@@ -82,8 +91,8 @@ for (const severity of ['info','low','moderate','high','critical']) {
 function runCli(t, full, runtime) {
   const directory = mkdtempSync(join(tmpdir(), 'socra-audit-'));
   t.after(() => rmSync(directory, { recursive: true, force: true }));
-  mkdirSync(join(directory, 'app'));
-  writeFileSync(join(directory, 'app/page.tsx'), 'export default function Page() { return null; }');
+  mkdirSync(join(directory, 'app/(public)'), { recursive: true });
+  writeFileSync(join(directory, 'app/(public)/page.tsx'), 'export default function Page() { return null; }');
   writeFileSync(join(directory, 'eslint.config.mjs'), 'export default [{ files: ["**/*.tsx"], settings: {} }];');
   writeFileSync(join(directory, 'package-lock.json'), JSON.stringify(lockfile));
   writeFileSync(join(directory, 'responses.json'), JSON.stringify({ full, runtime }));

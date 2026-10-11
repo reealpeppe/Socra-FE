@@ -24,7 +24,7 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { UserAvatar } from "@/components/Ui";
-import { authPost, ClientApiError, clientGet, clientPost } from "@/lib/api";
+import { authPost, ClientApiError, clientGet, clientPost, cachedClientValue } from "@/lib/api";
 import { parseApiDate } from "@/lib/date";
 import type { MatchRequestItem, NotificationItem, UserMe } from "@/lib/types";
 import proposalStyles from "./ProposalBanner.module.css";
@@ -151,8 +151,8 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
   const pathname = usePathname();
   const isOnboarding = pathname === "/onboarding";
   const router = useRouter();
-  const [user, setUser] = useState<UserMe | null>(null);
-  const [sessionState, setSessionState] = useState<SessionState>("loading");
+  const [user, setUser] = useState<UserMe | null>(() => cachedClientValue<UserMe>("/auth/me") ?? null);
+  const [sessionState, setSessionState] = useState<SessionState>(() => cachedClientValue<UserMe>("/auth/me") ? "authenticated" : "loading");
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [activeIncomingRequestIds, setActiveIncomingRequestIds] = useState<string[]>([]);
   const [notificationsError, setNotificationsError] = useState<string | null>(null);
@@ -460,8 +460,8 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
   if (isOnboarding) return <div className="onboarding-shell">
     <a className="skip-link" href="#main-content">Vai al contenuto principale</a>
     <header className="onboarding-header">
-      <Link href="/" aria-label="Socra, vai alla home"><Brand variant="dark" /></Link>
-      <div className="cluster"><Link href="/settings" className="button secondary">Account</Link><button className="button secondary" onClick={logout} disabled={logoutLoading}>{logoutLoading ? "Uscita…" : "Esci"}</button></div>
+      <Link prefetch={true} href="/" aria-label="Socra, vai alla home"><Brand variant="dark" /></Link>
+      <div className="cluster"><Link prefetch={true} href="/settings" className="button secondary">Account</Link><button className="button secondary" onClick={logout} disabled={logoutLoading}>{logoutLoading ? "Uscita…" : "Esci"}</button></div>
     </header>
     {logoutError ? <p className="error" role="alert">{logoutError}</p> : null}
     <main id="main-content" className="onboarding-main">{children}</main>
@@ -471,7 +471,7 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
     <div className="app-shell">
       <a className="skip-link" href="#main-content">Vai al contenuto principale</a>
       <aside className="sidebar">
-        <Link className="sidebar-brand-link" href="/dashboard" aria-label="Socra, vai alla dashboard">
+        <Link prefetch={true} className="sidebar-brand-link" href="/dashboard" aria-label="Socra, vai alla dashboard">
           <Brand variant="light" />
         </Link>
         <div className="sidebar-intro">
@@ -479,7 +479,7 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
           <span>Mentorship peer-to-peer</span>
         </div>
         <nav className="nav-list" aria-label="Navigazione principale">
-          <Link href="/dashboard" className={`nav-link ${pathname === "/dashboard" ? "active" : ""}`} aria-current={pathname === "/dashboard" ? "page" : undefined}>
+          <Link prefetch={true} href="/dashboard" className={`nav-link ${pathname === "/dashboard" ? "active" : ""}`} aria-current={pathname === "/dashboard" ? "page" : undefined}>
             <Home size={18} aria-hidden />
             <span>Dashboard</span>
           </Link>
@@ -490,7 +490,7 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
                 const Icon = item.icon;
                 const active = isNavActive(item);
                 return (
-                  <Link
+                  <Link prefetch={true}
                     key={item.id}
                     href={item.href}
                     className={`nav-link ${active ? "active" : ""}`}
@@ -514,7 +514,7 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
                   <small title={user.email}>{user.email}</small>
                 </div>
               </div>
-              <Link href={`/profiles/${user.id}`}>Vedi il tuo profilo <span aria-hidden>→</span></Link>
+              <Link prefetch={true} href={`/profiles/${user.id}`}>Vedi il tuo profilo <span aria-hidden>→</span></Link>
             </>
           ) : (
             <div
@@ -527,7 +527,7 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
                 <strong>{sessionState === "loading" ? "Verifica della sessione" : sessionCopy.title}</strong>
                 <small>{sessionState === "loading" ? "Caricamento profilo…" : sessionCopy.body}</small>
               </div>
-              {sessionState === "unauthenticated" ? <Link href={loginHref}>Accedi</Link> : null}
+              {sessionState === "unauthenticated" ? <Link prefetch={true} href={loginHref}>Accedi</Link> : null}
               {sessionState === "error" ? <button className="text-button" type="button" onClick={() => window.dispatchEvent(new Event("socra:session-refresh"))}>Riprova</button> : null}
             </div>
           )}
@@ -542,7 +542,7 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
               <strong>{incomingProposals.length === 1 ? "Hai una nuova proposta" : `Hai ${incomingProposals.length} nuove proposte`}</strong>
               <span>Una persona vuole iniziare un percorso con te. Rispondi dalla pagina delle richieste.</span>
             </div>
-            <Link className={proposalStyles.action} href="/requests">Vedi proposte <span aria-hidden>→</span></Link>
+            <Link prefetch={true} className={proposalStyles.action} href="/requests">Vedi proposte <span aria-hidden>→</span></Link>
             <button
               className={proposalStyles.dismiss}
               type="button"
@@ -552,11 +552,11 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
           </div>
         ) : null}
         <header className="topbar">
-          <Link className="topbar-brand" href="/dashboard" aria-label="Socra, vai alla dashboard">
+          <Link prefetch={true} className="topbar-brand" href="/dashboard" aria-label="Socra, vai alla dashboard">
             <Brand compact variant="dark" />
           </Link>
           <div className="topbar-actions">
-            <Link className="topbar-shortcut" href={shortcut.href}>
+            <Link prefetch={true} className="topbar-shortcut" href={shortcut.href}>
               <ShortcutIcon size={17} aria-hidden />
               <span>{shortcut.label}</span>
             </Link>
@@ -682,7 +682,7 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
                         {accountLinks.map((item) => {
                           const Icon = item.icon;
                           return (
-                            <Link
+                            <Link prefetch={true}
                               className="account-menu-link"
                               href={item.href}
                               key={item.id}
@@ -719,7 +719,7 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
                           window.dispatchEvent(new Event("socra:session-refresh"));
                         }}>Riprova</button>
                       ) : (
-                        <Link className="button primary account-menu-login" href={loginHref} onClick={() => setAccountOpen(false)}>
+                        <Link prefetch={true} className="button primary account-menu-login" href={loginHref} onClick={() => setAccountOpen(false)}>
                           <LogIn size={16} aria-hidden />
                           Accedi
                         </Link>
@@ -743,7 +743,7 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
           const Icon = item.icon;
           const active = isActive(item.href);
           return (
-            <Link
+            <Link prefetch={true}
               key={item.href}
               href={item.href}
               className={active ? "active" : ""}

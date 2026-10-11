@@ -7,7 +7,7 @@ import { GraduationCap, UsersRound } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
 import { TabPanel, Tabs } from "@/components/Ui";
-import { clientGet } from "@/lib/api";
+import { clientGet, cachedClientValue, hasCachedClientValues } from "@/lib/api";
 import type { PathItem, UserMe } from "@/lib/types";
 
 const STATUS = {
@@ -46,15 +46,15 @@ export default function PathsPage() {
 function PathsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [paths, setPaths] = useState<PathItem[]>([]);
-  const [user, setUser] = useState<UserMe | null>(null);
+  const [paths, setPaths] = useState<PathItem[]>(() => cachedClientValue<PathItem[]>("/paths/me") ?? []);
+  const [user, setUser] = useState<UserMe | null>(() => cachedClientValue<UserMe>("/auth/me") ?? null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !hasCachedClientValues("/auth/me", "/paths/me"));
   const requestedTab: "mentee" | "mentor" = searchParams.get("tab") === "mentor" ? "mentor" : "mentee";
   const [tab, setTab] = useState<"mentee" | "mentor">(requestedTab);
 
   const load = useCallback(async () => {
-    setLoading(true);
+    if (!hasCachedClientValues("/auth/me", "/paths/me")) setLoading(true);
     setError(null);
     const [userResult, pathsResult] = await Promise.allSettled([
       clientGet<UserMe>("/auth/me"),
