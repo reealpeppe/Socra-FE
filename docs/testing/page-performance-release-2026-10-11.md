@@ -1,5 +1,9 @@
 # Prestazioni di navigazione — integrazione per il rilascio 11/10
 
+Fotografia delle verifiche prima della pubblicazione. Lo stato operativo,
+le revisioni effettivamente pubblicate e le misure successive sono nel
+[rapporto canonico backend](https://github.com/reealpeppe/Socra-BE/blob/release/v3-20260919/docs/releases/2026-10-11-page-performance.md).
+
 Pubblicazione richiesta da GR dopo la prova della preview. Branch isolato
 `release/page-performance-20261011`: unisce la correzione `bf455fa` e il
 candidato grafico/tooling `65bf963`, già pubblicato tramite PR13 nel merge
