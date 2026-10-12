@@ -11,6 +11,12 @@ colors:
   navy-900: "#293139"
   navy-850: "#323a42"
   navy-800: "#3b444c"
+  home-hero-surface: "#20313e"
+  home-hero-copy: "#dce3e8"
+  home-hero-accent: "#ffe3a5"
+  home-hero-control: "#8596a2"
+  home-hero-control-hover: "#a9b7c0"
+  home-hero-hover: "#344957"
   gold-500: "#f3bb40"
   gold-400: "#e7ab2b"
   gold-300: "#fff0ca"
@@ -279,7 +285,7 @@ Fino a 760px l'introduzione dashboard usa una griglia con colonna flessibile e c
 
 La navigazione pubblica è fissa, alta (64px). Sotto 900px usa il menu mobile; sotto 600px riduce il padding e le CTA di sezione diventano larghe quanto il contenitore. Il footer passa da tre aree a due e poi a una colonna.
 
-La home limita il contenitore principale e la hero a (1240px). La hero ha una sola colonna con testo centrato, larghezza massima (960px) e altezza minima (540px). Sotto 760px il testo è allineato a sinistra e l'altezza segue il contenuto. Pilastri e regole passano da tre colonne a una; i passi da due a una. La home alterna superfici e separatori anziché trasformare ogni blocco in una card. Questa composizione appartiene alla home e non è un requisito per tutte le schermate.
+Dal refinement approvato il 12/10/2026 la hero della home è una fascia blu inchiostro a tutta larghezza, con titolo bianco, testo chiaro e CTA miele invariata. I token `home-hero-*` sono locali a `app/(public)/Home.module.css`; il secondario è trasparente con bordo e focus leggibili sulla fascia. Il resto della pagina conserva le superfici precedenti e il contenitore da (1240px). La hero ha una sola colonna con testo centrato, larghezza massima del testo (960px) e altezza minima (540px). Sotto 760px il testo è allineato a sinistra e l'altezza segue il contenuto. Pilastri e regole passano da tre colonne a una; i passi da due a una. Testi, destinazioni, markup e logica sono invariati.
 
 I form di autenticazione sono centrati, larghi al massimo (510px), oppure (600px) per la registrazione; i campi affiancati diventano una colonna sotto 600px. La spaziatura estratta nel frontmatter raccoglie valori ricorrenti osservati, senza imporre una nuova griglia a tutte le pagine.
 
