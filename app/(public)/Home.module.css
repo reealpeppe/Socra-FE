@@ -1,10 +1,13 @@
 .main { background: #fff; padding-top: 64px; }
-.hero { display: grid; place-items: center; max-width: 1240px; margin: 0 auto; min-height: 540px; }
+.hero { --home-hero-surface: #20313e; --home-hero-copy: #dce3e8; --home-hero-accent: #ffe3a5; --home-hero-control: #8596a2; --home-hero-control-hover: #a9b7c0; --home-hero-hover: #344957; background: var(--home-hero-surface); display: grid; place-items: center; min-height: 540px; }
 .heroCopy { width: 100%; max-width: 960px; padding: 80px 24px; text-align: center; }
-.context { color: var(--muted); font-size: .8125rem; font-weight: 500; line-height: 1.5; margin: 0 0 24px; }
-.hero h1 { font-size: clamp(2.25rem, 3.5vw, 3.65rem); font-weight: 550; letter-spacing: -.035em; line-height: 1.12; margin: 0 0 28px; text-wrap: initial; }
-.lead { color: var(--muted); font-size: clamp(1rem, 1.4vw, 1.125rem); line-height: 1.7; margin: 0 auto 32px; max-width: 65ch; }
+.context { color: var(--home-hero-accent); font-size: .8125rem; font-weight: 500; line-height: 1.5; margin: 0 0 24px; }
+.hero h1 { color: #fff; font-size: clamp(2.25rem, 3.5vw, 3.65rem); font-weight: 550; letter-spacing: -.035em; line-height: 1.12; margin: 0 0 28px; text-wrap: initial; }
+.lead { color: var(--home-hero-copy); font-size: clamp(1rem, 1.4vw, 1.125rem); line-height: 1.7; margin: 0 auto 32px; max-width: 65ch; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: center; }
+.actions a[href="#come-funziona"] { background: transparent; border-color: var(--home-hero-control); color: #fff; }
+.actions a[href="#come-funziona"]:hover { background: var(--home-hero-hover); border-color: var(--home-hero-control-hover); }
+.actions a:focus-visible { outline-color: var(--home-hero-accent); }
 .container { max-width: 1240px; margin: 0 auto; }
 .model, .process, .exchange { padding: 64px clamp(20px, 5vw, 80px); }
 .model { border-block: 1px solid var(--line); }
