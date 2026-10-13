@@ -451,7 +451,31 @@
         "name": "public-auth-small",
         "value": "600px"
       }
-    ]
+    ],
+    "communitySurface": {
+      "scope": ".app-shell",
+      "approved": "2026-10-13",
+      "mode": "operate",
+      "public_theme": "preserved",
+      "font": "Manrope",
+      "colors": {
+        "ink": "#25322f",
+        "muted": "#59666c",
+        "line": "#d7dfe2",
+        "paper": "#eef1f3",
+        "card": "#ffffff",
+        "sage": "#325d4b",
+        "sage-soft": "#edf4ef",
+        "sidebar": "#e5ede8",
+        "sidebar-selected": "#d0e0d5"
+      },
+      "radii": {
+        "profile-card": "12px",
+        "dialog": "14px",
+        "controls": "8–10px"
+      },
+      "reference": "three user-approved mockups; compact single-screen proposal"
+    }
   },
   "components": [
     {

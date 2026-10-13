@@ -472,7 +472,7 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
       <a className="skip-link" href="#main-content">Vai al contenuto principale</a>
       <aside className="sidebar">
         <Link prefetch={true} className="sidebar-brand-link" href="/dashboard" aria-label="Socra, vai alla dashboard">
-          <Brand variant="light" />
+          <Brand variant="dark" />
         </Link>
         <div className="sidebar-intro">
           <span className="sidebar-dot" aria-hidden />

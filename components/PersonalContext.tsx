@@ -63,7 +63,7 @@ export function PersonalContext({ profile, onSaved, expanded = false, onContinue
   return <details ref={details} className="card settings-card" id="personal-context" open={expanded || undefined}>
     <summary className={styles.contextSummary}>Contesto personale</summary>
     <p className={styles.notice}>Queste informazioni non compaiono sul tuo profilo pubblico.</p>
-    <details><summary className={styles.contextSummary}>Perché ci serve questa informazione?</summary><p className="muted">Queste informazioni ci aiutano a conoscere meglio la community e a comprenderne bisogni e caratteristiche nel tempo.</p></details>
+    <details><summary className={styles.contextSummary}>Perché ci serve questa informazione?</summary><p className="muted">Ci aiuti a capire chi fa parte di Socra. Le risposte sono facoltative, restano private e non influenzano gli abbinamenti.</p></details>
     {profile ? <form className={styles.fields} onSubmit={save} aria-busy={busy}>
       <p role="status">{answeredCount}/5 risposte</p>
       {sectionDQuestions.map(question => <label className={styles.field} key={question.key}>{question.label}<select className="input select" name={question.key} value={answers[question.key] || ""} disabled={busy} onChange={event => { key.current = ""; setMessage(""); setAnswers(current => ({ ...current, [question.key]: event.target.value })); }}><option value="">Scegli una risposta</option>{question.key === 'D2' && answers.D2 === 'gt_75k' ? <option value="gt_75k">Oltre 75.000 € (risposta precedente)</option> : null}{question.options.map(option => <option value={option.value} key={option.value}>{option.label}</option>)}</select></label>)}

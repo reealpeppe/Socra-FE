@@ -29,8 +29,8 @@ test('aggregate_card_lists_two_themes_and_sends_selected_goal',async({page,baseU
   await dialog.getByRole('radio',{name:/Azioni/}).check();
   await dialog.getByRole('checkbox',{name:'Leggere i dati fondamentali di un’azienda',exact:true}).check();
   await dialog.getByLabel('Il tuo messaggio').fill('Vorrei capire insieme i dati fondamentali di questa azienda.');
-  await dialog.getByRole('checkbox',{name:/Accetto la condivisione/}).check();
-  await dialog.getByRole('button',{name:'Invia',exact:true}).click();
+  await dialog.getByRole('checkbox',{name:/Accetto.*(condivisione|condividere)/}).check();
+  await dialog.getByRole('button',{name:'Invia richiesta',exact:true}).click();
   await expect.poll(()=>state.sent?.goal_id).toBe('g-stock');
   expect(state.sent?.agreed_objective_codes).toEqual(['stock_fundamentals']);
 });
@@ -42,6 +42,39 @@ test('loads_all_pages_without_duplicate_cards',async({page,baseURL})=>{
   await expect(page.locator('[data-person-id]')).toHaveCount(12);
   const ids=await page.locator('[data-person-id]').evaluateAll(els=>els.map(el=>el.getAttribute('data-person-id')));
   expect(new Set(ids).size).toBe(12);
+});
+
+test('rich_person_card_records_visible_discovery_once_and_keeps_offscreen_unseen',async({page,baseURL})=>{
+  await fixture(page,baseURL!);const seen:string[]=[];
+  const rich=Array.from({length:8},(_,i)=>({...card().goal_matches[0],goal_id:`g-rich-${i}`,topic:`Tema ${i+1}`,covered_objective_codes:['one','two','three'],covered_objective_labels:Array.from({length:3},(_,j)=>`Attività ${j+1}: comprendere e confrontare gli strumenti con esempi e criteri concreti. ` .repeat(2)),coverage_count:3,requested_count:3}));
+  await page.route('**/api/backend/matching/candidates/all',r=>r.fulfill({json:{items:[{...card(),goal_matches:rich,discovery_offer_id:'rich-visible'},{...card(1),goal_matches:rich,discovery_offer_id:'rich-offscreen'}],next_cursor:null}}));
+  await page.route('**/api/backend/matching/discovery/impressions',r=>{seen.push(...r.request().postDataJSON().offer_ids);return r.fulfill({json:{recorded:1}});});
+  await page.goto('/matching');const first=page.locator('[data-person-id="m-0"]');
+  expect(await first.evaluate(el=>el.getBoundingClientRect().height>innerHeight*2)).toBe(true);
+  const target=first.locator('[data-discovery-offer="rich-visible"]');await target.scrollIntoViewIfNeeded();
+  await expect.poll(()=>seen.includes('rich-visible')).toBe(true);expect(seen.filter(id=>id==='rich-visible')).toHaveLength(1);
+  if(test.info().project.name==='mobile')expect(seen).not.toContain('rich-offscreen');
+});
+
+test('goal_summary_failure_keeps_matching_results_and_retries_independently',async({page,baseURL})=>{
+  await fixture(page,baseURL!);await page.goto('/matching');
+  await expect(page.locator('[data-person-id]')).toHaveCount(10);
+  await page.clock.install();await page.clock.fastForward(6000);
+  let fail=true,searches=0;
+  await page.route('**/api/backend/goals/me',r=>fail?r.fulfill({status:503,json:{detail:'Riepilogo non disponibile'}}):r.fallback());
+  await page.route('**/api/backend/matching/candidates/all',r=>{
+    searches++;
+    if(r.request().postDataJSON()?.cursor)return r.fulfill({status:503,json:{detail:'Pagina non disponibile'}});
+    return r.fallback();
+  });
+  await page.getByRole('button',{name:'Mostra altri',exact:true}).click();
+  await page.getByRole('button',{name:'Aggiorna risultati',exact:true}).click();
+  await expect(page.locator('[data-person-id]')).toHaveCount(10);
+  await expect(page.locator('[data-person-id="m-0"]').getByRole('button',{name:'Chiedi un confronto',exact:true})).toBeEnabled();
+  const retry=page.getByRole('button',{name:'Riprova riepilogo',exact:true});await expect(retry).toBeVisible();
+  const before=searches;fail=false;await retry.click();
+  await expect(retry).toHaveCount(0);await expect(page.getByRole('region',{name:'I tuoi obiettivi',exact:true})).toBeVisible();
+  expect(searches).toBe(before);
 });
 
 test('cancel_goal_change_keeps_pending_request',async({page,baseURL})=>{

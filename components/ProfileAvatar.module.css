@@ -1,0 +1,4 @@
+.avatar { display: inline-flex; position: relative; flex: 0 0 56px; height: 56px; width: 56px; border-radius: 50%; overflow: hidden; }
+.avatar > :first-child { width: 100%; height: 100%; border-radius: inherit; }
+.avatar > img { position: absolute; inset: 0; object-fit: cover; width: 100%; height: 100%; }
+@media (max-width: 520px) { .avatar { flex-basis: 46px; height: 46px; width: 46px; } }

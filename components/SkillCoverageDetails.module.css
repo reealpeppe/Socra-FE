@@ -1,0 +1,7 @@
+.missing { color: var(--muted); font-size: .8125rem; margin-top: 8px; }
+.missing summary { display: inline-flex; align-items: center; gap: 7px; list-style: none; min-height: 44px; cursor: pointer; }
+.missing summary::-webkit-details-marker { display: none; }
+.missing[open] summary svg { transform: rotate(180deg); }
+.missing p { margin: 2px 0 6px; }
+.missing ul { margin: 0; padding-left: 20px; line-height: 1.5; }
+.missing li + li { margin-top: 5px; }

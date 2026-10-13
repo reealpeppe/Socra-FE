@@ -579,7 +579,7 @@ function LegacyOnboardingSurvey({
                       <p>
                         {contextQuestion.key === "D1"
                           ? "Qualche informazione in più ci aiuta a conoscere meglio le persone che fanno parte di SOCRA e a migliorare la community nel tempo."
-                          : "Questa informazione ci aiuta a conoscere meglio la community e a comprenderne bisogni e caratteristiche nel tempo."}
+                          : "Ci aiuti a capire chi fa parte di Socra. Le risposte sono facoltative, restano private e non influenzano gli abbinamenti."}
                       </p>
                       <p>
                         Questa risposta non influenza il matching e non sarà visibile agli altri utenti.
