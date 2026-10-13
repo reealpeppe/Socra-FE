@@ -8,6 +8,10 @@ La V4 è pubblicata dal 03/10 su `release/v3-20260919`: BE `f53226aab35c93722c0f
 
 ## Responsabilità e punti di ingresso
 
+Correzione 14/10 in collaudo: la shell pubblica l'evento interno `socra:requests-updated` con `{userId, requests}` dal completo snapshot già letto per le notifiche. Richieste sottoscrive con cleanup, verifica proprietario e versione, e preserva lo snapshot recente durante l'inizializzazione; l'identificazione dell'account non attende il wallet. Nessun nuovo polling/GET o persistenza del contenuto. Lo smontaggio invalida i risultati della shell. Il profilo conserva origine/tab/ruolo e riusa `AlignmentDialog` e le API esistenti; il ramo mentor pagina fino al candidato, interrompendo su smontaggio o cursore ripetuto. Latenza proporzionale alla posizione, nessun ranking client.
+
+Wallet e scadenze riusano [lib/date.ts](../../lib/date.ts). [EtfExplanation](../../components/EtfExplanation.tsx) condivide il contenuto approvato tra dashboard e survey. Contratti/regole restano in wiki07/05/12 backend; nessun nuovo provider, componente cloud o autorità frontend. Stato di pubblicazione separato dalla presenza del codice.
+
 | Parte | Implementazione e responsabilità |
 |---|---|
 | App Router | [app](../../app), layout dei route group `(public)` e `(community)`: navbar/footer pubblici e [AppShell](../../components/AppShell.tsx) persistenti; gli URL non assumono il nome del route group. Navigazione con prefetch completo, contenuto corrente conservato durante la risposta route |

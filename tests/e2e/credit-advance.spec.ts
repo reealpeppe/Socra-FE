@@ -56,6 +56,7 @@ test("available advance is a labelled spendable credit inside the balance", asyn
   await expect(balance.locator(".wallet-stat-value")).toHaveText("1");
   await expect(balance.getByText("Anticipato", { exact: true })).toBeVisible();
   await expect(balance).toContainText("puoi usare un credito in anticipo");
+  await expect(balance).toContainText("Se lo utilizzi, il prossimo credito guadagnato come mentor compenserà l’anticipo.");
   await page.goto("/dashboard");
   await expect(page.getByRole("link", { name: /Crediti: 1.*anticipato/i })).toBeVisible();
 });

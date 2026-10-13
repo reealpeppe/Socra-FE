@@ -319,7 +319,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
           {role ? <section className="card stack" aria-labelledby="path-contacts-title">
             <div><p className="eyebrow">Privato tra voi</p><h2 id="path-contacts-title" style={{ fontSize: "1.15rem", margin: 0 }}>Contatti per il percorso</h2></div>
             {path.contacts ? <>
-              <p className="muted">Avete entrambi accettato lo scambio. Scrivetevi per concordare il primo incontro e i passaggi successivi.</p>
+              <p className="muted">{path.status === "completed" ? "Il percorso è concluso. I contatti restano disponibili per ricontattarvi." : "Avete entrambi accettato lo scambio. Scrivetevi per concordare il primo incontro e i passaggi successivi."}</p>
               <div className="path-people-grid">
                 {(["mentor", "mentee"] as const).map(side => <div key={side} className="stack" style={{ background: "var(--paper)", border: "1px solid var(--line)", borderRadius: 12, padding: 16, gap: 6, minWidth: 0 }}>
                   <small className="muted">{side === "mentor" ? "Mentor" : "Apprendista"}</small>

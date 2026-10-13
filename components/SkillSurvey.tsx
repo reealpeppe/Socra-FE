@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { useConfirmation } from "@/components/ConfirmationDialog";
 import { PersonalContext } from "./PersonalContext";
 import { MentorOfferHelp } from "./MentorOfferHelp";
+import { EtfExplanation } from "./EtfExplanation";
 import { SkillPreparation } from "@/components/SkillPreparation";
 import { clientGet, clientPost, clientPut } from "@/lib/api";
 import { emptySkillAnswers, restoreSkillAnswers, type SkillAnswers } from "@/lib/skills";
@@ -169,6 +170,7 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
           <MentorOfferHelp />
           {catalog.topics.map((topic, index) => <details className={styles.topic} key={topic.code} open={index === 0 || answers.known_skills.some(code => topic.skills.some(skill => skill.code === code))}>
             <summary>{topic.label}<small>{topic.skills.filter(skill => answers.known_skills.includes(skill.code)).length} conosciute · {topic.skills.filter(skill => answers.mentor_skills.includes(skill.code)).length} offerte</small></summary>
+            {topic.code === 'etf_funds' ? <EtfExplanation className={styles.offerHelp} /> : null}
             {topic.skills.map(skill => <div className={styles.skill} key={skill.code}>
               <label className={styles.check}><input type="checkbox" aria-label={`So: ${skill.label}`} checked={answers.known_skills.includes(skill.code)} disabled={busy} onChange={event => toggleKnown(skill.code, event.target.checked)} /><span>{skill.label}</span></label>
               <label className={styles.check}><input type="checkbox" aria-label={`Posso aiutare: ${skill.label}`} checked={answers.mentor_skills.includes(skill.code)} disabled={busy || !answers.known_skills.includes(skill.code)} onChange={event => update({ ...answers, mentor_skills: event.target.checked ? [...answers.mentor_skills, skill.code] : answers.mentor_skills.filter(code => code !== skill.code) })} /><span>Posso aiutare</span></label>

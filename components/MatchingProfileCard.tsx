@@ -5,16 +5,17 @@ import { ProfileAvatar } from "./ProfileAvatar";
 import { coverageCounts, MissingObjectives } from "./SkillSummary";
 import styles from "./MatchingProfileCard.module.css";
 
-export function MatchingProfileCard({ userId, name, topic, coverage, score, mode, matches, cost, recommended, badges, discoveryOfferId, actionLabel, disabled, onRequest }: {
+export function MatchingProfileCard({ userId, name, topic, coverage, score, mode, matches, cost, recommended, badges, discoveryOfferId, profileHref, pendingHref, actionLabel, disabled, onRequest }: {
   userId: string; name: string; topic: string; coverage: SkillCoverage; score: number;
   mode?: string | null; cost?: number; recommended?: boolean; badges?: string[]; discoveryOfferId?: string;
   matches?: GoalMatch[];
+  profileHref?: string; pendingHref?: string;
   actionLabel: string; disabled: boolean; onRequest: () => void;
 }) {
   const topics = matches?.length ? matches : [{ ...coverage, goal_id: "single", topic, match_score: score, discussion_mode_label: mode }];
   const identity = <div className={styles.identity}>
       <ProfileAvatar userId={userId} name={name} />
-      <div className={styles.name}><h2>{name}</h2><Link href={`/profiles/${encodeURIComponent(userId)}`}>Vedi profilo <ArrowUpRight size={14} aria-hidden="true" /></Link></div>
+      <div className={styles.name}><h2>{name}</h2><Link href={profileHref || `/profiles/${encodeURIComponent(userId)}`}>Vedi profilo <ArrowUpRight size={14} aria-hidden="true" /></Link></div>
     </div>;
   return <article className={styles.card} data-person-id={userId}>
     {topics.map((match, index) => {
@@ -35,6 +36,7 @@ export function MatchingProfileCard({ userId, name, topic, coverage, score, mode
     <div className={styles.footer}>
       {Number.isFinite(cost) ? <p className={styles.cost}>Costo del percorso per te: {cost} {cost === 1 ? "credito" : "crediti"}</p> : null}
       <button className={styles.action} type="button" disabled={disabled} onClick={onRequest}>{actionLabel}<ArrowRight size={18} aria-hidden="true" /></button>
+      {pendingHref ? <Link className="button secondary" href={pendingHref}>Vedi la proposta</Link> : null}
     </div>
   </article>;
 }

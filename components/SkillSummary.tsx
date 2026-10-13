@@ -30,7 +30,7 @@ export function CoverageSummary({ coverage }: { coverage: SkillCoverage }) {
   return <div className={styles.coverage}>
     {count < total ? <p className={styles.partial}>Copertura parziale</p> : null}
     <details className={styles.coverageDetails}><summary>Su cosa potete lavorare</summary>
-    <strong>{count} di {total} obiettivi</strong>
+    <strong>{count} di {total} {total === 1 ? 'obiettivo' : 'obiettivi'}</strong>
     <ul className={styles.list}>{coverage.covered_objective_labels?.map(label => <li key={label}>{label}</li>)}</ul>
     {coverage.missing_objective_labels?.length ? <><p className="muted">Da affrontare in un altro percorso:</p><ul className={styles.list}>{coverage.missing_objective_labels.map(label => <li key={label}>{label}</li>)}</ul></> : null}
     </details>
