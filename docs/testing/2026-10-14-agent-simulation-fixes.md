@@ -1,0 +1,9 @@
+# Fix della simulazione e nuovo campione — 14 ottobre 2026
+
+Correzioni di richieste aggiornate a pagina aperta, destinazioni Ricevute/Inviate e ritorno alla tab; ruolo mentor nel profilo, attività concordate e blocco della proposta V4 senza compatibilità; date UTC wallet, compensazione anticipo, singolari, contesto delle notifiche e aiuto ETF nella scelta dell'esperienza. Nessun nuovo polling o regola di dominio.
+
+Integrate sopra la UI approvata `8e55b29` dopo fetch della release durante la review, preservando le nuove card, palette e dialogo. I checkout principali e il lavoro di GR non sono stati modificati. L'integrazione mantiene la selezione automatica del tema singolo del nuovo dialogo; regressioni dei payload e del consenso conservate.
+
+Verifiche locali: lint senza errori (due warning MonitoringMfa preesistenti), build di produzione e typecheck passati; **82 regressioni interessate desktop/mobile passate**, sicurezza108/gate8/audit0. La CI completa è richiesta prima del merge. Capture con API reali e build fresca `2026-10-13T22-44-35-277Z`, 25 scenari per viewport; review LLM indipendente inizialmente pending e da attestare prima della consegna. La precedente capture22:37 è storica, precedente all'integrazione della nuova UI, e non promuove il gate finale.
+
+Rapporto proprietario backend: [rilascio, backup, review, pubblicazione e limiti](https://github.com/reealpeppe/Socra-BE/blob/release/v3-20260919/docs/releases/2026-10-14-agent-simulation-fixes.md). La successiva simulazione da20 subagent distinti inizierà dopo deployment verificato; userà build dei commit pubblicati, API reali e PostgreSQL locale isolato, senza account sintetici in produzione o provider esterni. Screenshot, azioni, rapporti e verifiche DB locali sono evidenze separate dalla CI e dagli smoke pubblici.
