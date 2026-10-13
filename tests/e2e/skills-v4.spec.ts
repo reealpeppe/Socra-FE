@@ -128,7 +128,7 @@ test("dashboard loads preparation independently and retries a profile error with
   await expect.poll(() => requests).toBe(1);
   await expect(page.getByText("Nessun argomento ancora disponibile.", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("status").filter({ hasText: "Caricamento esperienza" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Il tuo percorso di apprendimento" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Il tuo percorso di apprendimento" })).toBeVisible();
   releaseProfile();
   await expect(page.getByText("La tua esperienza non è disponibile. Usa “Riprova” in alto.", { exact: true })).toBeVisible();
   await expect(page.getByText("Nessun argomento ancora disponibile.", { exact: true })).toHaveCount(0);
@@ -178,7 +178,7 @@ test("partial matching requires an explicit covered subset in the request", asyn
   await page.route("**/api/backend/matching/requests", route => { sent = route.request().postDataJSON(); return route.fulfill({ json: { id: "r2" } }); });
   await page.goto("/matching");
   const card=page.locator('[data-person-id="mentor"]');
-  await expect(card).toContainText('ETF');await expect(card).toContainText('84% compatibilità');
+  await expect(card).toContainText('ETF');await expect(card.getByText("84%", { exact: true })).toBeVisible();
   await card.locator('summary').click();await expect(card).toContainText('Costruire un piano periodico');
   await card.getByRole('button',{name:'Chiedi un confronto',exact:true}).click();
   const dialog = page.getByRole("dialog");
@@ -186,7 +186,7 @@ test("partial matching requires an explicit covered subset in the request", asyn
   await dialog.getByRole("checkbox", { name: "Confrontare due ETF", exact: true }).check();
   await dialog.getByLabel("Il tuo messaggio").fill("Vorrei confrontare questi due ETF insieme a te.");
   await dialog.getByRole("checkbox", { name: /email/ }).check();
-  await dialog.getByRole("button", { name: "Invia", exact: true }).click();
+  await dialog.getByRole("button", { name: "Invia richiesta", exact: true }).click();
   await expect(page.getByText(/Proposta inviata/).first()).toBeVisible();
   expect(sent).toMatchObject({ agreed_objective_codes: ["etf_compare"], goal_id: "g1" });
 });
@@ -266,14 +266,14 @@ test("mentor proposal sends only the explicitly selected covered objectives", as
   await page.route("**/api/backend/matching/mentees/all", route => route.fulfill({ json: {items:[aggregate({...candidate,mentor_id:undefined,mentee_id:"learner"})],next_cursor:null} }));
   await page.route("**/api/backend/matching/proposals", route => { sent = route.request().postDataJSON(); return route.fulfill({ json: { ...sent, id: "offer", status: "pending", initiator_role: "mentor" } }); });
   await page.goto("/matching/mentees");
-  await expect(page.getByText("2/3 attività · 84% compatibilità", { exact: true })).toBeVisible();
+  await expect(page.locator("[data-person-id]").getByText("84%", { exact: true })).toBeVisible();
   await expect(page.getByText("Disponibilità limitata", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Proponi un confronto", exact: true }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("checkbox", { name: "Leggere la scheda di un ETF", exact: true }).check();
   await dialog.getByLabel("Il tuo messaggio").fill("Ti propongo di leggere insieme una scheda ETF.");
   await dialog.getByRole("checkbox", { name: /email/ }).check();
-  await dialog.getByRole("button", { name: "Invia", exact: true }).click();
+  await dialog.getByRole("button", { name: "Invia richiesta", exact: true }).click();
   await expect(page.getByText(/Proposta inviata/)).toBeVisible();
   expect(sent).toMatchObject({ agreed_objective_codes: ["etf_read"], mentee_id: "learner" });
 });
@@ -284,11 +284,11 @@ test("request from public profile retains explicit task agreement", async ({ pag
   await page.goto("/profiles/mentor");
   await page.getByRole("button", { name: /Invia richiesta al mentor|Chiedi un confronto/, exact: true }).first().click();
   const dialog = page.getByRole("dialog");
-  await expect(dialog.getByRole("button", { name: "Invia", exact: true })).toBeDisabled();
+  await expect(dialog.getByRole("button", { name: "Invia richiesta", exact: true })).toBeDisabled();
   await dialog.getByRole("checkbox", { name: "Confrontare due ETF", exact: true }).check();
   await dialog.getByLabel("Il tuo messaggio").fill("Vorrei approfondire con te i costi dei due ETF.");
   await dialog.getByRole("checkbox", { name: /email/ }).check();
-  await dialog.getByRole("button", { name: "Invia", exact: true }).click();
+  await dialog.getByRole("button", { name: "Invia richiesta", exact: true }).click();
   await expect(dialog).not.toBeVisible();
   expect(sent).toMatchObject({ agreed_objective_codes: ["etf_compare"], mentor_id: "mentor" });
 });
@@ -388,12 +388,11 @@ test("dashboard shows explicit objectives, preparation and mentor paths while pa
   await page.route("**/api/backend/auth/me", route => route.fulfill({ json: { ...user, is_coach: false } }));
   await page.goto("/dashboard");
   const learning = page.getByRole("region", { name: "Il tuo percorso di apprendimento" });
-  await expect(learning.getByText("ETF", { exact: true })).toBeVisible();
+  await expect(learning.getByRole("heading", { name: "Inizia il tuo percorso su ETF", exact: true })).toBeVisible();
   await expect(learning.getByText("3 obiettivi", { exact: true })).toBeVisible();
-  for (const label of goal.objective_labels) await expect(learning.getByText(label, { exact: true })).toBeVisible();
   const smallGoal = page.getByRole("region", { name: "I tuoi obiettivi" });
-  await expect(smallGoal.getByText("3 attività", { exact: true })).toBeVisible();
-  await smallGoal.locator("summary").click();
+  await expect(smallGoal.getByText("3 obiettivi", { exact: true })).toBeVisible();
+  for (const label of goal.objective_labels) await expect(smallGoal.getByText(label, { exact: true })).toBeVisible();
   await expect(smallGoal).toContainText(goal.objective_labels[2]);
   await expect(page.getByRole("progressbar", { name: "Preparazione su ETF" })).toHaveAttribute("value", "3");
   await expect(page.getByRole("link", { name: "Vedi i percorsi" })).toHaveAttribute("href", "/paths?tab=mentor");
@@ -429,10 +428,10 @@ for (const username of ["qa.release.6f51e4f909ba", "q".repeat(80)]) {
     await page.route("**/api/backend/auth/me", route => route.fulfill({ json: { ...user, username, nickname: username, email, is_coach: false } }));
     await page.route("**/api/backend/profiles/me", route => route.fulfill({ json: { ...ownProfile, username, nickname: username } }));
     await page.goto("/dashboard");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText(username);
+    await expect(page.getByText(`Ciao ${username}.`, { exact: false })).toBeVisible();
     await expect(page.getByRole("progressbar", { name: "Preparazione su ETF" })).toBeVisible();
     await page.evaluate(() => document.fonts.ready);
-    await expectHorizontalContainment(page.locator("main h1, main header > div, main section[aria-labelledby], main section a, main progress, main progress + small"));
+    await expectHorizontalContainment(page.locator("main h1, main header > div, main header p, main section[aria-labelledby], main section a, main progress, main progress + small"));
     await page.goto("/settings");
     await expect(page.getByRole("textbox", { name: "Username", exact: true })).toHaveValue(username);
     await page.getByText("Contesto personale", { exact: true }).click();
@@ -459,13 +458,13 @@ for (const nickname of ["ux.review.mentor.long.username", "m".repeat(80)]) {
     await page.getByRole("button", { name: /Invia richiesta al mentor|Chiedi un confronto/, exact: true }).first().click();
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
-    await dialog.getByText("Su cosa potete lavorare", { exact: true }).click();
+    await expect(dialog.getByRole("checkbox", { name: "Leggere la scheda di un ETF", exact: true })).toBeVisible();
     await expectHorizontalContainment(dialog.locator("form, h2, fieldset, details, textarea, button"));
     await dialog.getByRole("checkbox", { name: "Leggere la scheda di un ETF", exact: true }).check();
     await dialog.getByLabel("Il tuo messaggio").fill("Vorrei leggere insieme una scheda ETF e comprenderne i dati principali.");
     await dialog.getByRole("checkbox", { name: /email/ }).check();
-    await dialog.getByRole("button", { name: "Invia", exact: true }).scrollIntoViewIfNeeded();
-    await expect(dialog.getByRole("button", { name: "Invia", exact: true })).toBeEnabled();
+    await dialog.getByRole("button", { name: "Invia richiesta", exact: true }).scrollIntoViewIfNeeded();
+    await expect(dialog.getByRole("button", { name: "Invia richiesta", exact: true })).toBeEnabled();
     await expectHorizontalContainment(dialog.locator("form, h2, fieldset, details, textarea, button"));
     await dialog.getByRole("button", { name: "Annulla", exact: true }).click();
     await expect(dialog).not.toBeVisible();
@@ -584,4 +583,43 @@ test('public_profile_describes_compatible_goal_instead_of_latest_other_theme',as
   await expect(page.locator('.profile-match-card')).toContainText('ETF');
   await request.getByRole('button',{name:'Invia richiesta al mentor',exact:true}).click();
   await expect(page.getByRole('dialog')).toContainText('ETF');
+});
+
+test("approved matching keeps covered activities visible and retains an explicit agreement after an error", async ({ page }) => {
+  const avatar = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jPz0AAAAASUVORK5CYII=";
+  await page.route("**/api/backend/profiles/mentor", route => route.fulfill({ json: {
+    user_id: "mentor", nickname: "Marta", avatar_url: avatar, skill_model: true,
+    path_cost: 1, is_coach: true, completed_paths: 0, public_badges: [], top_topics: ["ETF"], aggregate_metrics: {},
+  } }));
+  let attempts = 0;
+  let sent: Record<string, unknown> | undefined;
+  await page.route("**/api/backend/matching/requests", route => {
+    sent = route.request().postDataJSON();
+    attempts++;
+    return attempts === 1
+      ? route.fulfill({ status: 503, json: { detail: "Servizio temporaneamente non disponibile." } })
+      : route.fulfill({ json: { id: "retry-request" } });
+  });
+  await page.goto("/matching");
+  const card = page.getByRole("article").filter({ has: page.getByRole("heading", { name: "Marta", exact: true }) });
+  await expect(card.getByText("Confrontare due ETF", { exact: true })).toBeVisible();
+  await expect(card.locator("img")).toHaveAttribute("src", avatar);
+  await expect(card.getByText("84%", { exact: true })).toBeVisible();
+  await card.getByRole("button", { name: "Chiedi un confronto", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  const send = dialog.getByRole("button", { name: "Invia richiesta", exact: true });
+  await expect(dialog.getByRole("checkbox", { name: "Confrontare due ETF", exact: true })).not.toBeChecked();
+  await expect(dialog.getByRole("checkbox", { name: "Costruire un piano periodico", exact: true })).toHaveCount(0);
+  await dialog.getByRole("checkbox", { name: "Confrontare due ETF", exact: true }).check();
+  await dialog.getByLabel("Il tuo messaggio").fill("Vorrei confrontare questi due ETF e capire come leggerne i costi.");
+  await expect(send).toBeDisabled();
+  await dialog.getByRole("checkbox", { name: /email/ }).check();
+  await send.click();
+  await expect(dialog.getByRole("alert")).toBeVisible();
+  await expect(dialog.getByRole("checkbox", { name: "Confrontare due ETF", exact: true })).toBeChecked();
+  await expect(dialog.getByLabel("Il tuo messaggio")).toHaveValue("Vorrei confrontare questi due ETF e capire come leggerne i costi.");
+  await send.click();
+  await expect(dialog).not.toBeVisible();
+  expect(attempts).toBe(2);
+  expect(sent).toMatchObject({ agreed_objective_codes: ["etf_compare"], goal_id: "g1", email_sharing_accepted: true });
 });

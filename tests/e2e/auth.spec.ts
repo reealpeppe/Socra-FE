@@ -104,7 +104,7 @@ test("login posts through BFF and reaches dashboard", async ({ page }) => {
   await submitLogin(page);
 
   await expect(page).toHaveURL(/\/dashboard/);
-  await expect(page.getByRole("heading", { name: /Ciao User/ })).toBeVisible();
+  await expect(page.getByText(/Ciao User/)).toBeVisible();
 });
 
 test("login preserves query and hash for an allowed protected route", async ({ page }) => {

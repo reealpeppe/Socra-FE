@@ -94,9 +94,9 @@ test("backend proxy accepts the V2 preference PUT method", async ({ page }) => {
 
 test("dashboard renders responsive operational state", async ({ page }) => {
   await page.goto("/dashboard");
-  await expect(page.getByRole("heading", { name: /Ciao Apprendista/ })).toBeVisible();
+  await expect(page.getByText(/Ciao Apprendista/)).toBeVisible();
   await expect(page.locator('nav.nav-list a[href="/dashboard"]')).toHaveAttribute("aria-current", "page");
-  await expect(page.getByRole("heading", { name: "Il tuo percorso di apprendimento" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Il tuo percorso di apprendimento" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "I tuoi percorsi come mentor" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "I tuoi obiettivi" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Competenze e disponibilità" })).toBeVisible();
@@ -717,10 +717,10 @@ test("matching shows reasons and can create request", async ({ page }) => {
   await expect(page.getByText("90/100")).toHaveCount(0);
   await page.getByRole("button", { name: "Invia richiesta al mentor" }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Invia", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Invia richiesta", exact: true })).toBeDisabled();
   await page.getByLabel("Il tuo messaggio", { exact: true }).fill("Vorrei capire come funziona un primo PAC in ETF.");
-  await page.getByRole("checkbox", { name: /condivisione.*email/i }).check();
-  await page.getByRole("button", { name: "Invia", exact: true }).click();
+  await page.getByRole("checkbox", { name: /(condivisione|condividere).*email/i }).check();
+  await page.getByRole("button", { name: "Invia richiesta", exact: true }).click();
   expect(requestPayload).toEqual({ mentor_id: "mentor1", goal_id: "g1", alignment_message: "Vorrei capire come funziona un primo PAC in ETF.", email_sharing_accepted: true });
   await expect(page.getByRole("status").filter({ hasText: "48 ore per rispondere" })).toBeVisible();
 });
@@ -758,8 +758,8 @@ test("V3 mentor proposal requires the same alignment message", async ({ page }) 
   await page.goto("/matching/mentees");
   await page.getByRole("button", { name: "Proponi un percorso" }).click();
   await page.getByLabel("Il tuo messaggio", { exact: true }).fill("Posso condividere i miei primi passi con un PAC in ETF.");
-  await page.getByRole("checkbox", { name: /condivisione.*email/i }).check();
-  await page.getByRole("button", { name: "Invia", exact: true }).click();
+  await page.getByRole("checkbox", { name: /(condivisione|condividere).*email/i }).check();
+  await page.getByRole("button", { name: "Invia richiesta", exact: true }).click();
   await expect(page.getByRole("button", { name: "Proposta inviata" })).toBeVisible();
   expect(sent).toMatchObject({ mentee_id: "learner", goal_id: "learn", alignment_message: "Posso condividere i miei primi passi con un PAC in ETF.", email_sharing_accepted: true });
 });
@@ -877,7 +877,7 @@ test("request expiry during accept never reports an opened path", async ({ page 
   await page.goto("/requests?tab=received");
   await page.getByRole("button", { name: "Accetta" }).click();
   await expect(page.getByRole("dialog")).toContainText("Vuoi accettare e aprire questo percorso?");
-  await page.getByRole("checkbox", { name: /condivisione.*email/i }).check();
+  await page.getByRole("checkbox", { name: /(condivisione|condividere).*email/i }).check();
   await page.getByRole("button", { name: "Conferma", exact: true }).click();
 
   const outcome = page.getByText(/Nessun percorso è stato aperto/);

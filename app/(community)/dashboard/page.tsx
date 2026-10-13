@@ -3,7 +3,7 @@ import { availableCredits } from "@/lib/credits";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, BarChart3, BookOpen, ChevronRight, Coins, GraduationCap, Info, Sparkles, Target, UsersRound } from "lucide-react";
+import { ArrowRight, BookOpen, ChevronRight, Coins, GraduationCap, Info, Sparkles, Target, UsersRound } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
 import { UserAvatar } from "@/components/Ui";
@@ -130,9 +130,8 @@ export default function DashboardPage() {
         <div className={styles.page} aria-busy={loading}>
           <header className={styles.intro}>
             <div>
-              <p className={styles.eyebrow}>Il tuo spazio su Socra <span aria-hidden="true">/</span> Panoramica</p>
-              <h1>Ciao {displayName}<span className={styles.wave} aria-hidden="true">✳</span></h1>
-              <p className={styles.introCopy}>Un posto per imparare, condividere e seguire ciò che conta per te.</p>
+              <h1>Ogni confronto, un passo avanti.</h1>
+              <p className={styles.introCopy}>Ciao {displayName}. Il tuo spazio per imparare e condividere quello che sai.</p>
             </div>
             <Link className={styles.wallet} href="/wallet" aria-label={`Crediti: ${errors.wallet ? "non disponibili" : availableCredits(wallet) ?? "in caricamento"}${wallet?.advance_available === 1 ? ", anticipato" : wallet?.advance_used === 1 ? ", anticipo utilizzato" : ""}. Apri il portafoglio`}>
               <span className={styles.walletIcon}><Coins size={21} aria-hidden="true" /></span>
@@ -160,45 +159,36 @@ export default function DashboardPage() {
 
           {loading ? <div className={styles.loading} role="status">Caricamento dashboard…</div> : <>
             <div className={styles.grid}>
-              <section className={`${styles.card} ${styles.learning}`} aria-labelledby="learning-title">
+              <section className={`${styles.card} ${styles.learning}`} aria-label="Il tuo percorso di apprendimento">
                 <div className={styles.cardTop}>
                   <span className={styles.cardIcon}><GraduationCap size={23} aria-hidden="true" /></span>
-                  <span className={styles.sectionIndex}>01 / Impara</span>
+                  <h2 id="learning-title">{activeMenteePath ? "Il tuo percorso di apprendimento" : pendingGoalReview ? "Rivedi il tuo obiettivo" : goalTitle ? `Inizia il tuo percorso su ${goalTitle}` : "Inizia da un obiettivo"}</h2>
                   {activeMenteePath ? <span className={styles.status}>{activeMenteePath.status === "feedback_pending" ? "Feedback in corso" : "In corso"}</span> : null}
                 </div>
-                <div className={styles.learningBody}>
-                <div className={styles.learningNext}>
-                  {errors.paths ? null : activeMenteePath ? <p className={styles.supporting}>Hai già un percorso attivo come apprendista.</p> : <p className={styles.supporting}>{pendingGoalReview ? "Rivedi l’obiettivo prima di cercare un nuovo mentor." : activeGoal ? "Nessun percorso attivo come apprendista. Trova la persona giusta per iniziare." : "Scegli cosa desideri imparare e costruisci il tuo percorso."}</p>}
-                <div className={styles.cardBottom}>
-                  <span className={styles.cardMeta}><BookOpen size={17} aria-hidden="true" /> {errors.paths ? "Stato non disponibile" : activeMenteePath ? "1 percorso attivo su 1" : "0 percorsi attivi su 1"}</span>
-                  <Link className={styles.actionDark} href={learningHref}>{learningAction}<ArrowRight size={18} aria-hidden="true" /></Link>
-                </div>
-                </div>
-                <div className={styles.learningFocus}>
-                <h2 id="learning-title">Il tuo percorso di apprendimento</h2>
                 {errors.paths ? <p className={styles.cardMessage}>I percorsi non sono disponibili. Usa “Riprova” in alto.</p>
                   : activeMenteePath ? <>
                     <p className={styles.featureTitle}>{activeMenteePath.skill_model ? activeMenteePath.goal?.topic || "Il tuo percorso" : activeMenteePath.goal?.goal_tag || goalTitle || "Il tuo percorso"}</p>
                     {activeMenteePath.skill_model ? <DashboardTopicExplanation topic={activeMenteePath.goal?.topic} /> : null}
                     {activeMenteePath.skill_model ? <DashboardObjectives labels={activeMenteePath.agreed_objective_labels || []} agreed /> : null}
                     <div className={styles.person}><UserAvatar name={activeMenteePath.mentor?.nickname || "Mentor Socra"} size="sm" /><span><strong>{activeMenteePath.mentor?.nickname || "Mentor Socra"}</strong><small>Il tuo mentor</small></span></div>
+                    <p className={styles.supporting}>Hai già un percorso attivo come apprendista.</p>
                   </> : <>
-                    <p className={styles.featureTitle}>{errors.goals ? "Il tuo prossimo passo" : goalTitle || "Inizia da un obiettivo"}</p>
                     {!errors.goals && activeGoal?.skill_model ? <DashboardTopicExplanation topic={activeGoal.topic} /> : null}
-                    {!errors.goals && goalObjectives.length ? <DashboardObjectives labels={goalObjectives} /> : null}
+                    {!errors.goals && goalObjectives.length ? <DashboardObjectives labels={goalObjectives} compact /> : null}
+                    <p className={styles.supporting}>{pendingGoalReview ? "Rivedi l’obiettivo prima di cercare un nuovo mentor." : activeGoal ? "Nessun percorso attivo come apprendista. Trova la persona giusta per iniziare." : "Scegli cosa desideri imparare e costruisci il tuo percorso."}</p>
                   </>}
+                <div className={styles.cardBottom}>
+                  <span className={styles.cardMeta}><BookOpen size={17} aria-hidden="true" /> {errors.paths ? "Stato non disponibile" : activeMenteePath ? "1 percorso attivo su 1" : "0 percorsi attivi su 1"}</span>
+                  <Link className={styles.actionDark} href={learningHref}>{learningAction}<ArrowRight size={18} aria-hidden="true" /></Link>
                 </div>
-                </div>
-                <div className={styles.learningArt} aria-hidden="true"><i /><i /><i /><span /></div>
               </section>
 
               <section className={`${styles.card} ${styles.mentor}`} aria-labelledby="mentor-title">
                 <div className={styles.cardTop}>
                   <span className={styles.cardIcon}><UsersRound size={22} aria-hidden="true" /></span>
-                  <span className={styles.sectionIndex}>02 / Condividi</span>
-                  {me?.is_coach ? <span className={styles.status}>Disponibile come mentor</span> : null}
+                  <h2 id="mentor-title">I tuoi percorsi come mentor</h2>
                 </div>
-                <h2 id="mentor-title">I tuoi percorsi come mentor</h2>
+                {me ? <p className={styles.availability}><span className={me.is_coach ? styles.availabilityDot : styles.availabilityDotOff} />{me.is_coach ? "Disponibile come mentor" : "Disponibilità mentor disattivata"}</p> : null}
                 {!me ? <p className={styles.cardMessage}>Verifica ruolo mentor…</p>
                   : !me.is_coach && !activeMentorPaths.length ? <>
                     <p className={styles.featureTitle}>Condividi ciò che sai</p>
@@ -215,31 +205,28 @@ export default function DashboardPage() {
                   </>}
                 {!me?.is_coach ? <Link className={styles.textLink} href="/settings">Gestisci ruolo mentor <ArrowRight size={17} aria-hidden="true" /></Link> : null}
                 <div className={styles.cardBottom}>
-                  <span className={styles.cardMeta}>{!errors.paths && me ? `${completedMentorPaths} completati` : ""}</span>
-                  <Link className={styles.actionGold} href="/paths?tab=mentor">Vedi i percorsi <ArrowRight size={18} aria-hidden="true" /></Link>
+                  {me?.is_coach && !errors.paths && activeMentorPaths.length < 3 ? <Link className={styles.actionGold} href="/matching/mentees">Cerca apprendisti <ArrowRight size={18} aria-hidden="true" /></Link> : null}
+                  <Link className={styles.textLink} href="/paths?tab=mentor">Vedi i percorsi <ArrowRight size={16} aria-hidden="true" /></Link>
                 </div>
-                <div className={styles.mentorArt} aria-hidden="true"><span /><span /></div>
+                {!errors.paths && me ? <p className={styles.cardMeta}>{completedMentorPaths} percorsi completati</p> : null}
               </section>
 
               <section className={`${styles.card} ${styles.goal}`} aria-labelledby="goal-title">
-                <div className={styles.smallCardHead}><span className={styles.cardIcon}><Target size={21} aria-hidden="true" /></span><span className={styles.sectionIndex}>03 / La tua direzione</span><Link href="/goal" aria-label="Vai ai tuoi obiettivi"><ChevronRight size={19} aria-hidden="true" /></Link></div>
-                <h2 id="goal-title">I tuoi obiettivi</h2>
+                <div className={styles.smallCardHead}><h2 id="goal-title">I tuoi obiettivi</h2><Target size={21} aria-hidden="true" /></div>
                 {errors.goals ? <p className={styles.cardMessage}>L&apos;obiettivo non è disponibile. Usa “Riprova” in alto.</p> : activeGoal ? <>
-                  {activeGoal.skill_model ? activeGoals.filter(g=>g.skill_model).map(goal=><details key={goal.id} className={styles.goalDetails}>
-                    <summary className={styles.goalTitleRow}><span className={styles.smallTitle}>{goal.topic}</span><small>{goal.objective_labels?.length||0} attività</small></summary>
-                    <ul className={styles.goalDescription}>{goal.objective_labels?.map(label=><li key={label}>{label}</li>)}</ul>
-                    <p className={styles.goalDescription}>{goal.discussion_mode_label}</p>
-                  </details>) : <><p className={styles.smallTitle}>{goalTitle}</p><p>{activeGoal.topic}</p></>}
+                  {activeGoal.skill_model ? activeGoals.filter(goal => goal.skill_model).map(goal => <div key={goal.id} className={styles.goalGroup}>
+                    <div className={styles.goalTitleRow}><p className={styles.smallTitle}>{goal.topic}</p><small>{goal.objective_labels?.length || 0} {goal.objective_labels?.length === 1 ? "obiettivo" : "obiettivi"}</small></div>
+                    <ul className={styles.goalObjectives}>{goal.objective_labels?.map(label => <li key={label}>{label}</li>)}</ul>
+                    <div className={styles.goalTags}><span>{goal.discussion_mode_label}</span></div>
+                  </div>) : <><p className={styles.smallTitle}>{goalTitle}</p><p>{activeGoal.topic}</p></>}
+                  <Link className={styles.textLink} href="/goal">Modifica obiettivi <ArrowRight size={16} aria-hidden="true" /></Link>
                 </> : <><p className={styles.cardMessage}>Nessun obiettivo attivo.</p><Link className={styles.textLink} href="/goal">Definisci obiettivo <ArrowRight size={16} aria-hidden="true" /></Link></>}
-                <div className={styles.goalArt} aria-hidden="true" />
               </section>
 
               <section className={`${styles.card} ${styles.skills}`} aria-labelledby="skills-title">
-                <div className={styles.smallCardHead}><span className={styles.cardIcon}><Sparkles size={21} aria-hidden="true" /></span><span className={styles.sectionIndex}>04 / La tua esperienza</span><Link href="/competenze" aria-label="Vai alle tue competenze"><ChevronRight size={19} aria-hidden="true" /></Link></div>
-                <h2 id="skills-title">Competenze e disponibilità</h2>
+                <div className={styles.smallCardHead}><span className={styles.cardIcon}><Sparkles size={21} aria-hidden="true" /></span><h2 id="skills-title">Competenze e disponibilità</h2><Link className={styles.textLink} href="/competenze">Gestisci esperienza <ArrowRight size={16} aria-hidden="true" /></Link></div>
                 {errors.profile || errors.user ? <p className={styles.cardMessage}>La tua esperienza non è disponibile. Usa “Riprova” in alto.</p> : profileLoading ? <p className={styles.cardMessage} role="status">Caricamento esperienza…</p> : profile?.skill_model ? profile.skill_groups?.length ? <div className={styles.preparation} aria-label="Preparazione per argomento"><small className={styles.preparationLabel}>Preparazione · attività conosciute</small>{profile.skill_groups.slice(0, 3).map(group => <SkillPreparation group={group} compact key={group.topic} />)}</div> : <p className={styles.cardMessage}>Nessuna attività conosciuta indicata.</p> : mentorTopics.length ? <div className={styles.topicList} aria-label="Topic di competenza">{mentorTopics.slice(0, 3).map(topic => <span key={topic}>{topic}</span>)}{mentorTopics.length > 3 ? <span>+{mentorTopics.length - 3}</span> : null}</div> : <p className={styles.cardMessage}>Nessun argomento ancora disponibile.</p>}
                 <div className={styles.availability}><span className={me?.is_coach ? styles.availabilityDot : styles.availabilityDotOff} />{me?.is_coach ? "Disponibile come mentor" : "Disponibilità mentor disattivata"}</div>
-                <div className={styles.skillsArt} aria-hidden="true"><BarChart3 size={30} /></div>
               </section>
             </div>
           </>}
@@ -249,8 +236,8 @@ export default function DashboardPage() {
   );
 }
 
-function DashboardObjectives({ labels, agreed = false }: { labels: string[]; agreed?: boolean }) {
-  return <div className={styles.objectives}><small>{labels.length} {labels.length === 1 ? "obiettivo" : "obiettivi"}{agreed ? " concordati" : ""}</small><ul>{labels.map(label => <li key={label}>{label}</li>)}</ul></div>;
+function DashboardObjectives({ labels, agreed = false, compact = false }: { labels: string[]; agreed?: boolean; compact?: boolean }) {
+  return <div className={styles.objectives}><small>{labels.length} {labels.length === 1 ? "obiettivo" : "obiettivi"}{agreed ? " concordati" : ""}</small>{!compact ? <ul>{labels.map(label => <li key={label}>{label}</li>)}</ul> : null}</div>;
 }
 
 function DashboardTopicExplanation({ topic }: { topic?: string | null }) {

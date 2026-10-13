@@ -21,7 +21,7 @@ test('context_has_one_continue_after_five_explicit_choices_and_saves_before_navi
   await expect(page.getByRole('button',{name:'Continua',exact:true})).toHaveCount(0);
   const why=context.getByText('Perché ci serve questa informazione?',{exact:true});
   await why.click();
-  await expect(context.getByText(/conoscere meglio la community e a comprenderne bisogni e caratteristiche/)).toBeVisible();
+  await expect(context.getByText(/Ci aiuti a capire chi fa parte di Socra/)).toBeVisible();
   for(const k of ['D1','D2','D3','D4'])await page.locator(`select[name=${k}]`).selectOption('undisclosed');
   await expect(page.getByRole('button',{name:'Continua',exact:true})).toHaveCount(0);
   await page.locator('select[name=D5]').selectOption('undisclosed');

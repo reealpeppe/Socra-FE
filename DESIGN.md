@@ -1,7 +1,15 @@
 ---
 name: Socra
-description: "Grafite e miele: interfaccia pulita e minimale, accogliente e professionale."
+description: "Grafite e miele nelle pagine pubbliche; perla e salvia nella community, su mockup approvati il 13/10."
 colors:
+  community-ink: "#25322f"
+  community-muted: "#59666c"
+  community-line: "#d7dfe2"
+  community-paper: "#eef1f3"
+  community-sage: "#325d4b"
+  community-sage-soft: "#edf4ef"
+  community-sidebar: "#e5ede8"
+  community-sidebar-selected: "#d0e0d5"
   ink: "#20272e"
   muted: "#62676e"
   line: "#e4e3df"
@@ -31,6 +39,18 @@ colors:
   neutral-surface: "#f5f5f2"
   neutral-text: "#62676e"
 typography:
+  community-page-title:
+    fontFamily: "Manrope, sans-serif"
+    fontSize: "clamp(1.875rem, 3vw, 2.5rem)"
+    fontWeight: 600
+  community-dialog-title:
+    fontFamily: "Manrope, sans-serif"
+    fontSize: "1.5rem"
+    fontWeight: 600
+  community-profile-name:
+    fontFamily: "Manrope, sans-serif"
+    fontSize: "1.25rem"
+    fontWeight: 600
   display:
     fontFamily: "Manrope, sans-serif"
     fontSize: "clamp(2.25rem, 3.5vw, 3.65rem)"

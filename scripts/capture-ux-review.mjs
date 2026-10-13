@@ -149,7 +149,7 @@ try {
     await expect(page.getByRole('button',{name:'Continua',exact:true})).toHaveCount(0);
     const why=page.locator('#personal-context').getByText('Perché ci serve questa informazione?',{exact:true});
     if(viewportName==='mobile')await why.tap();else{await why.focus();await why.press('Enter');}
-    await expect(page.getByText(/conoscere meglio la community e a comprenderne bisogni e caratteristiche/)).toBeVisible();
+    await expect(page.getByText(/Ci aiuti a capire chi fa parte di Socra/)).toBeVisible();
     trace.push({action:'Esperienza confermata → contesto privato',context_preserved_before_explicit_answers:true,continue_visible:false,why_opened_with:viewportName==='mobile'?'touch':'keyboard Enter'});
     await capture('survey-context', 'Contesto privato con spiegazione della finalità; nessuna seconda conferma o salto.');
     for(let i=1;i<=4;i++)await page.locator(`select[name=D${i}]`).selectOption('undisclosed');
@@ -222,7 +222,7 @@ try {
     assert.equal(candidate.coverage_count, 2);
     assert.equal(candidate.requested_count, 3);
     assert.notEqual(Math.round(candidate.match_score), Math.round(100 * 2 / 3));
-    await expect(card.getByText(new RegExp(`${Math.round(candidate.match_score)}% compatibilità`))).toBeVisible();
+    await expect(card.getByRole("region", {name:"Obiettivi su ETF",exact:true}).getByText(`${Math.round(candidate.match_score)}%`, {exact:true})).toBeVisible();
     await capture("matching", "Confrontare compatibilità e copertura; capire tema, obiettivi e modalità.", { candidate: { nickname: candidate.nickname, match_score: candidate.match_score, coverage_count: 2, requested_count: 3 } });
     const firstPeople=await page.locator('[data-person-id]').evaluateAll(nodes=>nodes.map(n=>n.dataset.personId));
     assert.equal(firstPeople.length,10);
@@ -233,7 +233,7 @@ try {
     await expect(card).toContainText('ETF');await expect(card).toContainText('Azioni');
     trace.push({action:'Mostra altri → tutte le persone compatibili',before_person_ids:firstPeople,after_person_ids:allPeople,no_duplicates:true,mentor_themes_preserved:['ETF','Azioni']});
     await capture('matching-pagination','Tutte le persone compatibili raggiungibili senza duplicati.',{person_ids:await page.locator('[data-person-id]').evaluateAll(nodes=>nodes.map(n=>n.dataset.personId))});
-    await card.locator('details').filter({has:page.getByText('ETF',{exact:true})}).locator('summary').click();
+    await card.getByRole('region',{name:'Obiettivi su ETF',exact:true}).locator('details summary').click();
     await capture("partial-details", "Scoprire le attività affrontabili e quella esclusa senza scambiare copertura per disponibilità.");
     await card.getByRole("button", { name: "Chiedi un confronto", exact: true }).click();
     const dialog = page.getByRole("dialog");
@@ -254,7 +254,7 @@ try {
     manifest.artifacts.push({ file: footerFile, sha256: hash(footerBytes) });
     await dialog.evaluate(element => { element.scrollTop = 0; });
     await capture("agreement", "Proporre esplicitamente una sola attività del sottoinsieme compatibile.", { chosen: ["etf_read"] });
-    await dialog.getByRole("button", { name: "Invia", exact: true }).click();
+    await dialog.getByRole("button", { name: "Invia richiesta", exact: true }).click();
     await expect(dialog).not.toBeVisible();
     const requests = await api(context, "/matching/requests/me?role=mentee");
     const sent = requests.find(item => item.mentor_id === fixture.users.mentor.id && item.status === "pending");
@@ -340,7 +340,7 @@ try {
       await page.getByRole('button', {name:'Continua',exact:true}).click();
       await expect(page).toHaveURL(/\/dashboard$/);
       await expect(page.getByRole("status").filter({ hasText: /esperienza.*aggiornata/i })).toBeVisible();
-      await expect(page.getByText("Disponibilità mentor disattivata", { exact: true })).toBeVisible();
+      await expect(page.getByRole("region", { name: "I tuoi percorsi come mentor", exact: true }).getByText("Disponibilità mentor disattivata", { exact: true })).toBeVisible();
       const removedKnowledge = await api(context, "/skills/me");
       assert.deepEqual(removedKnowledge.mentor_skills, []);
       assert.equal(removedKnowledge.mentor_available, false);

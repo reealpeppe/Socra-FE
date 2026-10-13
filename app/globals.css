@@ -3451,6 +3451,43 @@ summary:focus-visible,
 .route-skeleton span:first-child { height: 30px; width: 55%; }
 .route-skeleton span:last-child { width: 80%; }
 
+/* Community palette approved in the 13 October UI mockups. Public pages keep their existing theme. */
+.app-shell {
+  --ink: #25322f;
+  --muted: #59666c;
+  --line: #d7dfe2;
+  --paper: #eef1f3;
+  --card: #fff;
+  --navy-950: #25322f;
+  --navy-900: #2d3f36;
+  --socra-sage: #325d4b;
+  --socra-sage-soft: #edf4ef;
+  --socra-sidebar: #e5ede8;
+  --socra-sidebar-selected: #d0e0d5;
+  --focus-ring: #325d4b;
+  background: var(--paper);
+}
+.app-shell .sidebar { --focus-ring: var(--socra-sage); background: var(--socra-sidebar); color: var(--ink); border-right: 1px solid #d1dcd5; }
+.app-shell .sidebar-intro, .app-shell .nav-group > p { color: #586c61; }
+.app-shell .nav-group > p { font-size: .75rem; letter-spacing: .06em; font-weight: 600; }
+.app-shell .nav-link { color: #35483e; font-weight: 500; }
+.app-shell .nav-link:hover { background: #dbe7df; color: #254e3b; }
+.app-shell .nav-link.active { background: var(--socra-sidebar-selected); color: #254e3b; }
+.app-shell .nav-link.active svg { color: #254e3b; }
+.app-shell .sidebar-dot { background: var(--socra-sage); }
+.app-shell .sidebar-level-card { border-top-color: #cbd8cf; }
+.app-shell .sidebar-level-card strong { color: var(--ink); }
+.app-shell .sidebar-level-card small { color: var(--muted); }
+.app-shell .sidebar-level-card a, .app-shell .sidebar-session-state > a { color: var(--socra-sage); }
+.app-shell .topbar { background: #f6f8f9; backdrop-filter: none; }
+.app-shell .topbar-shortcut { background: var(--socra-sage-soft); border-color: #cbdcd0; color: var(--socra-sage); }
+.app-shell .topbar-shortcut:hover { background: #dce9e0; }
+.app-shell .button.primary, .app-shell .button.dark { background: var(--socra-sage); color: white; }
+.app-shell .button.secondary { background: transparent; color: var(--ink); }
+.app-shell .mobile-nav { --focus-ring: var(--socra-sage); background: var(--socra-sidebar); border-top-color: #cbd8cf; }
+.app-shell .mobile-nav a { color: #435b4d; }
+.app-shell .mobile-nav a.active { color: #254e3b; background: var(--socra-sidebar-selected); }
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

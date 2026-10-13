@@ -158,7 +158,7 @@ function ProfileContent() {
 	  return (
 	    <>
 	      <div className="profile-page">
-        {showAlignment ? <AlignmentDialog name={profile?.nickname || "il mentor"} coverage={candidate} matches={candidate?.goal_matches} onClose={() => setShowAlignment(false)} onSend={sendMatchRequest} /> : null}
+        {showAlignment ? <AlignmentDialog userId={userId} avatarUrl={profile?.avatar_url} topic={activeGoal?.topic} mode={activeGoal?.discussion_mode_label} name={profile?.nickname || "il mentor"} coverage={candidate} matches={candidate?.goal_matches} onClose={() => setShowAlignment(false)} onSend={sendMatchRequest} /> : null}
         <Link href={isOwnProfile ? "/dashboard" : fromRequests ? "/requests" : "/matching"} className="profile-back">
           <ArrowLeft size={16} aria-hidden />
           {isOwnProfile ? "Torna alla dashboard" : fromRequests ? "Torna alle proposte" : "Torna alla lista dei mentor"}

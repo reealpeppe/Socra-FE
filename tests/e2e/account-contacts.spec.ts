@@ -138,9 +138,9 @@ test("sending a request requires a separate email sharing checkbox", async ({ pa
   await page.goto("/matching?goalId=g1");
   await page.getByRole("button", { name: "Invia richiesta al mentor" }).click();
   await page.getByLabel("Il tuo messaggio", { exact: true }).fill("Vorrei capire come scegliere un primo ETF.");
-  const send = page.getByRole("button", { name: "Invia", exact: true });
+  const send = page.getByRole("button", { name: "Invia richiesta", exact: true });
   await expect(send).toBeDisabled();
-  await page.getByRole("checkbox", { name: /condivisione.*email/i }).check();
+  await page.getByRole("checkbox", { name: /(condivisione|condividere).*email/i }).check();
   await send.click();
   await expect(page.getByRole("status").filter({ hasText: "48 ore" })).toBeVisible();
   expect(posted).toEqual({ mentor_id: "u2", goal_id: "g1", alignment_message: "Vorrei capire come scegliere un primo ETF.", email_sharing_accepted: true });
@@ -166,7 +166,7 @@ test("acceptance requires recipient consent and blocks legacy sender missing con
   await page.reload();
   await page.getByRole("button", { name: "Accetta", exact: true }).click();
   await expect(page.getByRole("button", { name: "Conferma", exact: true })).toBeDisabled();
-  await page.getByRole("checkbox", { name: /condivisione.*email/i }).check();
+  await page.getByRole("checkbox", { name: /(condivisione|condividere).*email/i }).check();
   await page.getByRole("button", { name: "Conferma", exact: true }).click();
   await expect(page.getByRole("status").filter({ hasText: "percorso è aperto" })).toBeVisible();
   expect(accepted).toEqual({ accept: true, email_sharing_accepted: true });
@@ -190,7 +190,7 @@ test("legacy path never exposes contacts until both accept and then renders mail
   });
   await page.goto("/paths/p1");
   await expect(page.locator('a[href^="mailto:"]')).toHaveCount(0);
-  await page.getByRole("checkbox", { name: /condivisione.*email/i }).check();
+  await page.getByRole("checkbox", { name: /(condivisione|condividere).*email/i }).check();
   await page.getByRole("button", { name: "Conferma condivisione" }).click();
   await expect(page.getByText(/attesa della conferma dell’altra persona/i)).toBeVisible();
   await expect(page.locator('a[href^="mailto:"]')).toHaveCount(0);
@@ -204,7 +204,7 @@ test("accounts without a community name never display their internal username", 
   await session(page, context, baseURL!);
   await page.route("**/api/backend/auth/me", route => route.fulfill({ json: { ...user, nickname: null } }));
   await page.goto("/dashboard");
-  await expect(page.getByRole("heading", { name: /Ciao utente Socra/ })).toBeVisible();
+  await expect(page.getByText(/Ciao utente Socra/)).toBeVisible();
   await expect(page.locator("body")).not.toContainText("internal-user");
   await expect(page.getByRole("link", { name: "Completa il tuo profilo" })).toHaveAttribute("href", "/settings");
 });
@@ -237,7 +237,7 @@ test("own legacy pending proposal asks for sender consent without sharing an add
   await page.goto("/requests?tab=sent");
   await page.getByRole("button", { name: "Conferma condivisione email" }).click();
   await expect(page.getByRole("button", { name: "Conferma", exact: true })).toBeDisabled();
-  await page.getByRole("checkbox", { name: /condivisione.*email/i }).check();
+  await page.getByRole("checkbox", { name: /(condivisione|condividere).*email/i }).check();
   await page.getByRole("button", { name: "Conferma", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Condivisione email confermata");
   await expect(page.locator(".requests-list")).not.toContainText(user.email);
