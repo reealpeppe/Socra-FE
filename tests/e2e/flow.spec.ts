@@ -1006,7 +1006,9 @@ test("profile restores a pending request without requiring candidate reload", as
 
   await expect(page.getByText("Argomenti su cui può aiutare", { exact: true })).toBeVisible();
   await expect(page.getByText("Competenze principali", { exact: true })).toHaveCount(0);
-  await expect(page.getByText("Richiesta inviata").first()).toBeVisible();
+  await expect(page.getByText("Proposta in attesa", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Vedi le proposte", exact: true })).toHaveAttribute("href", "/requests?tab=sent");
+  await expect(page.getByRole("button", { name: "Invia richiesta al mentor", exact: true })).toHaveCount(0);
   await expect(page.getByText("Verifica compatibilità non disponibile")).toHaveCount(0);
 });
 
