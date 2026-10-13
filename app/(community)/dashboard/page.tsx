@@ -3,7 +3,8 @@ import { availableCredits } from "@/lib/credits";
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, BookOpen, ChevronRight, Coins, GraduationCap, Info, Sparkles, Target, UsersRound } from "lucide-react";
+import { ArrowRight, BookOpen, ChevronRight, Coins, GraduationCap, Sparkles, Target, UsersRound } from "lucide-react";
+import { EtfExplanation } from "@/components/EtfExplanation";
 import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
 import { UserAvatar } from "@/components/Ui";
@@ -237,12 +238,9 @@ export default function DashboardPage() {
 }
 
 function DashboardObjectives({ labels, agreed = false, compact = false }: { labels: string[]; agreed?: boolean; compact?: boolean }) {
-  return <div className={styles.objectives}><small>{labels.length} {labels.length === 1 ? "obiettivo" : "obiettivi"}{agreed ? " concordati" : ""}</small>{!compact ? <ul>{labels.map(label => <li key={label}>{label}</li>)}</ul> : null}</div>;
+  return <div className={styles.objectives}><small>{labels.length} {labels.length === 1 ? "obiettivo" : "obiettivi"}{agreed ? labels.length === 1 ? " concordato" : " concordati" : ""}</small>{!compact ? <ul>{labels.map(label => <li key={label}>{label}</li>)}</ul> : null}</div>;
 }
 
 function DashboardTopicExplanation({ topic }: { topic?: string | null }) {
-  return topic === "ETF" ? <details className={styles.topicExplanation}>
-    <summary><Info size={16} aria-hidden="true" /><span>Cos’è un ETF?</span><ChevronRight size={14} aria-hidden="true" /></summary>
-    <p>ETF significa Exchange Traded Fund: un fondo quotato in borsa.</p>
-  </details> : null;
+  return topic === "ETF" ? <EtfExplanation className={styles.topicExplanation} /> : null;
 }

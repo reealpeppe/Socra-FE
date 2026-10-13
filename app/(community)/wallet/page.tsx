@@ -5,6 +5,7 @@ import { AppShell } from "@/components/AppShell";
 import { clientGet, formatCredits, cachedClientValue, hasCachedClientValues } from "@/lib/api";
 import type { Wallet, WalletTransaction } from "@/lib/types";
 import { advanceExplanation, availableCredits } from "@/lib/credits";
+import { parseApiDate } from "@/lib/date";
 
 const dateFormatter = new Intl.DateTimeFormat("it-IT", {
   day: "2-digit",
@@ -34,7 +35,7 @@ function userSafeDescription(value: string): string {
 }
 
 function safeTransactionDate(value: string): string {
-  const date = new Date(value);
+  const date = parseApiDate(value);
   return Number.isNaN(date.getTime()) ? "Data non disponibile" : dateFormatter.format(date);
 }
 

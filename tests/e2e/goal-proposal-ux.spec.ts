@@ -105,7 +105,7 @@ test("incoming request names roles and links to the learner public profile", asy
   }] }));
   await page.goto("/requests?tab=received");
   await expect(page.getByText("Ti chiede di essere il suo mentor")).toBeVisible();
-  await expect(page.getByRole("link", { name: /Profilo di Luca/ })).toHaveAttribute("href", "/profiles/learner-1?from=requests");
+  await expect(page.getByRole("link", { name: /Profilo di Luca/ })).toHaveAttribute("href", "/profiles/learner-1?from=requests&tab=received");
   await expect(page.getByText("ETF e fondi", { exact: true })).toBeVisible();
   await expect(page.getByText("Comprendere le basi degli ETF", { exact: true })).toBeVisible();
   await expect(page.getByText("Partire dalle basi", { exact: true })).toBeVisible();
@@ -126,7 +126,7 @@ test("incoming mentor offer links to the mentor public profile", async ({ page }
   }] }));
   await page.goto("/requests?tab=received");
   await expect(page.getByText("Ti propone di essere il tuo mentor")).toBeVisible();
-  await expect(page.getByRole("link", { name: /Profilo di Anna/ })).toHaveAttribute("href", "/profiles/mentor-1?from=requests");
+  await expect(page.getByRole("link", { name: /Profilo di Anna/ })).toHaveAttribute("href", "/profiles/mentor-1?from=requests&tab=received");
   await expect(page.getByText(/Costo all.accettazione: 1 credito/)).toBeVisible();
 });
 

@@ -3,7 +3,7 @@ import { DiscussionPreferences } from "@/components/DiscussionPreferences";
 import { ObjectiveSummary } from "@/components/SkillSummary";
 import { useConfirmation } from "@/components/ConfirmationDialog";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CheckCircle2, XCircle } from "lucide-react";
@@ -81,33 +81,71 @@ function RequestsContent() {
   const [tab, setTab] = useState<"received" | "sent">(requestedTab);
   const [loading, setLoading] = useState(() => !hasCachedClientValues("/auth/me", "/matching/requests/me?role=all", "/wallet/me"));
   const [pendingResponses, setPendingResponses] = useState<Set<string>>(new Set());
+  const mountedRef = useRef(false);
+  const requestOwnerRef = useRef(me?.id ?? null);
+  const loadGenerationRef = useRef(0);
+  const requestsGenerationRef = useRef(0);
 
-  async function load() {
+  const load = useCallback(async () => {
+    if (!mountedRef.current) return;
+    const generation = ++loadGenerationRef.current;
+    const requestsGeneration = requestsGenerationRef.current;
     if (!hasCachedClientValues("/auth/me", "/matching/requests/me?role=all", "/wallet/me")) setLoading(true);
     setError(null);
+    // Identify the owner before optional wallet data settles so refreshed snapshots are not lost.
+    const userPromise = clientGet<UserMe>("/auth/me").then(value => {
+      if (mountedRef.current && generation === loadGenerationRef.current) {
+        if (requestOwnerRef.current && requestOwnerRef.current !== value.id) setRequests([]);
+        requestOwnerRef.current = value.id;
+        setMe(value);
+      }
+      return value;
+    }, (reason: unknown) => {
+      if (mountedRef.current && generation === loadGenerationRef.current) {
+        requestOwnerRef.current = null;
+        setMe(null);
+      }
+      throw reason;
+    });
     const [userResult, requestsResult, walletResult] = await Promise.allSettled([
-      clientGet<UserMe>("/auth/me"),
+      userPromise,
       clientGet<RequestWithCost[]>("/matching/requests/me?role=all"),
       clientGet<Wallet>("/wallet/me")
     ]);
-    if (userResult.status === "fulfilled") setMe(userResult.value);
-    else setMe(null);
-    if (requestsResult.status === "fulfilled") {
-      setRequests(Array.isArray(requestsResult.value) ? requestsResult.value : []);
-    } else {
-      setRequests([]);
+    if (!mountedRef.current || generation !== loadGenerationRef.current) return;
+    if (requestsGeneration === requestsGenerationRef.current) {
+      setRequests(requestsResult.status === "fulfilled" && Array.isArray(requestsResult.value) ? requestsResult.value : []);
     }
     setWallet(walletResult.status === "fulfilled" ? walletResult.value : null);
-    if (userResult.status === "rejected" || requestsResult.status === "rejected") {
+    if (userResult.status === "rejected" || (requestsGeneration === requestsGenerationRef.current && requestsResult.status === "rejected")) {
       setError("Non riusciamo a caricare le proposte. Riprova.");
     }
     setLoading(false);
-  }
+  }, []);
 
   useEffect(() => {
+    let active = true;
+    mountedRef.current = true;
     queueMicrotask(() => {
-      void load();
+      if (active) void load();
     });
+    return () => {
+      active = false;
+      mountedRef.current = false;
+      loadGenerationRef.current += 1;
+    };
+  }, [load]);
+
+  useEffect(() => {
+    function synchronizeRequests(event: Event) {
+      const snapshot = (event as CustomEvent<{ userId: string; requests: RequestWithCost[] }>).detail;
+      if (!mountedRef.current || !requestOwnerRef.current || snapshot.userId !== requestOwnerRef.current) return;
+      requestsGenerationRef.current += 1;
+      setRequests(snapshot.requests);
+      setError(null);
+    }
+    window.addEventListener("socra:requests-updated", synchronizeRequests);
+    return () => window.removeEventListener("socra:requests-updated", synchronizeRequests);
   }, []);
 
   useEffect(() => {
@@ -329,7 +367,7 @@ function RequestRow({
           <div>
             <h2>{personName}</h2>
             <p className="muted">{direction}</p>
-            {personId ? <Link className="requests-profile-link" href={`/profiles/${encodeURIComponent(personId)}?from=requests`} aria-label={`Profilo di ${personName}`}>Vedi il profilo pubblico</Link> : null}
+            {personId ? <Link className="requests-profile-link" href={`/profiles/${encodeURIComponent(personId)}?from=requests&tab=${isReceived ? "received" : "sent"}`} aria-label={`Profilo di ${personName}`}>Vedi il profilo pubblico</Link> : null}
           </div>
           <span className={`pill ${status.className}`.trim()}>{status.label}</span>
         </div>

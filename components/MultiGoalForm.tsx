@@ -64,9 +64,11 @@ export function MultiGoalForm({catalog}:{catalog:SkillCatalog}) {
   }
   if(!loaded)return <div className="card stack" role={error?"alert":"status"}>{error||"Caricamento obiettivi…"}{error?<button type="button" className="button secondary" onClick={()=>{setError(null);setAttempt(v=>v+1);}}>Riprova</button>:null}</div>;
   if(missing)return <div className="card stack"><h1>Partiamo dalle tue capacità</h1><Link href="/competenze">Aggiorna la tua esperienza</Link></div>;
+  const themeCount=chosen.filter(s=>s.objective_codes.length).length;
+  const activityCount=chosen.reduce((n,s)=>n+s.objective_codes.length,0);
   return <>{confirmationDialog}<form className={styles.page} onSubmit={save} aria-busy={busy}>
     <header className={styles.intro}><p className={styles.eyebrow}>La tua direzione</p><h1>{original.length?'Aggiorna cosa vuoi imparare':'Cosa vuoi imparare?'}</h1><p>Scegli più temi, con da una a tre attività e una modalità per ciascuno. Vedrai insieme i mentor compatibili; ogni percorso partirà da un solo tema.</p></header>
-    <section className={styles.section}><h2>I tuoi obiettivi</h2><p role="status">{chosen.filter(s=>s.objective_codes.length).length} temi · {chosen.reduce((n,s)=>n+s.objective_codes.length,0)} attività selezionate</p>
+    <section className={styles.section}><h2>I tuoi obiettivi</h2><p role="status">{themeCount} {themeCount===1?'tema':'temi'} · {activityCount} attività {activityCount===1?'selezionata':'selezionate'}</p>
       {catalog.topics.map(topic=>{const selection=chosen.find(s=>s.topic===topic.code);return <details key={topic.code} className={styles.topic} open={!!selection?.objective_codes.length}>
         <summary><span>{topic.label}</span><small>{selection?.objective_codes.length||0} di {catalog.max_objectives} attività</small></summary>
         <fieldset className={styles.fieldset} disabled={busy}><legend>Le attività che vuoi imparare</legend><div className={styles.choices}>{topic.skills.map(skill=><label className={styles.choice} key={skill.code}><input type="checkbox" checked={selection?.objective_codes.includes(skill.code)||false} onChange={()=>toggle(topic.code,skill.code)}/><span>{skill.label}</span></label>)}</div>

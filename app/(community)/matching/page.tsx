@@ -47,6 +47,7 @@ function MatchingContent() {
   const [candidateError, setCandidateError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [requestedMentors, setRequestedMentors] = useState<Set<string>>(new Set());
+  const [pendingRequestTab, setPendingRequestTab] = useState<"received" | "sent">("sent");
   const [requestStateReady, setRequestStateReady] = useState(false);
   const [pendingMentors, setPendingMentors] = useState<Set<string>>(new Set());
   const [retryVersion, setRetryVersion] = useState(0);
@@ -103,10 +104,12 @@ function MatchingContent() {
       void requestsPromise.then(([requestsResult]) => {
       if (!active) return;
       if (requestsResult.status === "fulfilled") {
-        const pendingIds = (Array.isArray(requestsResult.value) ? requestsResult.value : [])
-          .filter((request) => request.status === "pending")
-          .map((request) => request.mentor_id);
-        setRequestedMentors(new Set(pendingIds));
+        const pendingRequests = (Array.isArray(requestsResult.value) ? requestsResult.value : [])
+          .filter((request) => request.status === "pending");
+        const proposal = pendingRequests[0];
+        const senderId = proposal?.initiator_role === "mentor" ? proposal.mentor_id : proposal?.mentee_id;
+        setPendingRequestTab(!proposal || senderId === fetchedMe.id ? "sent" : "received");
+        setRequestedMentors(new Set(pendingRequests.map((request) => request.mentor_id)));
         setRequestStateReady(true);
       } else {
         setRequestedMentors(new Set());
@@ -162,6 +165,7 @@ function MatchingContent() {
         email_sharing_accepted: true
       });
       setRequestedMentors((prev) => new Set(prev).add(candidate.mentor_id));
+      setPendingRequestTab("sent");
       setMessage("Richiesta inviata. Il mentor ha 48 ore per rispondere.");
     } catch (err) {
       setError(err instanceof ClientApiError ? err.message : "Richiesta non inviata");
@@ -214,7 +218,7 @@ function MatchingContent() {
       ) : null}
       {message ? <div className="matching-success" role="status">{message}</div> : null}
       {requestedMentors.size > 0 ? <div className="card" role="status">
-        Hai già una proposta in attesa per questo obiettivo. <Link href="/requests">Gestisci la proposta</Link> prima di inviarne un’altra.
+        Hai già una proposta in attesa per questo obiettivo. <Link href={`/requests?tab=${pendingRequestTab}`}>Gestisci la proposta</Link> prima di inviarne un’altra.
       </div> : null}
       {goalFallbackActive ? (
         <div className="matching-success" role="status">
@@ -285,7 +289,7 @@ function MatchingContent() {
               <strong>Nessun mentor disponibile ora</strong>
               <p className="muted">Riprova più tardi o aggiorna il tuo obiettivo per ampliare le possibilità.</p>
               <Link href="/goal?edit=1" className="button secondary">Modifica obiettivo</Link>
-              {requestedMentors.size === 0 ? !activeGoal.skill_model && <GoalAlternatives key={activeGoal.id} goalId={activeGoal.id} /> : <Link href="/requests">Vedi la richiesta in attesa</Link>}
+              {requestedMentors.size === 0 ? !activeGoal.skill_model && <GoalAlternatives key={activeGoal.id} goalId={activeGoal.id} /> : <Link href={`/requests?tab=${pendingRequestTab}`}>Vedi la richiesta in attesa</Link>}
             </div>
           ) : (
             <div className="matching-list">

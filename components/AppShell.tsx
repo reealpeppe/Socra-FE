@@ -203,13 +203,18 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
         canReadRequestsRef.current ? clientGet<MatchRequestItem[]>("/matching/requests/me?role=all") : Promise.resolve([]),
       ]);
       if (owner !== notificationOwnerRef.current || generation !== notificationGenerationRef.current) return;
+      const currentRequests = Array.isArray(requests) ? requests : [];
       setNotifications(Array.isArray(items) ? items : []);
-      setActiveIncomingRequestIds(Array.isArray(requests) ? requests.filter((request) =>
+      setActiveIncomingRequestIds(currentRequests.filter((request) =>
         request.status === "pending"
         && parseApiDate(request.expires_at).getTime() > Date.now()
         && (request.initiator_role === "mentor" ? request.mentee_id === owner : request.mentor_id === owner)
-      ).map((request) => request.id) : []);
+      ).map((request) => request.id));
       setNotificationsError(null);
+      // Mounted request pages reuse this verified snapshot instead of polling again.
+      if (canReadRequestsRef.current) window.dispatchEvent(new CustomEvent("socra:requests-updated", {
+        detail: { userId: owner, requests: currentRequests },
+      }));
     } catch {
       if (owner !== notificationOwnerRef.current || generation !== notificationGenerationRef.current) return;
       setActiveIncomingRequestIds([]);
@@ -218,6 +223,11 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
       if (owner === notificationOwnerRef.current && generation === notificationGenerationRef.current)
         setNotificationsLoading(false);
     }
+  }, []);
+
+  useEffect(() => () => {
+    notificationOwnerRef.current = null;
+    notificationGenerationRef.current += 1;
   }, []);
 
   useEffect(() => {
@@ -540,7 +550,7 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
             <div className={proposalStyles.icon} aria-hidden><Bell size={20} /></div>
             <div className={proposalStyles.copy}>
               <strong>{incomingProposals.length === 1 ? "Hai una nuova proposta" : `Hai ${incomingProposals.length} nuove proposte`}</strong>
-              <span>Una persona vuole iniziare un percorso con te. Rispondi dalla pagina delle richieste.</span>
+              <span>{visibleProposal.payload.message || "Una persona vuole iniziare un percorso con te."} Rispondi dalla pagina delle richieste.</span>
             </div>
             <Link prefetch={true} className={proposalStyles.action} href="/requests">Vedi proposte <span aria-hidden>→</span></Link>
             <button

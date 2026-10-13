@@ -6,7 +6,7 @@ export function availableCredits(wallet: Wallet | null): number | null {
 
 export function advanceExplanation(wallet: Wallet | null): string | null {
   if (wallet?.advance_available === 1) {
-    return "Stai aiutando qualcuno come mentor: puoi usare un credito in anticipo per il tuo prossimo percorso.";
+    return "Stai aiutando qualcuno come mentor: puoi usare un credito in anticipo per il tuo prossimo percorso. Se lo utilizzi, il prossimo credito guadagnato come mentor compenserà l’anticipo.";
   }
   if (wallet?.advance_used === 1) {
     return "Hai utilizzato un credito anticipato. Il prossimo credito guadagnato come mentor compenserà l’anticipo.";

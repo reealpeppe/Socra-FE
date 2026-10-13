@@ -10,7 +10,7 @@ import { AlignmentDialog } from "@/components/AlignmentDialog";
 import { CoverageSummary, ObjectiveSummary } from "@/components/SkillSummary";
 import { SkillPublicProfile } from "@/components/SkillPublicProfile";
 import { ClientApiError, clientGet, clientPost } from "@/lib/api";
-import type { Goal, GoalsMe, MatchCandidate, MatchRequestItem, PublicProfile, UserMe, CandidatePage, GoalMatch } from "@/lib/types";
+import type { AggregateCandidate, Goal, GoalsMe, MatchCandidate, MatchRequestItem, PublicProfile, UserMe, CandidatePage, GoalMatch } from "@/lib/types";
 
 export default function ProfilePage() {
   return (
@@ -24,19 +24,27 @@ export default function ProfilePage() {
 
 function ProfileContent() {
   const { userId } = useParams<{ userId: string }>();
-  const fromRequests = useSearchParams().get("from") === "requests";
+  const searchParams = useSearchParams();
+  const fromRequests = searchParams.get("from") === "requests";
+  const mentorProposal = searchParams.get("from") === "matching" && searchParams.get("role") === "mentor";
+  const requestTab = searchParams.get("tab");
+  const requestsHref = requestTab === "sent" || requestTab === "received" ? `/requests?tab=${requestTab}` : "/requests";
   const [me, setMe] = useState<UserMe | null>(null);
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [authError, setAuthError] = useState(false);
   const [requestSent, setRequestSent] = useState(false);
+  const [requestJustSent, setRequestJustSent] = useState(false);
+  const [pendingIncoming, setPendingIncoming] = useState(false);
   const [showAlignment, setShowAlignment] = useState(false);
   const [requestLoading, setRequestLoading] = useState(false);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [activeGoal, setActiveGoal] = useState<Goal | null>(null);
   const [candidate, setCandidate] = useState<MatchCandidate | null>(null);
+  const [menteeCandidate, setMenteeCandidate] = useState<AggregateCandidate | null>(null);
   const [candidateLoading, setCandidateLoading] = useState(false);
+  const [candidateCheckComplete, setCandidateCheckComplete] = useState(false);
   const [candidateError, setCandidateError] = useState<string | null>(null);
   const [candidateRetryVersion, setCandidateRetryVersion] = useState(0);
   const [profileRetryVersion, setProfileRetryVersion] = useState(0);
@@ -50,15 +58,19 @@ function ProfileContent() {
       setLoading(true);
       setError(null);
       setSupportingDataError(null);
+      setAuthError(false);
       setRequestStateReady(false);
       setRequestSent(false);
+      setRequestJustSent(false);
+      setPendingIncoming(false);
+      setShowAlignment(false);
       setActiveGoal(null);
     });
     Promise.allSettled([
       clientGet<UserMe>("/auth/me"),
       clientGet<PublicProfile>(`/profiles/${userId}`),
-      clientGet<GoalsMe>("/goals/me"),
-      clientGet<MatchRequestItem[]>("/matching/requests/me?role=mentee")
+      mentorProposal ? Promise.resolve<GoalsMe | null>(null) : clientGet<GoalsMe>("/goals/me"),
+      clientGet<MatchRequestItem[]>(`/matching/requests/me?role=${mentorProposal ? "mentor" : "mentee"}`)
     ]).then(([meResult, profileResult, goalsResult, requestsResult]) => {
       if (!active) return;
 
@@ -71,18 +83,17 @@ function ProfileContent() {
         const goal = goalsResult.value?.active_goal || goalsResult.value?.current;
         if (goal && goal.is_active !== false) {
           setActiveGoal(goal);
-          if (requestsResult.status === "fulfilled") {
-            const sent = (Array.isArray(requestsResult.value) ? requestsResult.value : []).some(
-              (request) => request.status === "pending"
-
-            );
-            setRequestSent(sent);
-            setRequestStateReady(true);
-          }
         }
       }
+      if (requestsResult.status === "fulfilled") {
+        const pending = (Array.isArray(requestsResult.value) ? requestsResult.value : []).find(
+          (request) => request.status === "pending" && (mentorProposal ? request.mentee_id === userId : request.mentee_id === (meResult.status === "fulfilled" ? meResult.value.id : null))
+        );
+        setRequestSent(!!pending);
+        setPendingIncoming(!!pending && pending.initiator_role === (mentorProposal ? "mentee" : "mentor"));
+      }
       if (goalsResult.status === "rejected" || requestsResult.status === "rejected") {
-        setSupportingDataError("Non riusciamo a verificare obiettivo e richieste già inviate. Riprova prima di procedere.");
+        setSupportingDataError(mentorProposal ? "Non riusciamo a verificare le proposte già inviate. Riprova prima di procedere." : "Non riusciamo a verificare obiettivo e richieste già inviate. Riprova prima di procedere.");
       } else {
         setRequestStateReady(true);
       }
@@ -92,7 +103,7 @@ function ProfileContent() {
     return () => {
       active = false;
     };
-  }, [profileRetryVersion, userId]);
+  }, [mentorProposal, profileRetryVersion, userId]);
 
   const isOwnProfile = me?.id === userId;
   const displayName = profile?.nickname || (isOwnProfile ? me?.nickname : null) || "Utente Socra";
@@ -103,12 +114,19 @@ function ProfileContent() {
   const goalsReached = percentMetric(profile?.aggregate_metrics?.goals_reached_pct);
   const wouldRepeat = percentMetric(profile?.aggregate_metrics?.would_repeat_pct);
   const hasAnyPublicMetric = goalsReached !== null || wouldRepeat !== null;
+  const backHref = isOwnProfile ? "/dashboard" : fromRequests ? requestsHref : mentorProposal ? "/matching/mentees" : "/matching";
+  const backLabel = isOwnProfile ? "Torna alla dashboard" : fromRequests ? "Torna alle proposte" : mentorProposal ? "Torna alla lista degli apprendisti" : "Torna alla lista dei mentor";
+  const goalMatches = mentorProposal ? menteeCandidate?.goal_matches : candidate?.goal_matches;
+  const hasMentorMatches = candidate?.mentor_id === userId && !!candidate.goal_matches?.length;
 
   useEffect(() => {
     let active = true;
     queueMicrotask(() => {
       if (!active) return;
-      if (!activeGoal?.id || !me || isOwnProfile || !profile?.is_coach || requestSent) {
+      setCandidate(null);
+      setMenteeCandidate(null);
+      setCandidateCheckComplete(false);
+      if (!me || isOwnProfile || requestSent || !requestStateReady || (mentorProposal ? !me.is_coach : !activeGoal?.id || !profile?.is_coach)) {
         setCandidate(null);
         setCandidateError(null);
         setCandidateLoading(false);
@@ -116,37 +134,65 @@ function ProfileContent() {
       }
       setCandidateError(null);
       setCandidateLoading(true);
-      (activeGoal.skill_model ? clientPost<CandidatePage>("/matching/candidates/all", {mentor_id:userId}).then(page=>page.items as MatchCandidate[]) : clientPost<MatchCandidate[]>("/matching/candidates", { goal_id: activeGoal.id }))
-        .then((items) => {
+      async function loadCandidate() {
+        if (mentorProposal) {
+          let cursor: string | null = null;
+          const visited = new Set<string>();
+          do {
+            const page: CandidatePage = await clientPost("/matching/mentees/all", cursor ? { cursor } : {});
+            if (!active) return;
+            const found = page.items.find((item) => item.mentee_id === userId);
+            if (found) {
+              setMenteeCandidate(found);
+              return;
+            }
+            cursor = page.next_cursor;
+            if (cursor && visited.has(cursor)) throw new Error("Verifica compatibilità non disponibile. Riprova.");
+            if (cursor) visited.add(cursor);
+          } while (cursor);
+        } else if (activeGoal) {
+          const items = activeGoal.skill_model
+            ? (await clientPost<CandidatePage>("/matching/candidates/all", { mentor_id: userId })).items as MatchCandidate[]
+            : await clientPost<MatchCandidate[]>("/matching/candidates", { goal_id: activeGoal.id });
           if (active) setCandidate(items.find((item) => item.mentor_id === userId) || null);
-        })
+        }
+      }
+      loadCandidate()
         .catch((err) => {
           if (!active) return;
           setCandidate(null);
           setCandidateError(err instanceof ClientApiError ? err.message : "Verifica compatibilità non disponibile");
         })
         .finally(() => {
-          if (active) setCandidateLoading(false);
+          if (active) {
+            setCandidateCheckComplete(true);
+            setCandidateLoading(false);
+          }
         });
     });
     return () => {
       active = false;
     };
-  }, [activeGoal?.id, activeGoal?.skill_model, candidateRetryVersion, isOwnProfile, me, profile?.is_coach, requestSent, userId]);
+  }, [activeGoal, candidateRetryVersion, isOwnProfile, me, mentorProposal, profile?.is_coach, requestSent, requestStateReady, userId]);
 
   async function sendMatchRequest(alignmentMessage: string, agreedObjectives?: string[], selectedGoalId?: string) {
-    if (!activeGoal || isOwnProfile || !me || !profile?.is_coach || !requestStateReady) return;
+    if (isOwnProfile || !me || !requestStateReady || requestSent) throw new Error("Verifica lo stato della proposta prima di procedere.");
+    if (mentorProposal ? !me.is_coach || menteeCandidate?.mentee_id !== userId : !activeGoal || !profile?.is_coach) throw new Error("Questa persona non è disponibile per una proposta.");
+    if (!mentorProposal && activeGoal?.skill_model && (!candidateCheckComplete || !hasMentorMatches)) throw new Error("Questa persona non è disponibile per una proposta.");
+    const goalId = selectedGoalId || (!mentorProposal ? activeGoal?.id : undefined);
+    if (!goalId || (goalMatches && !goalMatches.some((match) => match.goal_id === goalId))) throw new Error("Scegli il tema da proporre.");
     setRequestLoading(true);
     setRequestError(null);
     try {
-      await clientPost("/matching/requests", {
-        mentor_id: userId,
-        goal_id: selectedGoalId || activeGoal.id,
+      await clientPost(mentorProposal ? "/matching/proposals" : "/matching/requests", {
+        [mentorProposal ? "mentee_id" : "mentor_id"]: userId,
+        goal_id: goalId,
         alignment_message: alignmentMessage,
-        ...(candidate?.skill_model ? { agreed_objective_codes: agreedObjectives } : {}),
+        ...(mentorProposal || activeGoal?.skill_model || candidate?.skill_model ? { agreed_objective_codes: agreedObjectives } : {}),
         email_sharing_accepted: true
       });
       setRequestSent(true);
+      setRequestJustSent(true);
     } catch (err) {
       setRequestError(err instanceof ClientApiError ? err.message : "Richiesta non inviata");
       throw err;
@@ -158,10 +204,10 @@ function ProfileContent() {
 	  return (
 	    <>
 	      <div className="profile-page">
-        {showAlignment ? <AlignmentDialog userId={userId} avatarUrl={profile?.avatar_url} topic={activeGoal?.topic} mode={activeGoal?.discussion_mode_label} name={profile?.nickname || "il mentor"} coverage={candidate} matches={candidate?.goal_matches} onClose={() => setShowAlignment(false)} onSend={sendMatchRequest} /> : null}
-        <Link href={isOwnProfile ? "/dashboard" : fromRequests ? "/requests" : "/matching"} className="profile-back">
+        {showAlignment ? <AlignmentDialog userId={userId} avatarUrl={profile?.avatar_url} topic={activeGoal?.topic} mode={activeGoal?.discussion_mode_label} name={profile?.nickname || "questa persona"} mentorProposal={mentorProposal} coverage={candidate} matches={goalMatches} onClose={() => setShowAlignment(false)} onSend={sendMatchRequest} /> : null}
+        <Link href={backHref} className="profile-back">
           <ArrowLeft size={16} aria-hidden />
-          {isOwnProfile ? "Torna alla dashboard" : fromRequests ? "Torna alle proposte" : "Torna alla lista dei mentor"}
+          {backLabel}
         </Link>
 
 	        {loading ? (
@@ -170,7 +216,7 @@ function ProfileContent() {
 	          <div className="card profile-empty">
 	            <p>{error}</p>
               <button className="button secondary" type="button" onClick={() => setProfileRetryVersion((value) => value + 1)}>Riprova</button>
-	            <Link href="/matching" className="button secondary">Torna al matching</Link>
+            <Link href={backHref} className="button secondary">{backLabel}</Link>
           </div>
         ) : profile ? (
           <>
@@ -223,20 +269,20 @@ function ProfileContent() {
                   )}
                 </section>}
 
-                {!isOwnProfile && candidate ? (
+                {!isOwnProfile && (candidate || menteeCandidate) ? (
                   <section className="card profile-match-card">
-                    {candidate.goal_matches?.length ? candidate.goal_matches.map(match => <div key={match.goal_id}>
+                    {goalMatches?.length ? goalMatches.map(match => <div key={match.goal_id}>
                       <p className="profile-section-label">Compatibilità per {match.topic}</p>
                       <div className="profile-match-score"><span className="profile-match-pct">{Math.round(match.match_score)}%</span><span className="profile-muted-text">Compatibilità</span></div>
                       <CoverageSummary coverage={match} />
-                    </div>) : <>
+                    </div>) : candidate ? <>
                     <p className="profile-section-label">Compatibilità con il tuo obiettivo</p>
                     <div className="profile-match-score">
                       <span className="profile-match-pct">{Math.round(candidate.match_score)}%</span>
                       <span className="profile-muted-text">Compatibilità</span>
                     </div>
                     {candidate.skill_model ? <CoverageSummary coverage={candidate} /> : <p className="profile-muted-text">{candidate.reason_summary}</p>}
-                    </>}
+                    </> : null}
                   </section>
                 ) : null}
 
@@ -280,11 +326,25 @@ function ProfileContent() {
 
                 {isOwnProfile ? (
                   <OwnProfileCard isCoach={profile.is_coach} />
+                ) : mentorProposal ? (
+                  <MentorProposalCard
+                    isCoach={!!me?.is_coach}
+                    authError={authError || !me}
+                    matches={goalMatches}
+                    requestSent={requestSent}
+                    requestJustSent={requestJustSent}
+                    pendingIncoming={pendingIncoming}
+                    loading={loading || candidateLoading || (!menteeCandidate && !candidateError && !requestStateReady)}
+                    error={supportingDataError || candidateError}
+                    requestError={requestError}
+                    onRequest={() => setShowAlignment(true)}
+                    onRetry={() => setProfileRetryVersion((value) => value + 1)}
+                  />
                 ) : !profile.is_coach ? (
                   <section className="card profile-request-card">
                     <p className="profile-card-title">Profilo pubblico</p>
                     <p className="profile-muted-text">Questa persona non è disponibile come mentor in questo momento.</p>
-                    <Link href={fromRequests ? "/requests" : "/matching"} className="button secondary">
+                    <Link href={fromRequests ? requestsHref : "/matching"} className="button secondary">
                       {fromRequests ? "Torna alle proposte" : "Torna ai mentor"}
                     </Link>
                   </section>
@@ -300,6 +360,8 @@ function ProfileContent() {
                     matches={candidate?.goal_matches}
                     pathCost={profile.path_cost}
                     requestSent
+                    requestJustSent={requestJustSent}
+                    pendingIncoming={pendingIncoming}
                     requestLoading={false}
                     requestError={null}
                     onRequest={() => setShowAlignment(true)}
@@ -310,7 +372,7 @@ function ProfileContent() {
                     <p className="profile-muted-text">{supportingDataError || "Riprova prima di inviare una richiesta."}</p>
                     <button className="button secondary" type="button" onClick={() => setProfileRetryVersion((value) => value + 1)}>Riprova</button>
                   </section>
-                ) : candidateLoading ? (
+                ) : candidateLoading || (activeGoal?.skill_model && !candidateCheckComplete) ? (
                   <section className="card profile-request-card" role="status">
                     <p className="profile-card-title">Verifica compatibilità…</p>
                   </section>
@@ -322,12 +384,21 @@ function ProfileContent() {
                       Riprova
                     </button>
                   </section>
+                ) : activeGoal?.skill_model && !hasMentorMatches ? (
+                  <section className="card profile-request-card">
+                    <p className="profile-card-title">Confronto non disponibile</p>
+                    <p className="profile-muted-text">Questa persona non è disponibile per una proposta in questo momento.</p>
+                    <Link href="/matching" className="button secondary">Torna ai mentor</Link>
+                    <button className="button secondary" type="button" onClick={() => setCandidateRetryVersion((value) => value + 1)}>Riprova</button>
+                  </section>
                 ) : (
                   <RequestCard
                     activeGoal={activeGoal}
                     matches={candidate?.goal_matches}
                     pathCost={profile.path_cost}
                     requestSent={requestSent}
+                    requestJustSent={requestJustSent}
+                    pendingIncoming={pendingIncoming}
                     requestLoading={requestLoading}
                     requestError={requestError}
                     onRequest={() => setShowAlignment(true)}
@@ -344,11 +415,35 @@ function ProfileContent() {
 	  );
 }
 
+function MentorProposalCard({ isCoach, authError, matches, requestSent, requestJustSent, pendingIncoming, loading, error, requestError, onRequest, onRetry }: {
+  isCoach: boolean;
+  authError: boolean;
+  matches?: GoalMatch[];
+  requestSent: boolean;
+  requestJustSent: boolean;
+  pendingIncoming: boolean;
+  loading: boolean;
+  error: string | null;
+  requestError: string | null;
+  onRequest: () => void;
+  onRetry: () => void;
+}) {
+  if (authError) return <section className="card profile-request-card"><p className="profile-card-title">Accedi per inviare una proposta</p><Link href="/login" className="button">Vai all&apos;accesso</Link></section>;
+  if (!isCoach) return <section className="card profile-request-card"><p className="profile-card-title">Attiva prima la disponibilità mentor</p><p className="profile-muted-text">Gestisci le attività che offri e la tua disponibilità nelle impostazioni.</p><Link href="/settings" className="button">Gestisci disponibilità</Link></section>;
+  if (requestSent) return <section className="card profile-request-card profile-request-sent" role="status"><ThumbsUp size={24} aria-hidden /><p className="profile-card-title">{requestJustSent ? "Proposta inviata" : "Proposta in attesa"}</p><p className="profile-muted-text">{pendingIncoming ? "Rispondi alla proposta dell’apprendista." : "Attendi la risposta dell’apprendista."}</p><Link href={`/requests?tab=${pendingIncoming ? "received" : "sent"}`} className="button secondary">Vedi le proposte</Link></section>;
+  if (error) return <section className="card profile-request-card" role="alert"><p className="profile-card-title">Verifica operativa non disponibile</p><p className="profile-muted-text">{error}</p><button className="button secondary" type="button" onClick={onRetry}>Riprova</button></section>;
+  if (loading) return <section className="card profile-request-card" role="status"><p className="profile-card-title">Verifica compatibilità…</p></section>;
+  if (!matches?.length) return <section className="card profile-request-card"><p className="profile-card-title">Profilo pubblico</p><p className="profile-muted-text">Questa persona non è disponibile per una proposta in questo momento.</p><Link href="/matching/mentees" className="button secondary">Torna agli apprendisti</Link></section>;
+  return <section className="card profile-request-card"><p className="profile-card-title">Proponi un confronto</p><div className="profile-muted-text">{matches.map(match => <ObjectiveSummary key={match.goal_id} topic={match.topic} title="Su cosa puoi aiutare" labels={match.covered_objective_labels} mode={match.discussion_mode_label} />)}</div><p className="profile-muted-text">L’apprendista sceglierà se accettare. Il costo del percorso sarà addebitato a lui solo all’accettazione.</p>{requestError ? <p className="profile-request-error">{requestError}</p> : null}<button className="button" type="button" onClick={onRequest}>Proponi un confronto</button></section>;
+}
+
 function RequestCard({
   activeGoal,
   matches,
   pathCost,
   requestSent,
+  requestJustSent,
+  pendingIncoming,
   requestLoading,
   requestError,
   onRequest
@@ -357,26 +452,31 @@ function RequestCard({
   matches?: GoalMatch[];
   pathCost: number;
   requestSent: boolean;
+  requestJustSent: boolean;
+  pendingIncoming: boolean;
   requestLoading: boolean;
   requestError: string | null;
   onRequest: () => void;
 }) {
+  if (requestSent) {
+    return (
+      <section className="card profile-request-card profile-request-sent" role="status">
+        <ThumbsUp size={24} aria-hidden />
+        <p className="profile-card-title">{pendingIncoming ? "Proposta ricevuta" : requestJustSent ? "Richiesta inviata" : "Proposta in attesa"}</p>
+        <p className="profile-muted-text">{pendingIncoming
+          ? "Hai una proposta ricevuta in attesa. Rispondi prima di inviarne un’altra."
+          : "Hai una proposta in attesa. Attendi la risposta dell’altra persona prima di inviarne un’altra."}</p>
+        <Link href={`/requests?tab=${pendingIncoming ? "received" : "sent"}`} className="button secondary">Vedi le proposte</Link>
+      </section>
+    );
+  }
+
   if (!activeGoal) {
     return (
       <section className="card profile-request-card">
         <p className="profile-card-title">Invia richiesta al mentor</p>
         <p className="profile-muted-text">Definisci prima il tuo obiettivo per inviare una richiesta coerente.</p>
         <Link href="/goal" className="button">Crea il tuo obiettivo</Link>
-      </section>
-    );
-  }
-
-  if (requestSent) {
-    return (
-      <section className="card profile-request-card profile-request-sent">
-        <ThumbsUp size={24} aria-hidden />
-        <p className="profile-card-title">Richiesta inviata</p>
-        <p className="profile-muted-text">Attendi la risposta del mentor.</p>
       </section>
     );
   }
