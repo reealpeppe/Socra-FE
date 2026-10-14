@@ -209,7 +209,7 @@ export default function DashboardPage() {
                   {me?.is_coach && !errors.paths && activeMentorPaths.length < 3 ? <Link className={styles.actionGold} href="/matching/mentees">Cerca apprendisti <ArrowRight size={18} aria-hidden="true" /></Link> : null}
                   <Link className={styles.textLink} href="/paths?tab=mentor">Vedi i percorsi <ArrowRight size={16} aria-hidden="true" /></Link>
                 </div>
-                {!errors.paths && me ? <p className={styles.cardMeta}>{completedMentorPaths} percorsi completati</p> : null}
+                {!errors.paths && me ? <p className={styles.cardMeta}>{completedMentorPaths} {completedMentorPaths === 1 ? "percorso completato" : "percorsi completati"}</p> : null}
               </section>
 
               <section className={`${styles.card} ${styles.goal}`} aria-labelledby="goal-title">
