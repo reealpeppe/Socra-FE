@@ -239,7 +239,7 @@ function ProfileContent() {
               </div>
 
               <div className="profile-hero-stats">
-                <MetricStat value={completedPaths} label="Percorsi completati" />
+                <MetricStat value={completedPaths} label={completedPaths === 1 ? "Percorso completato come mentor" : "Percorsi completati come mentor"} />
                 {!profile?.skill_model ? <MetricStat value={badges.length} label="Badge pubblici" /> : null}
               </div>
             </section>
