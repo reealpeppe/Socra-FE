@@ -1,0 +1,14 @@
+.panel { display: grid; justify-items: start; gap: 16px; padding: clamp(24px, 4vw, 40px); }
+.panel h2 { margin: 0; font-size: clamp(1.25rem, 2.5vw, 1.5rem); line-height: 1.3; font-weight: 600; text-wrap: balance; }
+.panel p { margin: 0; max-width: 65ch; line-height: 1.6; color: var(--muted); }
+.icon { display: grid; place-items: center; width: 48px; height: 48px; background: var(--socra-sage-soft, #edf4ef); color: var(--socra-sage, #325d4b); border-radius: 12px; }
+.panel .active { display: flex; align-items: center; gap: 9px; color: var(--socra-sage, #325d4b); font-weight: 600; }
+.active svg { flex: 0 0 auto; }
+.link { color: var(--socra-sage, #325d4b); font-size: .875rem; text-underline-offset: 4px; }
+.error { display: grid; gap: 12px; justify-items: start; }
+.error p { color: var(--danger-text, var(--danger)); }
+.settings { padding: 24px; justify-items: stretch; scroll-margin-top: 90px; }
+.settings h2 { font-size: 1.125rem; }
+.settings :global(.settings-switch) input { inset: 0; width: 100%; height: 100%; margin: 0; z-index: 1; cursor: pointer; }
+.settings :global(.settings-switch) input:disabled { cursor: not-allowed; }
+@media (max-width: 600px) { .panel > button { width: 100%; } }

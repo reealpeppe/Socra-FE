@@ -1,5 +1,11 @@
 # Architettura frontend Socra
 
+## Avvisi mentor — slice locale 17/10/2026
+
+[MentorAlerts](../../components/MentorAlerts.tsx) è condiviso tra vuoto della ricerca mentor (aggregata e legacy) e impostazioni; consensi autorevoli nel backend. Lettura indipendente, errore distinto da consenso falso, salvataggio seguito da stato server e rilettura degli esiti incerti. Marker sessione e generazione impediscono letture, scritture e risposte attribuite all'account precedente.
+
+[MentorAlertUnsubscribe](../../components/MentorAlertUnsubscribe.tsx) riusa il layout delle azioni account su `/avvisi-email`, metadata noindex/no-referrer e token solo in memoria dopo la rimozione del frammento. Il BFF pubblico `/api/mentor-alerts/unsubscribe` espone solo il POST fisso senza sessioni; riusa Origin/Fetch Metadata, JSON/body limitati, timeout e risposta JSON privata anche se si interrompe lo stream upstream. Nessun nuovo job/provider o token in storage. Regole/contratti nelle wiki 07/09 e supplemento componenti wiki 13 di Socra-BE sul branch corrispondente. [Collaudo](../testing/2026-10-17-mentor-alerts.md).
+
 Anticipo crediti dell'11/10: [lib/credits.ts](../../lib/credits.ts) interpreta il totale spendibile e la spiegazione del DTO wallet; saldo, dashboard e conferma proposte lo riusano. Idoneità e compensazione restano nel backend, come da wiki 05/07 di Socra-BE. Nessun nuovo box, provider, componente cloud o confine nella wiki 13. [Collaudo e review indipendente](../testing/credit-advance-2026-10-11.md).
 
 Aggiornato: 11/10/2026. Proprietario dei confini tecnici locali; la [guida](../agent/README.md) risolve wiki e architettura condivisa del backend sul ref del task.

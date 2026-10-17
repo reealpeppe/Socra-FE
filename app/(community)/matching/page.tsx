@@ -13,6 +13,7 @@ import { UserAvatar } from "@/components/Ui";
 import { AlignmentDialog } from "@/components/AlignmentDialog";
 import { GoalAlternatives } from "@/components/GoalAlternatives";
 import { useDiscoveryImpressions } from "@/lib/use-discovery-impressions";
+import { MentorAlerts } from "@/components/MentorAlerts";
 import { ClientApiError, clientGet, clientPost } from "@/lib/api";
 import type { Goal, GoalsMe, MatchCandidate, MatchRequestItem, UserMe } from "@/lib/types";
 
@@ -284,11 +285,8 @@ function MatchingContent() {
               <button className="button secondary" type="button" onClick={() => setFilter("all")}>Mostra tutti i mentor</button>
             </div>
           ) : filteredCandidates.length === 0 ? (
-            <div className="card matching-empty">
-              <Sparkles size={30} aria-hidden />
-              <strong>Nessun mentor disponibile ora</strong>
-              <p className="muted">Riprova più tardi o aggiorna il tuo obiettivo per ampliare le possibilità.</p>
-              <Link href="/goal?edit=1" className="button secondary">Modifica obiettivo</Link>
+            <div className="stack">
+              {me ? <MentorAlerts key={me.id} ownerId={me.id} /> : null}
               {requestedMentors.size === 0 ? !activeGoal.skill_model && <GoalAlternatives key={activeGoal.id} goalId={activeGoal.id} /> : <Link href={`/requests?tab=${pendingRequestTab}`}>Vedi la richiesta in attesa</Link>}
             </div>
           ) : (
