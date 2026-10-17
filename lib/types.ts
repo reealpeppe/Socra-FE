@@ -299,6 +299,16 @@ export type GoalSelection = {topic: string; objective_codes: string[]; discussio
 export type GoalMatch = SkillCoverage & {goal_id: string; topic: string; topic_code: string; objective_codes: string[]; objective_labels: string[]; discussion_mode?: string; discussion_mode_label?: string | null; match_score: number; compatibility_band: string; reason_summary: string};
 export type AggregateCandidate = {mentor_id?: string; mentee_id?: string; nickname: string | null; goal_matches: GoalMatch[]; discovery_offer_id?: string; is_recommended: boolean};
 export type CandidatePage = {items: AggregateCandidate[]; next_cursor: string | null};
+
+export type InvitationPreview = {
+  inviter_username: string; topic: string; objective_labels: string[]; discussion_mode_label: string;
+  status: string; expires_at: string; mentee_cost: 0; mentor_reward: 1; bonus_new_users_only: true;
+};
+export type InvitationDetail = InvitationPreview & {
+  id: string; role: "inviter" | "recipient"; prerequisite_state: Record<string, boolean>;
+  path_id: string | null; bonus_eligible: boolean | null; delivery_status: string | null;
+  recipient_email: string | null; creation_key: string | null;
+};
 export type SkillCoverage = {
   skill_model?: boolean;
   covered_objective_codes?: string[];

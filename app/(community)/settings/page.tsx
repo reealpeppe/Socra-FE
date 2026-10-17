@@ -15,6 +15,7 @@ import { SkillCatalogBoundary } from "@/components/SkillCatalogBoundary";
 import { SkillMentorPreferences } from "@/components/SkillMentorPreferences";
 import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
 import { PersonalContext } from "@/components/PersonalContext";
+import { MentorAlerts } from "@/components/MentorAlerts";
 import { ONBOARDING_POLICY } from "@/lib/onboarding";
 
 const GENERAL_MENTOR_GUARDRAIL_FLAGS = new Set([
@@ -350,6 +351,7 @@ export default function SettingsPage() {
         </div>
 
         {skills?.profile_completion ? <ProfileCompletionBanner completion={skills.profile_completion} /> : null}
+        <MentorAlerts key={me.id} ownerId={me.id} settings />
         {skills !== undefined ? <PersonalContext key={me?.id} profile={skills} onSaved={setSkills} /> : null}
 
         <div className="card settings-card">
