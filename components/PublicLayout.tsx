@@ -178,6 +178,11 @@ export function PublicFooter() {
               </Link>
           ))}
           </nav>
+          <section aria-labelledby="footer-contacts-heading" className={styles.footerContacts}>
+            <h2 className={styles.footerNavLabel} id="footer-contacts-heading">Contatti</h2>
+            <p className={styles.footerContactText}>Vuoi saperne di più su Socra, collaborare o proporci un’idea?</p>
+            <a className={styles.footerLink} href="mailto:info@socra.it">Scrivici a info@socra.it</a>
+          </section>
         </div>
         <div className={styles.footerMeta}>
           <nav aria-label="Informazioni legali" className={styles.footerNav}>
