@@ -1,5 +1,7 @@
 # Inviti personali — verifiche locali17/10/2026
 
+Il collaudo pre-rilascio con username valido di80 caratteri ha riprodotto overflow desktop (2033px su1280px). Il contenitore inviti consente ora l'andata a capo anche delle parole lunghe; regressione dedicata per landing e proposta, desktop/mobile. Le catture precedenti restano storiche; la verifica pre-rilascio e le immagini live successive appartengono alla build corretta.
+
 Implementazione locale su `feature/mentor-alerts-20261017`, nessun deploy. [Regole e collaudo canonici BE](https://github.com/reealpeppe/Socra-BE/blob/feature/mentor-alerts-20261017/docs/testing/2026-10-17-personal-invitations.md). Conservati Avvisami, marchio/footer ufficiali e correzione SSR `no-transform`.
 
 Typecheck/build/lint exit0, solo2 warning preesistenti MonitoringMfa;120 test sicurezza/BFF e12 cache/gate passati. Suite completa:478 E2E desktop/mobile passati,2 esclusi perché richiedono la fixture live separata del credito anticipato; exit0. Il sottoinsieme direttamente coinvolto conta70 passati (invio, consenso, incertezza, pre-survey, ritorno, rifiuto/scadenza, cambio account, errore contesto e regressioni auth/avvisi), con runner esistente e Chromium Playwright locale per il limite di teardown Chrome già documentato.

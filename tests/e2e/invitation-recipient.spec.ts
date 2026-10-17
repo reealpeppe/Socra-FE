@@ -34,6 +34,21 @@ test('public invitation clears fragment and carries only safe continuation into 
   expect(await page.evaluate(()=>JSON.stringify({...localStorage,...sessionStorage}))).not.toContain(token);
 });
 
+test('public invitation keeps the longest valid inviter username inside the viewport',async({page,baseURL},testInfo)=>{
+  await recipient(page,baseURL!);
+  const username='a'.repeat(80);
+  await page.route('**/api/invitations/context',route=>route.fulfill({json:{...preview,inviter_username:username}}));
+  await page.goto('/invito#token='+token);
+  await expect(page.getByRole('heading',{name:username+' ti invita su Socra',exact:true})).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(await page.evaluate(()=>innerWidth));
+  await page.screenshot({path:testInfo.outputPath('public-long-username.png'),animations:'disabled'});
+  await page.route('**/api/backend/invitations/'+id,route=>route.fulfill({json:{...preview,id,inviter_username:username,role:'recipient',status:'claimed',path_id:null,bonus_eligible:true,prerequisite_state:{email_verified:false,onboarded:false,skills_offered:false,mentor_available:false}}}));
+  await page.goto('/inviti/'+id);
+  const heading=page.getByRole('heading',{name:'La proposta di '+username,exact:true});await expect(heading).toBeVisible();
+  expect(await heading.evaluate(element=>{const range=document.createRange();range.selectNodeContents(element);return range.getBoundingClientRect().right<=innerWidth;})).toBe(true);
+  await page.screenshot({path:testInfo.outputPath('proposal-long-username.png'),animations:'disabled'});
+});
+
 for(const status of [404,409,503])test(`failed invitation context ${status} preserves own lists and can be ignored`,async({page,baseURL})=>{
   await recipient(page,baseURL!);
   let discarded=0;
