@@ -26,6 +26,12 @@ Browser sulla build reale locale a `http://127.0.0.1:3168/`, viewport desktop 14
 
 [Desktop](public-contacts-20261017/contacts-desktop.jpg) · [Mobile](public-contacts-20261017/contacts-mobile.jpg).
 
+## Riscontro Cloudflare e correzione SSR
+
+Il primo controllo dopo il merge FE `4ad7eaf` ha trovato Email Obfuscation Cloudflare attiva sul dominio pubblico: l'HTML ricevuto sostituiva email e `mailto:` con `/cdn-cgi/l/email-protection` e `data-cfemail`. L'origin locale conservava il markup originale; il browser pubblico mostrava React418 durante hydration, prima di ripristinare il contatto. La diagnosi distingue trasformazione edge e codice della pagina.
+
+Correzione: `Cache-Control: private, no-store, no-transform` sulle pagine e i redirect gestiti da `proxy.ts`; API ancora `private, no-store`, CSP e asset statici esclusi dal matcher invariati. Il test di regressione nuovo è stato visto fallire per `/: no-transform`, poi passare con la correzione; tre regressioni proxy e 109 controlli sicurezza passati. La documentazione ufficiale [Cloudflare Email Address Obfuscation](https://developers.cloudflare.com/waf/tools/scrape-shield/email-address-obfuscation/) conferma l'esclusione per `no-transform`. Esito del nuovo deployment e assenza dell'errore sul dominio pubblico nel rapporto di rilascio backend.
+
 ## Review indipendenti e stato
 
 Revisione statica indipendente del diff finale B: nessun rilievo azionabile; classi obsolete rimosse e navigazione principale invariata. Seconda review LLM indipendente, sulle nuove immagini della build reale e senza lettura preventiva del codice: **PASS**, variante B coerente con la scelta; contatto leggibile accanto ai link legali su desktop e su riga dedicata su mobile. Nessun clipping, sovrapposizione o troncamento su entrambe le viewport. La review visiva copre soltanto il footer pubblico, non l’intera suite UX dei flussi community.

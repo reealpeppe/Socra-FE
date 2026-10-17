@@ -1,5 +1,7 @@
 # Architettura frontend Socra
 
+17/10, preservazione SSR: `proxy.ts` aggiunge `no-transform` alla policy privata/no-store delle pagine e dei redirect, dopo il riscontro di Email Obfuscation Cloudflare sul contatto pubblico con errore React418. Le risposte API, la CSP a nonce e gli asset statici esclusi dal proxy mantengono il contratto precedente. Test in `tests/monitoring-proxy.test.mjs`; decisione e confine edge nella wiki12/13 e nell'ADR `ADR-ssr-no-transform-20261017.md` di Socra-BE. Nessun nuovo provider o intervento sulla configurazione Cloudflare.
+
 Anticipo crediti dell'11/10: [lib/credits.ts](../../lib/credits.ts) interpreta il totale spendibile e la spiegazione del DTO wallet; saldo, dashboard e conferma proposte lo riusano. Idoneità e compensazione restano nel backend, come da wiki 05/07 di Socra-BE. Nessun nuovo box, provider, componente cloud o confine nella wiki 13. [Collaudo e review indipendente](../testing/credit-advance-2026-10-11.md).
 
 Aggiornato: 11/10/2026. Proprietario dei confini tecnici locali; la [guida](../agent/README.md) risolve wiki e architettura condivisa del backend sul ref del task.

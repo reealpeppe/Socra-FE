@@ -12,6 +12,17 @@ function load(){
   return exports;
 }
 function request(path,session=false){return {nextUrl:new URL('https://www.socra.it'+path),url:'https://www.socra.it'+path,headers:new Headers(),cookies:{get:()=>session?{value:'test-session'}:undefined}};}
+test('HTML forbids intermediary rewrites while retaining private caching and CSP',()=>{
+  for(const [path,session] of [['/',false],['/community',false],['/login',false],['/dashboard',false],['/dashboard',true],['/admin/monitoraggio',false]]){
+    const response=load().proxy(request(path,session));
+    const directives=new Set(response.headers.get('Cache-Control').split(',').map(value=>value.trim()));
+    for(const directive of ['private','no-store','no-transform']) assert.ok(directives.has(directive),`${path}: ${directive}`);
+    assert.ok(response.headers.get('Content-Security-Policy'),path);
+  }
+  const api=load().proxy(request('/api/backend/auth/me'));
+  assert.equal(api.headers.get('Cache-Control'),'private, no-store');
+});
+
 test('existing private routes still redirect anonymous users',()=>{
   for(const path of ['/dashboard','/matching','/admin','/settings']){
     const response=load().proxy(request(path));assert.equal(response.status,307,path);
@@ -24,7 +35,7 @@ test('existing sessions/public routes pass and monitoring stays no-store/noindex
   assert.equal(load().proxy(request('/faq')).status,200);
   for(const path of ['/admin/monitoraggio','/admin/monitoraggio/verifica']){
     const response=load().proxy(request(path));
-    assert.equal(response.headers.get('Cache-Control'),'private, no-store');
+    assert.equal(response.headers.get('Cache-Control'),'private, no-store, no-transform');
     assert.equal(response.headers.get('X-Robots-Tag'),'noindex, nofollow');
   }
 });
