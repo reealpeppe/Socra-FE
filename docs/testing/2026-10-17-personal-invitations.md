@@ -1,5 +1,7 @@
 # Inviti personali — verifiche locali17/10/2026
 
+Pubblicato17/10: CI finale482 E2E,120 sicurezza,9 cache,8 gate UX e audit0;27 PNG HTTPS, verifica UX indipendente e invio tecnico Resend al destinatario ufficiale di test. [rapporto canonico BE](https://github.com/reealpeppe/Socra-BE/blob/release/v3-20260919/docs/releases/2026-10-17-mentor-alerts-invitations.md). Le prove locali sotto sono storiche e appartengono ai loro fingerprint; dopo il wrapping80 caratteri il controllo live è la fonte della build pubblicata.
+
 Il collaudo pre-rilascio con username valido di80 caratteri ha riprodotto overflow desktop (2033px su1280px). Il contenitore inviti consente ora l'andata a capo anche delle parole lunghe; regressione dedicata per landing e proposta, desktop/mobile. Le catture precedenti restano storiche; la verifica pre-rilascio e le immagini live successive appartengono alla build corretta.
 
 Implementazione locale su `feature/mentor-alerts-20261017`, nessun deploy. [Regole e collaudo canonici BE](https://github.com/reealpeppe/Socra-BE/blob/feature/mentor-alerts-20261017/docs/testing/2026-10-17-personal-invitations.md). Conservati Avvisami, marchio/footer ufficiali e correzione SSR `no-transform`.

@@ -1,5 +1,7 @@
 # Avvisi mentor — frontend locale 17/10/2026
 
+Adesione e revoca pubblicate17/10 con gli inviti: [rapporto canonico BE](https://github.com/reealpeppe/Socra-BE/blob/release/v3-20260919/docs/releases/2026-10-17-mentor-alerts-invitations.md). Le prove locali seguenti conservano il loro ambito; nessun rilevamento/invio avvisi attivato.
+
 Esito finale: build/typecheck passati; lint senza errori e due warning preesistenti in `MonitoringMfa.tsx`; sicurezza 111 passati, E2E 62 passati con exit 0 su Chromium incluso in Playwright; API vere desktop/mobile e review indipendente PASS 16/16. Il Chrome installato ha mostrato un blocco nel teardown del test runner (documentato nel rapporto BE); le sue catture con API reali sono riuscite. La configurazione locale `.local/playwright-bundled.config.ts` della prova finale importa quella ordinaria, risolve `testDir`/`outputDir` dalla root e riusa entrambi i progetti con `channel: undefined`; configurazione CI versionata preservata.
 
 Slice `feature/mentor-alerts-20261017`, base FE `c676a73`, BE `9fb94e8`. Checkout isolati; nessun lavoro dei checkout feature originari incluso. Nessun deploy o invio email reale.

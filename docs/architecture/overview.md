@@ -1,5 +1,7 @@
 # Architettura frontend Socra
 
+Avvisi e inviti del17/10 pubblicati su BE `ee74e7d`/FE `5a3d825`. I dettagli delle sezioni progettuali locali seguenti sono ora attivi; nessun motore invio avvisi aggiunto. [rapporto canonico BE](https://github.com/reealpeppe/Socra-BE/blob/release/v3-20260919/docs/releases/2026-10-17-mentor-alerts-invitations.md).
+
 ## Inviti nella ricerca — slice locale 17/10/2026
 
 Destinatario: `/invito` legge una preview, poi `/inviti` associa il token prima della survey e `/inviti/{id}` rende la proposta privata. BFF dedicati context/claim su upstream fissi; token temporaneo HttpOnly e poi associazione server, mai in storage, payload auth o query. `safeInvitationReturn` ammette solo area inviti e UUID locale; login/registrazione preservano quel ritorno e il normale DTO auth. `SkillSurvey` verifica la proposta associata prima di tornare all'invito dopo il contesto; verifica email offre il ritorno all'area. Nessun dato di capacità/offerta è preselezionato dall'invito. Stato, rifiuto, consenso finale, reinvio ed esiti incerti restano autorevoli sul backend; il cambio account invalida ogni dato privato già caricato.
