@@ -1,0 +1,22 @@
+.brand {
+  align-items: center;
+  display: inline-flex;
+  flex-shrink: 0;
+  height: 36px;
+  vertical-align: middle;
+}
+
+.image {
+  display: block;
+  height: 100%;
+  width: auto;
+}
+
+.compact {
+  height: 32px;
+}
+
+.compact .image {
+  object-fit: contain;
+  width: 32px;
+}
