@@ -99,15 +99,15 @@
   width: 18px;
   height: 18px;
   flex-shrink: 0;
-  accent-color: #173b35;
+  accent-color: var(--brand-blue);
 }
 .panel label.selected {
-  background: #edf6f1;
-  border-color: #267553;
-  box-shadow: inset 0 0 0 1px #267553;
+  background: var(--brand-blue-soft);
+  border-color: var(--brand-blue);
+  box-shadow: inset 0 0 0 1px var(--brand-blue);
 }
 .panel label:focus-within {
-  outline: 3px solid #c18b25;
+  outline: 3px solid var(--brand-blue);
   outline-offset: 3px;
 }
 .none {
@@ -190,10 +190,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #173b35;
+  color: var(--brand-blue);
   font-size: 0.88rem;
   padding: 14px;
-  background: #edf6f1;
+  background: var(--brand-blue-soft);
   border-radius: 12px;
 }
 .trust svg { flex-shrink: 0; }

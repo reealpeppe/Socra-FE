@@ -16,23 +16,62 @@ function compile(relativePath, globals, imports = {}) {
   return exports;
 }
 
-function handler(action, upstreamBody, status = 200) {
+function handler(action, upstreamBody, status = 200, onFetch = () => {}) {
   const globals = {
     process: { env: { NODE_ENV: "production", SOCRA_API_BASE_URL: "https://backend.example" } },
     AbortSignal, AbortController, setTimeout, clearTimeout, Headers, Response, TextDecoder, Uint8Array, Buffer,
-    fetch: async () => new Response(JSON.stringify(upstreamBody), { status, headers: { "Content-Type": "application/json" } }),
+    fetch: async (url, options) => { onFetch(url, options); return new Response(JSON.stringify(upstreamBody), { status, headers: { "Content-Type": "application/json" } }); },
   };
   const security = compile("../lib/web-security.ts", globals);
   const server = compile("../lib/server.ts", globals, { "@/lib/web-security": security });
   return compile(`../app/api/auth/${action}/route.ts`, globals, { "@/lib/server": server }).POST;
 }
 
-function request(body) {
+function request(body, cookie) {
   return new NextRequest("https://www.socra.it/api/auth/login", {
-    method: "POST", headers: { Origin: "https://www.socra.it", "Content-Type": "application/json" },
+    method: "POST", headers: { Origin: "https://www.socra.it", "Content-Type": "application/json", ...(cookie ? {Cookie:cookie} : {}) },
     body: JSON.stringify(body),
   });
 }
+
+test('invited registration obtains email proof only from the HttpOnly context',async()=>{
+  let submitted;
+  const token='s'.repeat(43);
+  const post=handler('register',{access_token:'bearer',user_id:'new-user'},200,(_url,options)=>{submitted=JSON.parse(options.body);});
+  const response=await post(request({email:'invitee@example.com',password:'StrongPass123',invitation_context:true,invitation_token:'forged-browser-value'},'socra_invitation='+token));
+  assert.equal(response.status,200);
+  assert.equal(submitted.invitation_token,token);
+  assert.equal(Object.hasOwn(submitted,'invitation_context'),false);
+  assert.deepEqual(await response.json(),{user_id:'new-user'});
+  assert.ok(!response.headers.get('set-cookie').includes(token));
+});
+
+test('ordinary registration never trusts an invitation token supplied by the form',async()=>{
+  let submitted;
+  const post=handler('register',{access_token:'bearer',user_id:'new-user'},200,(_url,options)=>{submitted=JSON.parse(options.body);});
+  await post(request({email:'invitee@example.com',invitation_token:'s'.repeat(43)}));
+  assert.equal(Object.hasOwn(submitted,'invitation_token'),false);
+});
+
+test('malformed invitation context refuses registration before forwarding credentials',async()=>{
+  let calls=0;
+  const post=handler('register',{},200,()=>{calls++;});
+  const response=await post(request({email:'invitee@example.com',password:'StrongPass123',invitation_context:true},'socra_invitation=invalid'));
+  assert.equal(response.status,400);
+  assert.equal(calls,0);
+  assert.equal(response.headers.get('set-cookie'),null);
+});
+
+test('ordinary registration ignores a residual invitation context from another visit',async()=>{
+  for(const cookie of ['socra_invitation='+ 's'.repeat(43),'socra_invitation=invalid']){
+    let submitted;
+    const post=handler('register',{access_token:'bearer',user_id:'ordinary-user'},200,(_url,options)=>{submitted=JSON.parse(options.body);});
+    const response=await post(request({email:'ordinary@example.com',password:'StrongPass123'},cookie));
+    assert.equal(response.status,200);
+    assert.equal(Object.hasOwn(submitted,'invitation_token'),false);
+    assert.equal(Object.hasOwn(submitted,'invitation_context'),false);
+  }
+});
 
 for (const action of ["login", "register"]) {
   test(`${action} keeps bearer exclusively in an HttpOnly cookie`, async () => {

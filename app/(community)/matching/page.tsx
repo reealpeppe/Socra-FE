@@ -507,9 +507,9 @@ function MatchingStyles() {
       }
 
       .matching-success {
-        background: var(--mint-100, #dcfce7);
-        border: 1px solid #b9ecd3;
-        color: var(--mint-600, #15803d);
+        background: var(--brand-blue-soft, #edf2f6);
+        border: 1px solid var(--brand-blue-line);
+        color: var(--brand-blue, #20313e);
       }
 
       .matching-layout {
@@ -639,7 +639,7 @@ function MatchingStyles() {
       }
 
       .mcc-score-block strong {
-        color: var(--mint-600, #129b68);
+        color: var(--brand-blue, #20313e);
         font-size: 1.7rem;
         line-height: 1;
       }
@@ -695,8 +695,8 @@ function MatchingStyles() {
       }
 
       .mcc-request-btn.sent {
-        background: var(--mint-100, #dcfce7);
-        color: var(--mint-600, #15803d);
+        background: var(--brand-blue-soft, #edf2f6);
+        color: var(--brand-blue, #20313e);
         cursor: default;
       }
 

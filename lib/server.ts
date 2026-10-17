@@ -112,6 +112,19 @@ export async function authenticate(request: NextRequest, action: "login" | "regi
   let payload: string | undefined;
   try { payload = await readJsonBody(request, 16 * 1024); }
   catch (error) { return bodyError(error); }
+  if (action === "register") {
+    const input = JSON.parse(payload || "{}");
+    if (!input || typeof input !== "object" || Array.isArray(input)) return privateJson({ detail: "Dati di registrazione non validi." }, 400);
+    const useInvitation = input.invitation_context === true;
+    delete input.invitation_context;
+    delete input.invitation_token;
+    const invitation = useInvitation ? request.cookies.get("socra_invitation")?.value : undefined;
+    if (invitation !== undefined) {
+      if (!/^[a-zA-Z0-9_-]{32,128}$/.test(invitation)) return privateJson({ detail: "Il link di invito non è valido. Riapri l’email oppure continua senza invito." }, 400);
+      input.invitation_token = invitation;
+    }
+    payload = JSON.stringify(input);
+  }
   try {
     const upstream = await fetch(getBackendUrl(`/auth/${action}`), {
       method: "POST", headers: { "Content-Type": "application/json" }, body: payload,

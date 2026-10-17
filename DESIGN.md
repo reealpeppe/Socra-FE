@@ -1,15 +1,20 @@
 ---
 name: Socra
-description: "Grafite e miele nelle pagine pubbliche; perla e salvia nella community, su mockup approvati il 13/10."
+description: "Identità Socra blu inchiostro e oro, dalla home alla community; correzione approvata il 18/10/2026."
 colors:
-  community-ink: "#25322f"
-  community-muted: "#59666c"
-  community-line: "#d7dfe2"
-  community-paper: "#eef1f3"
-  community-sage: "#325d4b"
-  community-sage-soft: "#edf4ef"
-  community-sidebar: "#e5ede8"
-  community-sidebar-selected: "#d0e0d5"
+  community-ink: "#20272e"
+  community-muted: "#59666f"
+  community-line: "#d7dfe5"
+  community-paper: "#f3f6f8"
+  brand-blue: "#20313e"
+  brand-blue-hover: "#344957"
+  brand-blue-soft: "#edf2f6"
+  brand-blue-line: "#cbd7df"
+  brand-gold: "#f3bb40"
+  brand-gold-border: "#a7791f"
+  community-control-line: "#788994"
+  community-sidebar: "#f6f8fa"
+  community-sidebar-selected: "#20313e"
   ink: "#20272e"
   muted: "#62676e"
   line: "#e4e3df"
@@ -32,8 +37,8 @@ colors:
   honey-ink: "#795611"
   info-surface: "#f0f3f5"
   info-text: "#344653"
-  success-surface: "#edf5ef"
-  success-text: "#32654c"
+  success-surface: "#edf2f6"
+  success-text: "#20313e"
   danger-surface: "#fdf0ee"
   danger-text: "#a33028"
   neutral-surface: "#f5f5f2"
@@ -165,8 +170,8 @@ components:
     rounded: "{rounded.radius-sm}"
     padding: "10px 12px"
   navigation-link-active:
-    backgroundColor: "{colors.honey-soft}"
-    textColor: "{colors.ink}"
+    backgroundColor: "{colors.brand-blue}"
+    textColor: "{colors.card}"
   badge-neutral:
     backgroundColor: "{colors.neutral-surface}"
     textColor: "{colors.neutral-text}"
@@ -184,10 +189,10 @@ components:
     padding: "clamp(26px, 5vw, 44px)"
     width: "min(100%, 510px)"
   card-dashboard-learning:
-    backgroundColor: "{colors.ink}"
-    textColor: "{colors.card}"
+    backgroundColor: "{colors.brand-blue-soft}"
+    textColor: "{colors.ink}"
     rounded: "{rounded.radius}"
-    padding: "32px"
+    padding: "25px"
     width: "100%"
   card-dashboard-secondary:
     backgroundColor: "{colors.card}"
@@ -226,52 +231,43 @@ components:
 
 ## Overview
 
-**Creative North Star: "Grafite e miele"**
+**Creative North Star: "Blu inchiostro e oro Socra"**
 
-Il brief approvato richiede un'interfaccia pulita e minimale, accogliente ma professionale, con un font professionale e senza grafica AI generica. Il codice finale traduce questa direzione in superfici chiare, testo grafite, accenti miele e gerarchie tipografiche sobrie. Spaziatura e bordi distinguono le aree; le decorazioni non competono con i contenuti.
+La correzione approvata il 18/10/2026 estende alla community la palette della home: blu `#20313e`, grafite del logo `#20272e` e oro `#f3bb40`. La modalità della community è **Operate**: leggibilità, azioni riconoscibili e stati coerenti hanno la precedenza sulla decorazione. Il blu identifica navigazione, link, icone e selezioni; l'oro mette in evidenza le azioni principali. Le superfici sono bianche o neutre fredde. Il verde non appartiene alla UI autenticata, nemmeno agli stati positivi, che conservano testo e icone di conferma.
 
-Il movimento accompagna gli stati con piccoli spostamenti e variazioni di colore. Il contenuto rimane visibile anche senza animazioni; `prefers-reduced-motion` disattiva animazioni e transizioni. La home si basa sulla tipografia, senza fotografie.
+La sola correzione cromatica preserva layout, Manrope locale, asset del marchio, contenuti e comportamento. La home conserva la sua presentazione. Nessun gradiente, ombra o elemento decorativo viene aggiunto da questa correzione. Il flusso guidato di invito ha invece una shell dedicata e una gerarchia semplificata, descritta nei Components; le regole funzionali restano nella wiki backend.
+
+Le fonti visive sono `app/theme.css`, il blocco community di `app/globals.css` e i moduli locali. `app/layout.tsx` importa il tema dopo i globals; i selettori community più specifici e i moduli mantengono le varianti esplicite. Questo documento e `.impeccable/design.json` sono strumenti di sviluppo: non aggiungono regole di prodotto e non attestano un collaudo browser. La wiki backend rimane proprietaria delle regole.
 
 **Key Characteristics:**
 
-- Superfici chiare e card piatte con bordi sottili.
-- Testi grafite e miele per azioni e selezione.
-- Manrope locale, gerarchia sobria e pesi intermedi.
-- Motion discreto con supporto a reduced-motion.
-- Contenuti, destinazioni e logica funzionale preservati.
-
-Questa documentazione è un'estrazione statica del codice sul branch `design/grafite-miele`, non una certificazione visiva o un risultato di QA browser. Fonti: `app/theme.css`, `app/Home.module.css`, `components/PublicLayout.module.css`, `app/(community)/dashboard/Dashboard.module.css`, `app/(community)/dashboard/page.tsx`, `app/login/auth.module.css` e `app/layout.tsx`; `app/globals.css` fornisce soltanto le proprietà ancora ereditate. `layout.tsx` importa il tema dopo i globals: il tema finale prevale a parità di specificità. I selettori più specifici dei moduli mantengono le loro varianti.
-
-Il redesign conserva la logica e le destinazioni; il markup della home è riordinato per la presentazione. Il refinement dashboard approvato rende prioritaria l'azione di apprendimento e presenta la definizione ETF esistente in un aiuto apribile. Questo documento e il sidecar descrivono il codice, senza aggiungere regole di prodotto. La wiki backend resta proprietaria delle regole; l'aiuto ETF è documentato sul branch `docs/dashboard-help-grafite-miele`, commit `e5546fd`.
+- Blu per navigazione, selezioni e stati positivi con testo/icone.
+- Oro e grafite per le azioni principali.
+- Superfici bianche e neutre fredde, card piatte.
+- Manrope locale e asset ufficiali.
+- Nessun verde nella UI autenticata.
 
 ## Colors
 
-La palette combina neutrali chiari e grafite con un solo accento di marca, miele. I token nel frontmatter mantengono i nomi del CSS; i prefissi storici non identificano un secondo tema.
+La home e la community condividono gli stessi colori di marca. I neutrali pubblici mantengono i valori esistenti; `.app-shell` usa `community-*` per i neutrali freddi.
 
-### Primary
+### Brand and action
 
-- **Miele** (`gold-500`): pulsanti principali, indicatori di progresso e piccoli segnali della navigazione.
-- **Miele hover** (`gold-400`): stato hover delle azioni principali.
-- **Miele chiaro** (`gold-300`): selezione del testo e focus visibile di link e summary sulla card grafite della dashboard.
-- **Miele tenue** (`honey-soft`): selezione in navigazione, avvisi e superfici di richiamo.
-- **Miele scuro** (`honey-ink`): testo su fondi miele, checkbox e indicatori compatibili con questa superficie.
+- **Blu inchiostro** (`brand-blue`): `#20313e`, uguale alla hero della home. Navigazione corrente con testo bianco, link, icone, checkbox, focus e conferme.
+- **Blu hover** (`brand-blue-hover`): `#344957`, variante già presente nella home.
+- **Blu tenue** (`brand-blue-soft`): `#edf2f6`, selezioni dei form, pannello di apprendimento, badge e stati positivi.
+- **Bordo blu** (`brand-blue-line`): `#cbd7df`, separatori su superfici blu tenui.
+- **Oro** (`brand-gold`, alias `gold-500`): `#f3bb40`, azione principale con testo grafite. L'hover mantiene `gold-400` (`#e7ab2b`).
+- **Bordo azione oro** (`brand-gold-border`): `#a7791f`, distingue il controllo sulle superfici chiare.
+- **Oro tenue/scuro** (`honey-soft`, `honey-ink`): richiami, avvisi, notifiche non lette e testo leggibile su fondi oro.
 
 ### Neutral
 
-- **Grafite** (`ink`): testo principale, focus, pulsanti scuri, footer pubblico e fondo della card di apprendimento dashboard. `navy` e `navy-950` sono alias dello stesso valore.
-- **Grafite secondarie** (`navy-900`, `navy-850`, `navy-800`): varianti scure già definite; l'ultima è usata anche nell'hover delle azioni scure pubbliche.
-- **Testo secondario** (`muted`, `neutral-text`): descrizioni e metadati.
-- **Fondo pagina** (`paper`): sfondo uniforme, pannelli di supporto e hover neutri.
-- **Superficie card** (`card`): card, header e campi.
-- **Bordo superficie** (`line`): separatori e contenitori.
-- **Bordo controllo** (`control-line`): campi e controlli che devono restare distinguibili.
-- **Superficie neutra** (`neutral-surface`): badge e piccoli contenitori.
+Grafite `ink` (`#20272e`) per il testo, bianco `card` per card e header. Nella community: `muted` `#59666f`, `paper` `#f3f6f8`, `line` `#d7dfe5`, `control-line` `#788994`, sidebar `#f6f8fa`. I bordi di superficie separano aree; quelli dei controlli mantengono contrasto sufficiente con il fondo.
 
 ### Semantic states
 
-Le coppie `info-surface` / `info-text`, `success-surface` / `success-text` e `danger-surface` / `danger-text` mantengono separati informazione, successo ed errore. `warning-surface` / `warning-text` condividono i valori di `honey-soft` / `honey-ink`. Gli alias compatibili (`blue`, `blue-600`, `cyan`, `mint-600`, `mint-100`, `green`, `amber`, `danger`, `orange-100`) non costituiscono nuovi accenti decorativi. Alcuni bordi di stato sono valori locali, riportati nei componenti del sidecar quando necessari.
-
-Le rampe OKLCH del sidecar sono anteprime sintetiche per il pannello di design, non nuovi token applicativi e non indicazioni per cambiare il tema.
+Successo e informazione conservano messaggi, icone e struttura esistenti; il successo usa blu su blu tenue. Gli stati warning mantengono oro tenue e testo scuro; gli errori mantengono rosso. I vecchi alias `mint-600`, `mint-100` e `green` restano compatibili con componenti storici ma risolvono rispettivamente a blu e blu tenue: non reintroducono verde. Le varianti CSS storiche `.green` e `actionDark` non descrivono il colore finale.
 
 ## Typography
 
@@ -284,7 +280,7 @@ Le rampe OKLCH del sidecar sono anteprime sintetiche per il pannello di design, 
 ### Hierarchy
 
 - **Display:** il titolo della home usa il ruolo `display` del frontmatter; il peso intermedio limita la massa del titolo. A 1100px cambia la scala e a 760px passa a `clamp(2rem, 5.8vw, 2.6rem)`.
-- **Headline:** titoli di sezione della home; le scale applicative sono locali. Nella dashboard il saluto usa (2rem / 32px), peso (550), line-height (1.15), ridotto a (1.75rem / 28px) fino a 760px; il tema di apprendimento ha maggiore rilievo, a (2.75rem / 44px), peso (550), line-height (1.15), ridotto a (2.25rem / 36px) fino a 760px. Le altre feature usano (1.5rem) e line-height (1.25).
+- **Headline:** titoli di sezione pubblici secondo la scala esistente. Nella dashboard il saluto usa `clamp(1.75rem, 2.6vw, 2.25rem)`, peso 600, line-height 1.2; fino a 760px resta a 1.75rem. Il tema di apprendimento usa 1.3125rem; gli altri titoli di card 1.5rem o 1.375rem secondo il ruolo esistente.
 - **Title:** titoli di passi e piccoli blocchi. Nella home i titoli dei pilastri hanno line-height 1.45.
 - **Body:** base (15px), line-height (1.6). Le descrizioni della home arrivano a line-height (1.7), con larghezza massima (58ch); le descrizioni degli header applicativi arrivano a (70ch).
 - **Label:** etichette dei campi con peso (600). I pulsanti usano il ruolo separato `button`, con peso (650).
@@ -297,11 +293,7 @@ I ruoli documentano gli stili osservati, non una scala matematica obbligatoria. 
 
 La shell applicativa ha sidebar (252px) e contenuto flessibile; il contenuto usa padding (36px 40px 56px), ridotto a (28px 28px 48px) sotto 1100px e a (24px 18px 32px) sotto 620px. Sotto 960px la sidebar lascia posto alla navigazione mobile inferiore, con spazio per la safe area. La topbar è alta almeno (76px), poi (68px) sotto 620px.
 
-La dashboard è larga al massimo (1240px). La card “Impara” occupa tutta la prima riga; le tre card di supporto seguono in colonne uguali, con gap (24px). Fino a 1200px la griglia ha due colonne, gap (20px), con la card mentor a tutta larghezza; fino a 760px passa a una colonna, gap (16px) e azioni a larghezza piena. Le card hanno padding (28px), con (32px) per “Impara”, poi tutte (24px) fino a 1200px e (22px) fino a 760px.
-
-Dentro “Impara”, il tema a sinistra e il prossimo passo a destra usano colonne (1.25fr / .75fr), gap (48px) e un divisore verticale con padding (32px). Fino a 1200px il gap scende a (28px), le proporzioni diventano (1fr / .85fr) e il padding del divisore (24px). Fino a 760px il prossimo passo precede il tema; il divisore diventa orizzontale, con gap e padding superiore (24px). L'azione precede i metadati anche nel suo blocco. Questa gerarchia è specifica della dashboard, non una nuova regola per tutte le pagine.
-
-Fino a 760px l'introduzione dashboard usa una griglia con colonna flessibile e colonna automatica: i crediti affiancano il saluto, mentre contesto e descrizione occupano tutta la larghezza. Il wrapper del testo usa `display: contents`; il wallet ha padding (8px), gap (8px) e icona (28px). La numerazione delle sezioni (01–04) conserva il copy esistente.
+La dashboard è larga al massimo (1240px), con griglia a due colonne e gap (20px). La card “Impara” occupa tutta la prima riga e usa una superficie blu tenue, contenuti a sinistra e azioni a destra, separate da un bordo sottile. Le card hanno padding (25px). Sotto 960px la card di apprendimento diventa una colonna e il wallet può andare a capo; sotto 760px l'intera griglia diventa una colonna, con gap (17px) e padding card (22px). La sezione competenze mantiene un divisore superiore e nessuna superficie card aggiuntiva. Queste misure documentano il layout esistente, preservato dalla correzione cromatica.
 
 La navigazione pubblica è fissa, alta (64px). Sotto 900px usa il menu mobile; sotto 600px riduce il padding e le CTA di sezione diventano larghe quanto il contenitore. Il footer passa da tre aree a due e poi a una colonna.
 
@@ -318,7 +310,7 @@ Le superfici sono piatte per default: card, metriche, righe, header e pulsanti n
 - **Menu** (`--shadow`): `0 12px 32px rgb(32 39 46 / 8%)`; dropdown e menu pubblico mobile.
 - **Elemento elevato compatto** (`--shadow-tight`): `0 3px 8px rgb(32 39 46 / 6%)`; tab attivo.
 
-Il ring miele del campo in focus è feedback di interazione, non elevazione. Il tema rimuove blur e sfondi decorativi dalla shell principale.
+Il tema rimuove blur e sfondi decorativi dalla shell principale. I campi della community usano bordo e outline blu in focus, senza alone decorativo.
 
 ## Shapes
 
@@ -330,35 +322,33 @@ La card di autenticazione è una variante osservata con angoli (16px), coerente 
 
 ### Buttons
 
-Azioni chiare, con angoli contenuti e pesi leggibili. La primaria usa miele e grafite; la secondaria una superficie bianca con bordo, la scura grafite con testo bianco, la ghost un fondo trasparente, la danger la coppia semantica di errore.
+Azioni principali oro con testo grafite e bordo `brand-gold-border`; nella community anche la classe storica `button.dark` segue questo ruolo. Le secondarie hanno fondo trasparente o bianco, bordo `control-line` e testo blu. Le azioni danger conservano i token di errore. La home conserva le proprie varianti pubbliche.
 
-Il pulsante condiviso ha padding (11px 18px), altezza minima (44px) e raggio `radius-sm`. Le azioni pubbliche usano (12px 22px) e altezza minima (48px); quelle dashboard (11px 16px). La CTA principale in “Impara” è miele, larga quanto il blocco azione, con altezza minima (50px), padding (13px 18px) e testo (1rem); il nome CSS storico `actionDark` non ne descrive il colore finale. L'azione mentor è secondaria, bianca con bordo `control-line` e peso (600), con hover fondo pagina. Il submit auth ha altezza minima (50px). Hover e pressione non aggiungono ombre: la primaria cambia al miele hover e la pressione scala a (.98). Su puntatore fine il pulsante condiviso può salire di (1px); il disabled resta fermo, con opacità (.55), oppure (.62) nel submit auth.
+Il pulsante condiviso mantiene padding (11px 18px), altezza minima (44px) e raggio (8px). Dashboard, matching e dialog mantengono le proprie misure esistenti. L'hover principale usa `gold-400`; disabled, caricamento e pressione conservano i comportamenti del componente. La correzione non aggiunge ombre o animazioni.
 
 ### Chips / Tags
 
-Badge piccoli, con padding (5px 9px), raggio `badge` e peso (600). I badge informativi usano coppie semantiche; i tag della dashboard usano fondo pagina e testo secondario. Sono etichette, non controlli, salvo un comportamento esplicito già presente nel componente. Il colore non autorizza a inventare nuovi stati di prodotto.
+Badge piccoli, con padding (5px 9px), raggio `badge` e peso (600). I badge informativi usano coppie semantiche; i tag della dashboard usano blu tenue e testo blu. Sono etichette, non controlli, salvo un comportamento esplicito già presente nel componente. Il colore non autorizza a inventare nuovi stati di prodotto.
 
 ### Cards / Containers
 
 Contenitori piatti su superficie card, con bordo `line` e raggio `radius`. Il padding condiviso è (24px), poi (20px) nella shell sotto 620px; la dashboard mantiene la propria variante descritta in Layout. La card auth ha la forma e la larghezza riportate in `card-auth`, nessuna ombra e padding mobile (24px 18px). Non introdurre un hover su card prive di interazione.
 
-La card “Impara” usa fondo grafite, testo bianco e nessun bordo esterno. L'icona ha un contenitore grafite secondario (44px), raggio (10px) e segno miele chiaro; descrizioni e metadati usano neutrali chiari locali. Le card mentor, obiettivo e competenze mantengono superficie bianca e bordo sottile; obiettivo e competenze hanno altezza minima (224px), rimossa fino a 760px. Le illustrazioni decorative dashboard sono nascoste.
+La card “Impara” usa `brand-blue-soft`, testo grafite e bordo `brand-blue-line`. Icone, metadati di stato e link sono blu. Le card mentor e obiettivo rimangono bianche; la sezione competenze conserva la sua struttura. Il layout non è ridisegnato dalla correzione di palette.
 
 ### Aiuto ETF e notifiche
 
-L'aiuto “Cos’è un ETF?” usa `details` / `summary` nativi, senza attributo `open`: parte chiuso ed è disponibile solo quando l'argomento selezionato è ETF nel contesto di apprendimento. Conserva la definizione “ETF significa Exchange Traded Fund: un fondo quotato in borsa.” Il summary è azionabile da tastiera, alto almeno (32px), con focus miele chiaro sulla grafite. La freccia ruota di (90deg) all'apertura; il testo usa (.8125rem), line-height (1.5) e larghezza massima (52ch).
-
-La lista notifiche usa flex in colonna. Ogni notifica è un pulsante con `flex: 0 0 auto`, altezza automatica, testo a capo e padding (12px): cresce con il messaggio senza restringersi nella lista scorrevole. Il messaggio può spezzare parole lunghe; il badge “Nuova” resta compatto e allineato all'inizio, con padding (2px 6px), raggio (4px) e miele chiaro. Il fondo unread rimane miele tenue.
+L'aiuto ETF conserva `details` / `summary` nativi, testo e condizioni di disponibilità. Le notifiche mantengono altezza automatica, testo a capo e lista scorrevole; lo stato non letto resta oro tenue con il badge “Nuova”. Nessuna variazione di logica accompagna il colore.
 
 ### Inputs / Fields
 
-Campi bianchi, testo grafite, bordo `control-line`, raggio `radius-sm` e dimensione `input`. Il campo condiviso ha altezza minima (46px), padding (10px 12px); l'auth usa (48px) e (11px 13px). Il campo condiviso in focus cambia bordo a grafite e aggiunge ring miele (3px).
+Campi bianchi, testo grafite, bordo `control-line`, raggio `radius-sm` e dimensione `input`. Il campo condiviso ha altezza minima (46px), padding (10px 12px); l'auth usa (48px) e (11px 13px). Nella community il focus cambia bordo a blu e usa un outline leggibile, senza ring; le pagine pubbliche conservano il focus precedente.
 
 Il focus globale è un outline grafite (2px), offset (4px), ridotto a (2px) per i campi. L'auth mantiene un'eccezione specifica: outline (3px), offset (3px) per le azioni e ring traslucido grafite con offset (1px) per gli input. Anche alcune azioni pubbliche scure/outline e i link del footer mantengono outline (3px) locali. Queste differenze sono osservate nel CSS, non una richiesta di uniformare la UI. Il campo auth invalido usa un bordo rosso; il feedback conserva messaggi e logica esistenti.
 
 ### Navigation
 
-La sidebar bianca usa link compatti, testo secondario e altezza minima (44px). L'hover usa fondo pagina; lo stato attivo fondo miele tenue, testo grafite e peso (650), con icona miele scuro. Il link della sidebar ha font-size (.875rem), distinto dal ruolo caption usato per i metadati.
+La sidebar usa un neutro freddo chiaro, link blu e altezza minima (44px). L'hover usa blu tenue; lo stato attivo ha fondo blu, testo e icona bianchi. La navigazione mobile adotta gli stessi colori. Il link della sidebar conserva font-size (.875rem) e misure esistenti.
 
 La navigazione pubblica è bianca; la pagina attiva ha una sottolineatura miele (2px), che nel menu mobile diventa indicatore laterale (3px). Il footer resta grafite, con link chiari e sottolineatura miele all'hover. Sidebar e menu pubblico hanno breakpoint differenti, perché risolvono layout differenti.
 
@@ -370,6 +360,14 @@ I token condivisi sono `duration-press` (120ms), `duration-ui` (180ms), `duratio
 
 Nella dashboard wallet e righe mentor cambiano fondo in (180ms) con `ease`; le CTA cambiano fondo con la stessa durata e scalano alla pressione in (120ms) con `ease-out`. La freccia dell'aiuto ETF ruota con (180ms) e `ease-out`. Le card restano ferme; reduced-motion elimina le transizioni anche da questi componenti.
 
+### Flusso guidato di invito
+
+Il pattern condiviso tra proposta e profilo mostra tre passi, **Invito → Profilo → Conferma**, con `aria-current="step"`. Il numero corrente ha fondo oro, bordo `brand-gold-border` e testo grafite; i passi completati hanno fondo blu e numero bianco. I cerchi sono indicatori (28px), non controlli. La sequenza usa un gap (24px), con label (.875rem) in caso normale.
+
+La shell dedicata mantiene il marchio e il link di uscita in una testata essenziale, senza sidebar, wallet o notifiche. Il contenuto è largo al massimo (860px), con padding (44px 32px 64px), ridotto a (28px 20px 40px) sotto 620px. La proposta usa una card piatta con angoli (14px), padding (32px) e una sola azione principale per lo stato corrente; rifiuto e dettagli apribili restano secondari. Sotto 620px il padding diventa (24px 20px) e l'azione principale occupa tutta la larghezza. Questa composizione appartiene al flusso di invito e non sostituisce la shell generale.
+
+Consensi e disponibilità restano scelte esplicite con etichetta associata al controllo. La label del consenso compatto, i summary informativi e le azioni di chiusura hanno target di almeno (44px); la dimensione visiva della checkbox può essere inferiore. Non derivare altri stati di prodotto dallo stile del passo.
+
 ## Do's and Don'ts
 
 ### Do:
@@ -378,9 +376,10 @@ Nella dashboard wallet e righe mentor cambiano fondo in (180ms) con `ease`; le C
 - **Do** mantenere card piatte da 12px e controlli da 8px, rispettando le varianti esplicite.
 - **Do** usare Manrope locale e conservare la licenza OFL insieme al font.
 - **Do** mantenere la base body a 15px e i campi a 1rem, con focus visibile.
-- **Do** distinguere accento di marca e coppie di colore degli stati semantici.
+- **Do** usare il blu per orientamento e selezione, l'oro per le azioni principali e testo/icone per distinguere gli stati.
+- **Do** mantenere la UI autenticata priva di verde, inclusi stati positivi e fallback.
 - **Do** limitare il movimento ai feedback osservati e rispettare reduced-motion.
-- **Do** preservare testi, destinazioni e logica durante gli interventi visivi.
+- **Do** preservare testi, destinazioni e logica durante gli interventi esclusivamente visivi.
 
 ### Don't:
 

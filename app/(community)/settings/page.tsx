@@ -399,10 +399,10 @@ export default function SettingsPage() {
           padding: 10px 14px;
         }
         .settings-success {
-          background: var(--mint-100);
-          border: 1px solid #b9ecd3;
+          background: var(--brand-blue-soft);
+          border: 1px solid var(--brand-blue-line);
           border-radius: var(--radius-sm);
-          color: var(--mint-600);
+          color: var(--brand-blue);
           font-size: 0.875rem;
           padding: 10px 14px;
         }
@@ -532,13 +532,13 @@ export default function SettingsPage() {
           width: 24px;
         }
         .settings-switch input:checked + span {
-          background: var(--mint-600);
+          background: var(--brand-blue);
         }
         .settings-switch input:checked + span::after {
           transform: translateX(22px);
         }
         .settings-switch input:focus-visible + span {
-          outline: 3px solid rgba(29, 78, 216, 0.3);
+          outline: 3px solid var(--brand-blue);
           outline-offset: 2px;
         }
         .settings-switch input:disabled + span {
@@ -557,7 +557,7 @@ export default function SettingsPage() {
           margin-bottom: 5px;
         }
         .settings-topic-block {
-          background: #f8faf9;
+          background: var(--paper);
           border: 1px solid var(--line);
           border-radius: 12px;
           display: grid;
@@ -565,7 +565,7 @@ export default function SettingsPage() {
           padding: 11px 12px;
         }
         .settings-topic-block.unavailable {
-          background: #f2f4f3;
+          background: var(--brand-blue-soft);
           color: var(--muted);
         }
         .settings-topic-row strong {
@@ -611,7 +611,7 @@ export default function SettingsPage() {
           padding: 8px 9px;
         }
         .settings-safety-scenario input {
-          accent-color: var(--mint-600);
+          accent-color: var(--brand-blue);
           flex: 0 0 auto;
           height: 18px;
           margin: 1px 0 0;

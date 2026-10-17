@@ -271,9 +271,9 @@ function MenteeMatchingContent() {
       }
 
       .mentee-search-page .matching-success {
-        background: var(--mint-100, #dcfce7);
-        border: 1px solid #b9ecd3;
-        color: var(--mint-600, #15803d);
+        background: var(--brand-blue-soft, #edf2f6);
+        border: 1px solid var(--brand-blue-line);
+        color: var(--brand-blue, #20313e);
       }
 
         .mentee-search-back {
@@ -396,7 +396,7 @@ function MenteeMatchingContent() {
         }
 
         .mentee-goal-score strong {
-          color: var(--mint-600, #129b68);
+          color: var(--brand-blue, #20313e);
           font-size: 1.55rem;
           line-height: 1;
         }
@@ -408,7 +408,7 @@ function MenteeMatchingContent() {
         }
 
         .mentee-goal-focus {
-          background: #f8faf7;
+          background: var(--paper);
           border-left: 3px solid var(--gold-500, #f5b62f);
           border-radius: 0 12px 12px 0;
           padding: 14px 16px;
@@ -463,8 +463,8 @@ function MenteeMatchingContent() {
         }
 
       .mentee-proposal-button.sent {
-        background: var(--mint-100, #dcfce7);
-        color: var(--mint-600, #15803d);
+        background: var(--brand-blue-soft, #edf2f6);
+        color: var(--brand-blue, #20313e);
         cursor: default;
       }
 

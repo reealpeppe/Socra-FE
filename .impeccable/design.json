@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-10T20:27:36.031Z",
+  "generatedAt": "2026-10-17T23:54:36.824Z",
   "title": "Design System: Socra",
   "extensions": {
     "colorMeta": {
@@ -246,33 +246,13 @@
       },
       "success-surface": {
         "role": "neutral",
-        "displayName": "Superficie successo",
-        "canonical": "#edf5ef",
-        "tonalRamp": [
-          "oklch(15% 0.01159 153.67)",
-          "oklch(26% 0.01159 153.67)",
-          "oklch(38% 0.01159 153.67)",
-          "oklch(49% 0.01159 153.67)",
-          "oklch(61% 0.01159 153.67)",
-          "oklch(72% 0.01159 153.67)",
-          "oklch(84% 0.01159 153.67)",
-          "oklch(95% 0.01159 153.67)"
-        ]
+        "displayName": "Success surface",
+        "canonical": "#edf2f6"
       },
       "success-text": {
         "role": "neutral",
-        "displayName": "Testo successo",
-        "canonical": "#32654c",
-        "tonalRamp": [
-          "oklch(15% 0.06926 160.65)",
-          "oklch(26% 0.06926 160.65)",
-          "oklch(38% 0.06926 160.65)",
-          "oklch(49% 0.06926 160.65)",
-          "oklch(61% 0.06926 160.65)",
-          "oklch(72% 0.06926 160.65)",
-          "oklch(84% 0.06926 160.65)",
-          "oklch(95% 0.06926 160.65)"
-        ]
+        "displayName": "Success text",
+        "canonical": "#20313e"
       },
       "danger-surface": {
         "role": "neutral",
@@ -333,6 +313,71 @@
           "oklch(84% 0.01268 256.74)",
           "oklch(95% 0.01268 256.74)"
         ]
+      },
+      "brand-blue": {
+        "role": "primary",
+        "displayName": "Brand blue",
+        "canonical": "#20313e"
+      },
+      "brand-blue-hover": {
+        "role": "primary",
+        "displayName": "Brand blue hover",
+        "canonical": "#344957"
+      },
+      "brand-blue-soft": {
+        "role": "primary",
+        "displayName": "Brand blue soft",
+        "canonical": "#edf2f6"
+      },
+      "brand-blue-line": {
+        "role": "primary",
+        "displayName": "Brand blue line",
+        "canonical": "#cbd7df"
+      },
+      "brand-gold": {
+        "role": "primary",
+        "displayName": "Brand gold",
+        "canonical": "#f3bb40"
+      },
+      "brand-gold-border": {
+        "role": "primary",
+        "displayName": "Brand gold border",
+        "canonical": "#a7791f"
+      },
+      "community-ink": {
+        "role": "neutral",
+        "displayName": "Community ink",
+        "canonical": "#20272e"
+      },
+      "community-muted": {
+        "role": "neutral",
+        "displayName": "Community muted",
+        "canonical": "#59666f"
+      },
+      "community-line": {
+        "role": "neutral",
+        "displayName": "Community line",
+        "canonical": "#d7dfe5"
+      },
+      "community-paper": {
+        "role": "neutral",
+        "displayName": "Community paper",
+        "canonical": "#f3f6f8"
+      },
+      "community-control-line": {
+        "role": "neutral",
+        "displayName": "Community control line",
+        "canonical": "#788994"
+      },
+      "community-sidebar": {
+        "role": "neutral",
+        "displayName": "Community sidebar",
+        "canonical": "#f6f8fa"
+      },
+      "community-sidebar-selected": {
+        "role": "neutral",
+        "displayName": "Community sidebar selected",
+        "canonical": "#20313e"
       }
     },
     "typographyMeta": {
@@ -424,10 +469,6 @@
     ],
     "breakpoints": [
       {
-        "name": "dashboard-support-two-columns",
-        "value": "1200px"
-      },
-      {
         "name": "layout-compact",
         "value": "1100px"
       },
@@ -454,27 +495,29 @@
     ],
     "communitySurface": {
       "scope": ".app-shell",
-      "approved": "2026-10-13",
+      "approved": "2026-10-18",
       "mode": "operate",
       "public_theme": "preserved",
       "font": "Manrope",
       "colors": {
-        "ink": "#25322f",
-        "muted": "#59666c",
-        "line": "#d7dfe2",
-        "paper": "#eef1f3",
+        "ink": "#20272e",
+        "muted": "#59666f",
+        "line": "#d7dfe5",
+        "paper": "#f3f6f8",
         "card": "#ffffff",
-        "sage": "#325d4b",
-        "sage-soft": "#edf4ef",
-        "sidebar": "#e5ede8",
-        "sidebar-selected": "#d0e0d5"
+        "brand-blue": "#20313e",
+        "brand-blue-soft": "#edf2f6",
+        "brand-blue-line": "#cbd7df",
+        "brand-gold": "#f3bb40",
+        "sidebar": "#f6f8fa",
+        "sidebar-selected": "#20313e"
       },
       "radii": {
         "profile-card": "12px",
         "dialog": "14px",
         "controls": "8–10px"
       },
-      "reference": "three user-approved mockups; compact single-screen proposal"
+      "reference": "User correction 18 October: extend existing home blue/gold to the authenticated UI; preserve layout and assets."
     }
   },
   "components": [
@@ -522,17 +565,17 @@
       "name": "Campo di testo",
       "kind": "input",
       "refersTo": "input",
-      "description": "Campo condiviso con bordo distinto e focus grafite con ring miele.",
+      "description": "Campo community con bordo controllo leggibile e focus blu senza alone.",
       "html": "<label class=\"ds-field\"><span>Obiettivo</span><input class=\"ds-input\" type=\"text\" /></label>",
-      "css": ".ds-field{font-family:var(--font-socra,Manrope),sans-serif;display:grid;gap:7px;color:var(--ink,#20272e);font-size:.875rem;font-weight:600;}.ds-input{font-family:var(--font-socra,Manrope),sans-serif;background:var(--card,#fff);border:1px solid var(--control-line,#8d9295);border-radius:var(--radius-sm,8px);color:var(--ink,#20272e);font-size:1rem;font-weight:400;min-height:46px;padding:10px 12px;width:100%;max-width:100%;caret-color:var(--ink,#20272e);box-shadow:none;}.ds-input:hover{border-color:var(--control-line,#8d9295);}.ds-input:focus{border-color:var(--ink,#20272e);box-shadow:0 0 0 3px var(--honey-soft,#fff5dc);}.ds-input:focus-visible{outline:2px solid var(--ink,#20272e);outline-offset:2px;}"
+      "css": ".ds-field{font-family:var(--font-socra,Manrope),sans-serif;display:grid;gap:7px;color:var(--ink,#20272e);font-size:.875rem;font-weight:600;}.ds-input{font-family:var(--font-socra,Manrope),sans-serif;background:var(--card,#fff);border:1px solid var(--control-line,#788994);border-radius:var(--radius-sm,8px);color:var(--ink,#20272e);font-size:1rem;font-weight:400;min-height:46px;padding:10px 12px;width:100%;max-width:100%;caret-color:var(--ink,#20272e);box-shadow:none;}.ds-input:hover{border-color:var(--control-line,#788994);}.ds-input:focus{border-color:var(--ink,#20272e);box-shadow:none;}.ds-input:focus-visible{outline:2px solid var(--brand-blue,#20313e);outline-offset:2px;}"
     },
     {
       "name": "Navigazione applicativa",
       "kind": "nav",
       "refersTo": "navigation-link",
-      "description": "Link della sidebar con selezione miele tenue; anteprima priva di logica di navigazione.",
+      "description": "Sidebar community: link blu, selezione blu con testo bianco; anteprima senza navigazione applicativa.",
       "html": "<nav class=\"ds-nav\" aria-label=\"Anteprima navigazione\"><a class=\"ds-nav-link ds-nav-link-active\" href=\"#\" aria-current=\"page\"><svg viewBox=\"0 0 24 24\" width=\"20\" height=\"20\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/></svg>Dashboard</a><a class=\"ds-nav-link\" href=\"#\">Competenze</a></nav>",
-      "css": ".ds-nav{display:grid;gap:3px;padding:8px;background:var(--card,#fff);}.ds-nav-link{font-family:var(--font-socra,Manrope),sans-serif;display:flex;align-items:center;gap:10px;padding:10px 12px;min-height:44px;border:0;border-radius:var(--radius-sm,8px);font-size:.875rem;font-weight:500;color:var(--muted,#62676e);text-decoration:none;}.ds-nav-link:hover{background:var(--paper,#f8f8f6);color:var(--ink,#20272e);}.ds-nav-link-active,.ds-nav-link-active:hover{background:var(--honey-soft,#fff5dc);color:var(--ink,#20272e);font-weight:650;}.ds-nav-link-active svg{color:var(--honey-ink,#795611);}.ds-nav-link:focus-visible{outline:2px solid var(--ink,#20272e);outline-offset:4px;}.ds-nav-link svg{transition:transform var(--duration-ui,180ms) var(--ease-out,cubic-bezier(.23,1,.32,1));}@media(hover:hover) and (pointer:fine){.ds-nav-link:hover svg{transform:translateX(1px);}}@media(prefers-reduced-motion:reduce){.ds-nav-link svg{transition:none;transform:none;}}"
+      "css": ".ds-nav{display:grid;gap:3px;padding:8px;background:#f6f8fa;}.ds-nav-link{font-family:var(--font-socra,Manrope),sans-serif;display:flex;align-items:center;gap:10px;padding:10px 12px;min-height:44px;border:0;border-radius:var(--radius-sm,8px);font-size:.875rem;font-weight:500;color:var(--brand-blue,#20313e);text-decoration:none;}.ds-nav-link:hover{background:var(--paper,#f8f8f6);color:var(--ink,#20272e);}.ds-nav-link-active,.ds-nav-link-active:hover{background:var(--brand-blue,#20313e);color:white;font-weight:650;}.ds-nav-link-active svg{color:white;}.ds-nav-link:focus-visible{outline:2px solid var(--ink,#20272e);outline-offset:4px;}.ds-nav-link svg{transition:transform var(--duration-ui,180ms) var(--ease-out,cubic-bezier(.23,1,.32,1));}@media(hover:hover) and (pointer:fine){.ds-nav-link:hover svg{transform:translateX(1px);}}@media(prefers-reduced-motion:reduce){.ds-nav-link svg{transition:none;transform:none;}}"
     },
     {
       "name": "Badge neutro",
@@ -562,9 +605,9 @@
       "name": "Card apprendimento dashboard",
       "kind": "card",
       "refersTo": "card-dashboard-learning",
-      "description": "Card grafite dominante con CTA miele, prossimo passo prioritario su mobile e aiuto ETF nativo inizialmente chiuso; anteprima senza dati o navigazione applicativa.",
-      "html": "<section class=\"ds-learning\"><div class=\"ds-learning-top\"><span class=\"ds-learning-icon\"><svg viewBox=\"0 0 24 24\" width=\"23\" height=\"23\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\"><path d=\"m2 10 10-5 10 5-10 5-10-5Zm4 2v5c4 3 8 3 12 0v-5m4-2v7\"/></svg></span><span>01 / Impara</span></div><div class=\"ds-learning-body\"><div class=\"ds-learning-next\"><p>Nessun percorso attivo come apprendista. Trova la persona giusta per iniziare.</p><div class=\"ds-learning-bottom\"><small>0 percorsi attivi su 1</small><a class=\"ds-learning-action\" href=\"#\">Trova un mentor<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\"><path d=\"M5 12h14m-6-6 6 6-6 6\"/></svg></a></div></div><div class=\"ds-learning-focus\"><h2>Il tuo percorso di apprendimento</h2><p class=\"ds-learning-title\">ETF</p><details class=\"ds-etf\"><summary><svg viewBox=\"0 0 24 24\" width=\"16\" height=\"16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\"><circle cx=\"12\" cy=\"12\" r=\"9\"/><path d=\"M12 11v6m0-10v1\"/></svg><span>Cos’è un ETF?</span><svg viewBox=\"0 0 24 24\" width=\"14\" height=\"14\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\"><path d=\"m9 6 6 6-6 6\"/></svg></summary><p>ETF significa Exchange Traded Fund: un fondo quotato in borsa.</p></details></div></div></section>",
-      "css": ".ds-learning{font-family:var(--font-socra,Manrope),sans-serif;line-height:1.6;background:var(--ink,#20272e);color:#fff;border:0;border-radius:12px;padding:32px;}.ds-learning-top{display:flex;align-items:center;flex-wrap:wrap;gap:10px;font-size:1rem;font-weight:600;}.ds-learning-icon{display:inline-flex;align-items:center;justify-content:center;flex:none;width:44px;height:44px;background:#3b444c;color:var(--gold-300,#fff0ca);border-radius:10px;}.ds-learning-body{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(240px,.75fr);grid-template-areas:\"focus next\";gap:48px;margin-top:24px;}.ds-learning-focus{grid-area:focus;min-width:0;}.ds-learning-focus h2{color:#d5dade;font-size:.875rem;font-weight:500;margin:0;}.ds-learning-title{color:#fff;font-size:2.75rem;font-weight:550;line-height:1.15;letter-spacing:-.03em;margin:10px 0 0;}.ds-learning-next{grid-area:next;align-self:center;display:flex;flex-direction:column;gap:20px;border-left:1px solid #485159;padding-left:32px;}.ds-learning-next>p{color:#e1e5e8;font-size:1rem;line-height:1.55;margin:0;}.ds-learning-bottom{display:flex;align-items:stretch;flex-direction:column-reverse;gap:16px;}.ds-learning-bottom small{color:#c8ced2;font-size:.8125rem;line-height:1.5;}.ds-learning-action{display:inline-flex;align-items:center;justify-content:space-between;gap:14px;background:var(--gold-500,#f3bb40);color:var(--ink,#20272e);border:1px solid transparent;border-radius:8px;font-size:1rem;font-weight:650;min-height:50px;padding:13px 18px;text-decoration:none;transition:background-color var(--duration-ui,180ms) ease,transform var(--duration-press,120ms) var(--ease-out,cubic-bezier(.23,1,.32,1));}.ds-learning-action:hover{background:var(--gold-400,#e7ab2b);}.ds-learning-action:active{transform:scale(.98);}.ds-learning a:focus-visible,.ds-learning summary:focus-visible{outline:2px solid var(--gold-300,#fff0ca);outline-offset:4px;}.ds-etf{font-size:.8125rem;line-height:1.5;margin-top:10px;}.ds-etf summary{display:inline-flex;align-items:center;gap:6px;min-height:32px;cursor:pointer;color:#d5dade;list-style:none;}.ds-etf summary::-webkit-details-marker{display:none;}.ds-etf summary:hover{color:var(--gold-300,#fff0ca);}.ds-etf summary>svg:last-child{transition:transform var(--duration-ui,180ms) var(--ease-out,cubic-bezier(.23,1,.32,1));}.ds-etf[open] summary>svg:last-child{transform:rotate(90deg);}.ds-etf p{color:#d5dade;font-size:.8125rem;max-width:52ch;margin:8px 0 0;}@media(max-width:1200px){.ds-learning{padding:24px;}.ds-learning-body{gap:28px;grid-template-columns:minmax(0,1fr) minmax(220px,.85fr);}.ds-learning-next{padding-left:24px;}}@media(max-width:760px){.ds-learning{padding:22px;}.ds-learning-body{grid-template-columns:minmax(0,1fr);grid-template-areas:\"next\" \"focus\";gap:24px;}.ds-learning-title{font-size:2.25rem;}.ds-learning-next{border-left:0;padding:0;}.ds-learning-focus{border-top:1px solid #485159;padding-top:24px;}}@media(prefers-reduced-motion:reduce){.ds-learning-action,.ds-etf summary>svg:last-child{transition:none;}}"
+      "description": "Card apprendimento corrente: superficie blu tenue, CTA oro e layout compatto, senza dati o navigazione applicativa.",
+      "html": "<section class=\"ds-learning\"><div><h2>Il tuo percorso di apprendimento</h2><p class=\"ds-learning-title\">ETF</p><p class=\"ds-learning-copy\">Trova la persona giusta per iniziare.</p></div><a class=\"ds-learning-action\" href=\"#\">Trova un mentor</a></section>",
+      "css": ".ds-learning{font-family:var(--font-socra,Manrope),sans-serif;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:24px;align-items:center;background:var(--brand-blue-soft,#edf2f6);color:var(--ink,#20272e);border:1px solid var(--brand-blue-line,#cbd7df);border-radius:12px;padding:25px;}.ds-learning h2{font-size:1.0625rem;line-height:1.3;font-weight:500;margin:0;}.ds-learning-title{font-size:1.3125rem;font-weight:500;margin:6px 0 0;}.ds-learning-copy{font-size:.875rem;line-height:1.5;color:var(--muted,#59666f);margin:5px 0 0;}.ds-learning-action{display:inline-flex;align-items:center;min-height:44px;border:1px solid var(--brand-gold-border,#a7791f);border-radius:8px;background:var(--brand-gold,#f3bb40);color:var(--ink,#20272e);font-size:.875rem;font-weight:500;padding:11px 14px;text-decoration:none;}.ds-learning-action:hover{background:var(--gold-400,#e7ab2b);}.ds-learning-action:focus-visible{outline:2px solid var(--brand-blue,#20313e);outline-offset:4px;}@media(max-width:760px){.ds-learning{grid-template-columns:minmax(0,1fr);padding:22px;}}"
     },
     {
       "name": "Card mentor dashboard",
@@ -572,7 +615,7 @@
       "refersTo": "card-dashboard-secondary",
       "description": "Variante di supporto bianca con azione mentor secondaria e bordo controllo; il contenitore resta privo di hover.",
       "html": "<article class=\"ds-support\"><div class=\"ds-support-top\"><span class=\"ds-support-icon\"><svg viewBox=\"0 0 24 24\" width=\"22\" height=\"22\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\"><path d=\"M18 21a8 8 0 0 0-16 0M22 21a6 6 0 0 0-6-6\"/><circle cx=\"10\" cy=\"8\" r=\"5\"/><path d=\"M18 3a5 5 0 0 1 0 10\"/></svg></span><span>02 / Condividi</span></div><h2>I tuoi percorsi come mentor</h2><p class=\"ds-support-title\">Condividi ciò che sai</p><p class=\"ds-support-copy\">Dalle impostazioni puoi verificare gli argomenti su cui renderti disponibile.</p><div class=\"ds-support-bottom\"><a class=\"ds-mentor-action\" href=\"#\">Vedi i percorsi<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" aria-hidden=\"true\"><path d=\"M5 12h14m-6-6 6 6-6 6\"/></svg></a></div></article>",
-      "css": ".ds-support{font-family:var(--font-socra,Manrope),sans-serif;line-height:1.6;background:var(--card,#fff);color:var(--ink,#20272e);border:1px solid var(--line,#e4e3df);border-radius:12px;min-width:0;padding:28px;}.ds-support-top{display:flex;align-items:center;flex-wrap:wrap;gap:10px;color:var(--muted,#62676e);font-size:.8125rem;font-weight:500;}.ds-support-icon{display:inline-flex;align-items:center;justify-content:center;flex:none;width:36px;height:36px;background:var(--honey-soft,#fff5dc);color:var(--honey-ink,#795611);border-radius:8px;}.ds-support h2{font-size:.9375rem;font-weight:600;margin:24px 0 0;}.ds-support-title{font-size:1.5rem;font-weight:550;letter-spacing:-.03em;line-height:1.25;margin:12px 0 0;}.ds-support-copy{color:var(--muted,#62676e);font-size:.9375rem;line-height:1.6;margin:18px 0 0;}.ds-support-bottom{display:flex;align-items:center;flex-wrap:wrap;justify-content:space-between;gap:16px;margin-top:28px;}.ds-mentor-action{display:inline-flex;align-items:center;justify-content:space-between;gap:14px;background:var(--card,#fff);color:var(--ink,#20272e);border:1px solid var(--control-line,#8d9295);border-radius:8px;font-size:.875rem;font-weight:600;min-height:44px;padding:11px 16px;text-decoration:none;transition:background-color var(--duration-ui,180ms) ease,transform var(--duration-press,120ms) var(--ease-out,cubic-bezier(.23,1,.32,1));}.ds-mentor-action:hover{background:var(--paper,#f8f8f6);}.ds-mentor-action:active{transform:scale(.98);}.ds-mentor-action:focus-visible{outline:2px solid var(--ink,#20272e);outline-offset:4px;}@media(max-width:1200px){.ds-support{padding:24px;}}@media(max-width:760px){.ds-support{padding:22px;}.ds-support-bottom{align-items:stretch;flex-direction:column;gap:12px;}}@media(prefers-reduced-motion:reduce){.ds-mentor-action{transition:none;}}"
+      "css": ".ds-support{font-family:var(--font-socra,Manrope),sans-serif;line-height:1.6;background:var(--card,#fff);color:var(--ink,#20272e);border:1px solid var(--line,#e4e3df);border-radius:12px;min-width:0;padding:28px;}.ds-support-top{display:flex;align-items:center;flex-wrap:wrap;gap:10px;color:var(--muted,#62676e);font-size:.8125rem;font-weight:500;}.ds-support-icon{display:inline-flex;align-items:center;justify-content:center;flex:none;width:36px;height:36px;background:var(--brand-blue-soft,#edf2f6);color:var(--brand-blue,#20313e);border-radius:8px;}.ds-support h2{font-size:.9375rem;font-weight:600;margin:24px 0 0;}.ds-support-title{font-size:1.5rem;font-weight:550;letter-spacing:-.03em;line-height:1.25;margin:12px 0 0;}.ds-support-copy{color:var(--muted,#62676e);font-size:.9375rem;line-height:1.6;margin:18px 0 0;}.ds-support-bottom{display:flex;align-items:center;flex-wrap:wrap;justify-content:space-between;gap:16px;margin-top:28px;}.ds-mentor-action{display:inline-flex;align-items:center;justify-content:space-between;gap:14px;background:var(--card,#fff);color:var(--ink,#20272e);border:1px solid var(--control-line,#8d9295);border-radius:8px;font-size:.875rem;font-weight:600;min-height:44px;padding:11px 16px;text-decoration:none;transition:background-color var(--duration-ui,180ms) ease,transform var(--duration-press,120ms) var(--ease-out,cubic-bezier(.23,1,.32,1));}.ds-mentor-action:hover{background:var(--paper,#f8f8f6);}.ds-mentor-action:active{transform:scale(.98);}.ds-mentor-action:focus-visible{outline:2px solid var(--ink,#20272e);outline-offset:4px;}@media(max-width:1200px){.ds-support{padding:24px;}}@media(max-width:760px){.ds-support{padding:22px;}.ds-support-bottom{align-items:stretch;flex-direction:column;gap:12px;}}@media(prefers-reduced-motion:reduce){.ds-mentor-action{transition:none;}}"
     },
     {
       "name": "Notifica non letta",
@@ -581,17 +624,24 @@
       "description": "Pulsante nella lista scorrevole: cresce con il messaggio, non si comprime e mantiene compatto il badge Nuova. Anteprima priva di logica di lettura.",
       "html": "<div class=\"ds-notification-list\"><button type=\"button\" class=\"ds-notification\"><span>La tua esperienza è stata aggiornata.</span><small>Nuova</small></button></div>",
       "css": ".ds-notification-list{display:flex;flex-direction:column;gap:8px;max-height:min(48dvh,420px);overflow-y:auto;overscroll-behavior:contain;padding:1px;}.ds-notification{font-family:var(--font-socra,Manrope),sans-serif;line-height:1.6;display:flex;flex:0 0 auto;flex-direction:column;align-items:flex-start;gap:8px;height:auto;min-height:44px;background:var(--honey-soft,#fff5dc);color:var(--ink,#20272e);border:1px solid #e9d7a9;border-radius:8px;padding:12px;width:100%;text-align:left;white-space:normal;line-height:1.4;cursor:pointer;}.ds-notification>span{display:block;font-size:.875rem;line-height:1.5;overflow-wrap:anywhere;}.ds-notification small{align-self:flex-start;background:var(--gold-300,#fff0ca);color:var(--honey-ink,#795611);font-size:.75rem;font-weight:650;line-height:1.4;border-radius:4px;padding:2px 6px;}.ds-notification:focus-visible{outline:2px solid var(--ink,#20272e);outline-offset:4px;}"
+    },
+    {
+      "name": "Passi del flusso invito",
+      "kind": "custom",
+      "description": "Indicatore condiviso tra proposta e profilo: passo corrente oro, completati blu. I numeri non sono controlli interattivi.",
+      "html": "<ol class=\"ds-invitation-steps\" aria-label=\"Passaggi per iniziare\"><li data-complete=\"true\"><span aria-hidden=\"true\">1</span>Invito</li><li aria-current=\"step\"><span aria-hidden=\"true\">2</span>Profilo</li><li><span aria-hidden=\"true\">3</span>Conferma</li></ol>",
+      "css": ".ds-invitation-steps{font-family:var(--font-socra,Manrope),sans-serif;display:flex;gap:24px;list-style:none;padding:0;margin:0 0 28px;color:var(--muted,#59666f);font-size:.875rem;line-height:1.6;}.ds-invitation-steps li{display:flex;align-items:center;gap:8px;min-width:0;}.ds-invitation-steps li>span{display:grid;place-items:center;width:28px;height:28px;border:1px solid var(--control-line,#788994);border-radius:50%;font-variant-numeric:tabular-nums;}.ds-invitation-steps li[aria-current]{color:var(--brand-blue,#20313e);font-weight:650;}.ds-invitation-steps li[aria-current]>span{background:var(--gold-500,#f3bb40);border-color:var(--brand-gold-border,#a7791f);color:var(--ink,#20272e);}.ds-invitation-steps li[data-complete]>span{color:#fff;background:var(--brand-blue,#20313e);border-color:var(--brand-blue,#20313e);}"
     }
   ],
   "narrative": {
-    "northStar": "Grafite e miele",
-    "overview": "Il brief approvato richiede un'interfaccia pulita e minimale, accogliente ma professionale, con un font professionale e senza grafica AI generica. Il codice finale traduce questa direzione in superfici chiare, testo grafite, accenti miele e gerarchie tipografiche sobrie. Spaziatura e bordi distinguono le aree; le decorazioni non competono con i contenuti.\n\nIl movimento accompagna gli stati con piccoli spostamenti e variazioni di colore. Il contenuto rimane visibile anche senza animazioni; `prefers-reduced-motion` disattiva animazioni e transizioni. La home si basa sulla tipografia, senza fotografie.",
+    "northStar": "Blu inchiostro e oro Socra",
+    "overview": "La correzione approvata il 18/10/2026 estende alla community la palette della home: blu `#20313e`, grafite del logo `#20272e` e oro `#f3bb40`. La modalità della community è **Operate**: leggibilità, azioni riconoscibili e stati coerenti hanno la precedenza sulla decorazione. Il blu identifica navigazione, link, icone e selezioni; l'oro mette in evidenza le azioni principali. Le superfici sono bianche o neutre fredde. Il verde non appartiene alla UI autenticata, nemmeno agli stati positivi, che conservano testo e icone di conferma.\r\n\r\nLa sola correzione cromatica preserva layout, Manrope locale, asset del marchio, contenuti e comportamento. La home conserva la sua presentazione. Nessun gradiente, ombra o elemento decorativo viene aggiunto da questa correzione. Il flusso guidato di invito ha invece una shell dedicata e una gerarchia semplificata, descritta nei Components; le regole funzionali restano nella wiki backend.\r\n\r\nLe fonti visive sono `app/theme.css`, il blocco community di `app/globals.css` e i moduli locali. `app/layout.tsx` importa il tema dopo i globals; i selettori community più specifici e i moduli mantengono le varianti esplicite. Questo documento e `.impeccable/design.json` sono strumenti di sviluppo: non aggiungono regole di prodotto e non attestano un collaudo browser. La wiki backend rimane proprietaria delle regole.",
     "keyCharacteristics": [
-      "Superfici chiare e card piatte con bordi sottili.",
-      "Testi grafite e miele per azioni e selezione.",
-      "Manrope locale, gerarchia sobria e pesi intermedi.",
-      "Motion discreto con supporto a reduced-motion.",
-      "Contenuti, destinazioni e logica funzionale preservati."
+      "Blu per navigazione, selezioni e stati positivi con testo/icone.",
+      "Oro e grafite per le azioni principali.",
+      "Superfici bianche e neutre fredde, card piatte.",
+      "Manrope locale e asset ufficiali.",
+      "Nessun verde nella UI autenticata."
     ],
     "rules": [],
     "dos": [
@@ -599,9 +649,10 @@
       "**Do** mantenere card piatte da 12px e controlli da 8px, rispettando le varianti esplicite.",
       "**Do** usare Manrope locale e conservare la licenza OFL insieme al font.",
       "**Do** mantenere la base body a 15px e i campi a 1rem, con focus visibile.",
-      "**Do** distinguere accento di marca e coppie di colore degli stati semantici.",
+      "**Do** usare il blu per orientamento e selezione, l'oro per le azioni principali e testo/icone per distinguere gli stati.",
+      "**Do** mantenere la UI autenticata priva di verde, inclusi stati positivi e fallback.",
       "**Do** limitare il movimento ai feedback osservati e rispettare reduced-motion.",
-      "**Do** preservare testi, destinazioni e logica durante gli interventi visivi."
+      "**Do** preservare testi, destinazioni e logica durante gli interventi esclusivamente visivi."
     ],
     "donts": [
       "**Don't** recuperare gradienti, blur o decorazioni dei vecchi globals quando il tema finale li sostituisce.",

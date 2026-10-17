@@ -41,6 +41,11 @@ function invalidate(session = false, broadcastSessionChange = false) {
   }
 }
 
+export function refreshClientSession() {
+  invalidate();
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("socra:session-refresh"));
+}
+
 async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), init.method && init.method !== "GET" ? 25_000 : 15_000);

@@ -314,14 +314,14 @@ export function formatStatus(status: string): string {
 }
 
 const AVATAR_COLORS = [
-  "#2f62d6",
-  "#6857d6",
-  "#08754d",
-  "#7a4b00",
-  "#c2410c",
-  "#0e7490",
-  "#7c3aed",
-  "#be185d",
+  "var(--brand-blue)",
+  "var(--brand-blue-hover)",
+  "var(--ink)",
+  "var(--honey-ink)",
+  "var(--brand-blue)",
+  "var(--brand-blue-hover)",
+  "var(--ink)",
+  "var(--honey-ink)",
 ];
 
 export function UserAvatar({

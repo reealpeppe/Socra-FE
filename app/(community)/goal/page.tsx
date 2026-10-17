@@ -315,7 +315,7 @@ function GoalForm() {
             .discussion-option { display: flex; gap: 12px; padding: 16px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; }
             .discussion-option[data-selected="true"] { border-color: var(--navy-950); background: var(--paper); box-shadow: inset 0 0 0 1px var(--navy-950); }
             .discussion-limit-notice { background: #fff8e8; border: 1px solid #efcb70; border-radius: 9px; color: #744d06; font-weight: 600; margin: 2px 0 0; padding: 10px 12px; }
-            .discussion-option:focus-within { outline: 3px solid var(--gold-500); outline-offset: 3px; }
+            .discussion-option:focus-within { outline: 3px solid var(--brand-blue); outline-offset: 3px; }
             .discussion-option input { width: 18px; height: 18px; flex-shrink: 0; margin-top: 3px; accent-color: var(--navy-950); }
             .discussion-option strong { display: block; margin-bottom: 5px; font-size: .91rem; }
             .discussion-option span span { display: block; font-size: .82rem; line-height: 1.55; color: var(--muted); }
@@ -327,7 +327,7 @@ function GoalForm() {
             .goal-result-guidance { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
             .goal-result-guidance p { margin: 0; font-size: .84rem; line-height: 1.5; }
             .goal-result-toggle { border: 0; background: none; color: var(--navy-950); font: inherit; font-size: .84rem; font-weight: 650; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; padding: 6px 0; }
-            .goal-result-toggle:focus-visible { outline: 3px solid var(--gold-500); outline-offset: 3px; }
+            .goal-result-toggle:focus-visible { outline: 3px solid var(--brand-blue); outline-offset: 3px; }
             @media (max-width: 640px) {
               .goal-fields, .discussion-options {
                 grid-template-columns: 1fr;

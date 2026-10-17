@@ -622,8 +622,8 @@ function ProfileStyles() {
       }
 
       .profile-mentor-badge {
-        background: var(--mint-100, #d1fae5);
-        color: var(--mint-600, #129b68);
+        background: var(--brand-blue-soft, #edf2f6);
+        color: var(--brand-blue, #20313e);
       }
 
       .profile-own-badge,
@@ -634,9 +634,9 @@ function ProfileStyles() {
       }
 
       .profile-topic-list span {
-        background: #eef4ff;
-        border: 1px solid #cfdbff;
-        color: #1d4ed8;
+        background: var(--brand-blue-soft);
+        border: 1px solid var(--brand-blue-line);
+        color: var(--brand-blue);
       }
 
       .profile-member-since {
@@ -695,15 +695,15 @@ function ProfileStyles() {
       }
 
       .profile-match-pct {
-        color: var(--mint-600, #129b68);
+        color: var(--brand-blue, #20313e);
         font-size: 2rem;
         font-weight: 950;
       }
 
       .profile-badge-item {
         align-items: center;
-        background: var(--mint-100, #d1fae5);
-        color: var(--mint-600, #129b68);
+        background: var(--brand-blue-soft, #edf2f6);
+        color: var(--brand-blue, #20313e);
         display: inline-flex;
         gap: 6px;
       }
@@ -732,7 +732,7 @@ function ProfileStyles() {
       }
 
       .profile-privacy-card {
-        background: linear-gradient(145deg, #ecfdf5, #ffffff);
+        background: var(--brand-blue-soft);
       }
 
       .profile-request-card,
@@ -749,7 +749,7 @@ function ProfileStyles() {
       }
 
       .profile-privacy-inner svg {
-        color: var(--mint-600, #129b68);
+        color: var(--brand-blue, #20313e);
         flex-shrink: 0;
         margin-top: 2px;
       }
