@@ -18,6 +18,9 @@ const protectedPrefixes = [
   "/wallet"
 ];
 
+// React hydration requires intermediaries to preserve server-rendered markup.
+const pageCacheControl = "private, no-store, no-transform";
+
 export function proxy(request: NextRequest) {
   const monitoring=request.nextUrl.pathname==="/admin/monitoraggio" || request.nextUrl.pathname.startsWith("/admin/monitoraggio/");
   if (request.nextUrl.pathname.startsWith("/api/")) {
@@ -42,12 +45,12 @@ export function proxy(request: NextRequest) {
     loginUrl.searchParams.set("next", `${request.nextUrl.pathname}${request.nextUrl.search}`);
     const response = NextResponse.redirect(loginUrl);
     response.headers.set("Content-Security-Policy", csp);
-    response.headers.set("Cache-Control", "private, no-store");
+    response.headers.set("Cache-Control", pageCacheControl);
     return response;
   }
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("Content-Security-Policy", csp);
-  response.headers.set("Cache-Control", "private, no-store");
+  response.headers.set("Cache-Control", pageCacheControl);
   if (/^\/invit[oi](\/|$)/.test(request.nextUrl.pathname)) {
     response.headers.set("Referrer-Policy", "no-referrer");
     response.headers.set("X-Robots-Tag", "noindex, nofollow");
