@@ -28,6 +28,7 @@ Wallet e scadenze riusano [lib/date.ts](../../lib/date.ts). [EtfExplanation](../
 | Notifiche e proposte | Banner in [AppShell](../../components/AppShell.tsx), stile in [ProposalBanner.module.css](../../components/ProposalBanner.module.css) e route pertinenti: leggere stato operativo server; dismissione e lettura sono azioni distinte come da contratto |
 | Date e stati asincroni | [lib/date.ts](../../lib/date.ts): applicare il contratto UTC delle API; distinguere 401 da indisponibilità temporanea e timeout |
 | UI | [Ui.tsx](../../components/Ui.tsx), CSS locali e [globals.css](../../app/globals.css): primitive e layout responsive; evitare nuove copie di cataloghi o testi tecnici nel flusso utente |
+| Marchio | [Brand](../../components/Brand.tsx) riusa [gli SVG ufficiali](../../public/brand/README.md): variante antracite sulla navbar bianca e nell'area account/community, bianca nel footer scuro, solo simbolo nella shell mobile. Favicon, Apple Touch Icon e manifest seguono le convenzioni App Router; [generatore](../../scripts/generate-brand-assets.mjs) riproducibile dall'originale. Nessun nuovo provider, confine applicativo o servizio offline |
 
 ## Vincoli e verifica
 
