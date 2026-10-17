@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { authPost, ClientApiError } from "@/lib/api";
+import { safeInvitationReturn } from "@/lib/invitations";
 import styles from "../login/auth.module.css";
 
 export default function RegisterPage() {
@@ -22,6 +23,8 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [invitationNext, setInvitationNext] = useState<string | null>(null);
+  useEffect(() => { queueMicrotask(() => setInvitationNext(safeInvitationReturn(new URLSearchParams(window.location.search).get("next")))); }, []);
 
   function update(name: string, value: string | boolean) {
     setForm((current) => ({ ...current, [name]: value }));
@@ -38,7 +41,7 @@ export default function RegisterPage() {
     setError(null);
     try {
       await authPost("register", form);
-      router.push("/onboarding");
+      router.push(safeInvitationReturn(new URLSearchParams(window.location.search).get("next")) || "/onboarding");
       router.refresh();
     } catch (err) {
       const reason = err instanceof ClientApiError ? err.message : "Registrazione non riuscita.";
@@ -58,8 +61,7 @@ export default function RegisterPage() {
           </div>
           <h1 className={styles.title} id="register-title">Crea il tuo account</h1>
           <p className={styles.subtitle}>
-            Entra nella community, completa la survey e definisci il primo obiettivo
-            su cui vuoi confrontarti.
+            {invitationNext ? "Crea il tuo account per leggere la proposta della persona che ti ha invitato." : "Entra nella community, completa la survey e definisci il primo obiettivo su cui vuoi confrontarti."}
           </p>
 
           {error ? <p className={styles.error} id="register-error" role="alert">{error}</p> : null}
@@ -181,12 +183,12 @@ export default function RegisterPage() {
           </form>
 
           <p className={styles.hint} style={{ marginTop: 18, textAlign: "center" }}>
-            Dopo l’iscrizione potrai compilare subito la survey. Conferma la tua email per cercare persone e usare il matching.
+            {invitationNext ? "Dopo l’iscrizione vedrai la proposta. Prima di iniziare il percorso, confermerai la tua email e compilerai la survey." : "Dopo l’iscrizione potrai compilare subito la survey. Conferma la tua email per cercare persone e usare il matching."}
           </p>
 
           <p className={styles.footerText}>
             Hai già un account?{" "}
-            <Link className={styles.footerLink} href="/login">Accedi</Link>
+            <Link className={styles.footerLink} href={invitationNext ? `/login?next=${invitationNext}` : "/login"}>Accedi</Link>
           </p>
         </section>
       </main>    </div>

@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { authPost, ClientApiError } from "@/lib/api";
+import { safeInvitationReturn } from "@/lib/invitations";
 import styles from "./auth.module.css";
 
 export default function LoginPage() {
@@ -15,6 +16,8 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [invitationNext, setInvitationNext] = useState<string | null>(null);
+  useEffect(() => { queueMicrotask(() => setInvitationNext(safeInvitationReturn(new URLSearchParams(window.location.search).get("next")))); }, []);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -118,7 +121,7 @@ export default function LoginPage() {
 
           <p className={styles.footerText}>
             Non hai un account?{" "}
-            <Link className={styles.footerLink} href="/register">Crea il tuo profilo</Link>
+            <Link className={styles.footerLink} href={invitationNext ? `/register?next=${invitationNext}` : "/register"}>Crea il tuo profilo</Link>
           </p>
         </section>
       </main>    </div>
@@ -126,6 +129,8 @@ export default function LoginPage() {
 }
 
 function safeNextPath(value: string | null): string {
+  const invitation = safeInvitationReturn(value);
+  if (invitation) return invitation;
   const allowedPrefixes = ["/admin", "/dashboard", "/feedback", "/goal", "/matching", "/onboarding", "/paths", "/profiles", "/requests", "/settings", "/tour", "/wallet"];
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
     return "/dashboard";

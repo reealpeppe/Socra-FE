@@ -11,6 +11,8 @@ import { SkillPreparation } from "@/components/SkillPreparation";
 import { clientGet, clientPost, clientPut } from "@/lib/api";
 import { emptySkillAnswers, restoreSkillAnswers, type SkillAnswers } from "@/lib/skills";
 import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes-guard";
+import { safeInvitationReturn } from "@/lib/invitations";
+import type { InvitationDetail } from "@/lib/types";
 import type { PublicProfile, SkillCatalog, SkillGroup, SkillProfile } from "@/lib/types";
 import styles from "./SkillLearning.module.css";
 
@@ -160,9 +162,23 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
     finally { if (ownsSession(owner)) setBusy(false); }
   }
 
+  async function continueAfterContext() {
+    const owner = ownerRef.current;
+    if (!ownsSession(owner)) return;
+    const next = safeInvitationReturn(new URLSearchParams(window.location.search).get("next"));
+    if (next) {
+      try {
+        const rows = next === "/inviti" ? await clientGet<InvitationDetail[]>("/invitations/received")
+          : [await clientGet<InvitationDetail>(`/invitations/${next.split("/")[2]}`)];
+        if (!ownsSession(owner)) return;
+        if (rows.some(row => row.role === "recipient")) { router.push(next); return; }
+      } catch { if (ownsSession(owner)) setError("Le risposte sono salvate. Non riusciamo a riprendere l’invito: premi di nuovo Continua."); return; }
+    }
+    router.push(reassessment ? "/dashboard" : "/goal");
+  }
   return <AppShell>{confirmationDialog}<div className={styles.page}>
     {!loaded ? <div className="card" role={error ? "alert" : "status"}>{error || "Caricamento delle tue risposte…"}{error ? <button className="button secondary" onClick={() => { setError(null); setAttempt(value => value + 1); }}>Riprova</button> : null}</div>
-      : contextStep ? <section className={`${styles.section} stack`}><p className={styles.eyebrow}>Il tuo profilo</p><h1>Aggiungi il tuo contesto personale</h1><p>La tua esperienza è salvata.</p><PersonalContext key={contextOwner} profile={savedProfile} expanded onSaved={setSavedProfile} onContinue={()=>router.push(reassessment?'/dashboard':'/goal')}/></section>
+      : contextStep ? <section className={`${styles.section} stack`}><p className={styles.eyebrow}>Il tuo profilo</p><h1>Aggiungi il tuo contesto personale</h1><p>La tua esperienza è salvata.</p><PersonalContext key={contextOwner} profile={savedProfile} expanded onSaved={setSavedProfile} onContinue={()=>void continueAfterContext()}/>{error ? <p className="error" role="alert">{error}</p> : null}</section>
       : <form className={styles.page} onSubmit={submit} aria-busy={busy}>
         <header className={styles.intro}><p className={styles.eyebrow}>La tua esperienza</p><h1>{reassessment ? "Rivedi ciò che sai fare" : "Cosa sai fare, cosa vuoi condividere?"}</h1><p>Indica le attività che sai svolgere. Tra queste, scegli quelle su cui ti fa piacere aiutare un’altra persona. Puoi partire senza selezionarne nessuna.</p></header>
         {reassessment && existing ? <section className={styles.section} aria-label="Preparazione per argomento"><h2>Preparazione per argomento</h2><p className="muted">Il tuo punto di partenza attuale, dalle attività dichiarate e confermate nei percorsi.</p>{preparation.length ? <div className={styles.preparationGrid}>{preparation.map(group => <SkillPreparation key={group.topic} group={group} />)}</div> : <p className="muted">Non hai ancora indicato attività conosciute.</p>}</section> : null}

@@ -2,6 +2,8 @@
 
 ## Inviti nella ricerca — slice locale 17/10/2026
 
+Destinatario: `/invito` legge una preview, poi `/inviti` associa il token prima della survey e `/inviti/{id}` rende la proposta privata. BFF dedicati context/claim su upstream fissi; token temporaneo HttpOnly e poi associazione server, mai in storage, payload auth o query. `safeInvitationReturn` ammette solo area inviti e UUID locale; login/registrazione preservano quel ritorno e il normale DTO auth. `SkillSurvey` verifica la proposta associata prima di tornare all'invito dopo il contesto; verifica email offre il ritorno all'area. Nessun dato di capacità/offerta è preselezionato dall'invito. Stato, rifiuto, consenso finale, reinvio ed esiti incerti restano autorevoli sul backend; il cambio account invalida ogni dato privato già caricato.
+
 `InviteSomeone` rende disponibile «Invita qualcuno» nella testata della ricerca e «Crea un invito» nel box senza risultati, sia nella ricerca aggregata sia in quella per goal. `InvitationDialog` eredita il dialog nativo e i componenti di condivisione email della community perla/salvia: indirizzo, tema, attività esplicite, consenso e regole crediti. Nessuna nuova identità grafica o modifica al marchio/footer ufficiali.
 
 La mutazione usa il BFF autenticato esistente e chiavi idempotenti conservate per payload identico; un esito incerto viene verificato rileggendo gli inviti propri. Cambio sessione invalida form/risultati e impedisce scritture dell'account precedente. Il risultato distingue coda, canale spento e fallimento; gestione/reinvio nell'area inviti. Le regole restano nella wiki backend, [account/email](https://github.com/reealpeppe/Socra-BE/blob/feature/mentor-alerts-20261017/docs/wiki/09-account-email.md).
