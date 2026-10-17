@@ -1,0 +1,14 @@
+.notice {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.notice > * {
+  min-width: 0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}

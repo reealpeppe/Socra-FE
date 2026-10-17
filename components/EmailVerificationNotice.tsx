@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { accountPost, correctAccountEmail, ClientApiError } from "@/lib/api";
 import type { UserMe } from "@/lib/types";
+import styles from "./EmailVerificationNotice.module.css";
 
 type DeliveryResult = { status: string; email_delivery_enabled: boolean };
 
@@ -44,13 +45,13 @@ export function EmailVerificationNotice({ user }: { user: UserMe }) {
     finally { setBusy(false); }
   }
 
-  return <section className="card stack" aria-label="Verifica email" style={{ marginBottom: 20 }}>
+  return <section className={`card stack ${styles.notice}`} aria-label="Verifica email" style={{ marginBottom: 20 }}>
     <strong>Email da confermare</strong>
     <p className="muted">Conferma {user.email} per cercare profili e usare il matching. Puoi già compilare la survey, scegliere gli obiettivi e completare il tuo profilo.</p>
     {error ? <p className="error" role="alert">{error}</p> : null}
     {message ? <p className="success" role="status">{message}</p> : null}
     {!user.email_delivery_enabled ? <p className="muted">L’invio email è disattivato in questo ambiente.</p> : null}
-    <div className="actions">
+    <div className={styles.actions}>
       <button className="button secondary" type="button" disabled={busy || !user.email_delivery_enabled} onClick={() => void resend()}>Invia link di verifica</button>
       <button className="button secondary" type="button" disabled={busy} onClick={() => { setEmail(user.email); setEditing(value => !value); }}>Correggi email</button>
     </div>

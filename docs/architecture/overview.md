@@ -86,6 +86,8 @@ giudizio semantico.
 
 Le griglie di dashboard e impostazioni contengono anche username lunghi e indirizzi email senza spazi: le colonne possono restringersi e il testo va a capo. Le regressioni browser controllano i rettangoli degli elementi e delle righe di testo rispetto al viewport e agli antenati che tagliano il contenuto; il solo `scrollWidth` non rileva un overflow nascosto. La correzione non cambia schede, collegamenti, permessi o contratti della wiki 13.
 
+Il banner condiviso `EmailVerificationNotice` applica lo stesso contenimento agli indirizzi lunghi e dispone i pulsanti su più righe quando serve. La regressione della proposta pre-survey controlla testo e controlli prima e durante la correzione email su desktop/mobile. Contratti, copy, provider e componenti/collegamenti della wiki 13 restano invariati.
+
 ## Ricerca e profilo multitema
 
 `MultiGoalForm` salva tutte le selezioni in una sola richiesta idempotente; la revisione del percorso conserva la forma singola e riparte dalla sua origine. `AggregateMatching` condivide la pagina nei due versi, scarta pagine su cambio sessione e usa `GoalMatchChoices` per una proposta esplicita. `PersonalContext` è un form separato dopo l’esperienza e nelle impostazioni, con rilettura su risultato incerto e retry. `ProfileCompletionBanner` usa esclusivamente DTO proprietari. `MentorOfferHelp` gestisce la disclosure indipendentemente dalle selezioni. Il profilo pubblico usa la ricerca aggregata con selettore persona per evitare dipendenza dalla prima pagina. Contratti e regole restano nel backend.
