@@ -178,14 +178,9 @@ export function PublicFooter() {
               </Link>
           ))}
           </nav>
-          <section aria-labelledby="footer-contacts-heading" className={styles.footerContacts}>
-            <h2 className={styles.footerNavLabel} id="footer-contacts-heading">Contatti</h2>
-            <p className={styles.footerContactText}>Vuoi saperne di più su Socra, collaborare o proporci un’idea?</p>
-            <a className={styles.footerLink} href="mailto:info@socra.it">Scrivici a info@socra.it</a>
-          </section>
         </div>
         <div className={styles.footerMeta}>
-          <nav aria-label="Informazioni legali" className={styles.footerNav}>
+          <nav aria-label="Contatti e informazioni legali" className={`${styles.footerNav} ${styles.footerMetaNav}`}>
             <Link prefetch={true}
               aria-current={pathname === "/termini" ? "page" : undefined}
               className={styles.footerLink}
@@ -200,6 +195,7 @@ export function PublicFooter() {
             >
               Privacy
             </Link>
+            <span className={styles.footerContact}>Contatti: <a className={styles.footerLink} href="mailto:info@socra.it">info@socra.it</a></span>
           </nav>
           <p className={styles.copyright}>© {year} Socra. Community peer-to-peer.</p>
         </div>
