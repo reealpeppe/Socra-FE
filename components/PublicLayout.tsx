@@ -78,7 +78,7 @@ export function PublicNavbar() {
           aria-label="Socra, pagina iniziale"
           onClick={closeMobileMenu}
         >
-          <Brand variant="light" />
+          <Brand variant="dark" />
         </Link>
         <div className={styles.navLinks}>
           {navLinks.map(l => (
