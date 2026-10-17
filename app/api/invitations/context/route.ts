@@ -1,1 +1,1 @@
-export {storeInvitationContext as POST,readInvitationContext as GET} from '@/lib/invitation-server';
+export {storeInvitationContext as POST,readInvitationContext as GET,clearInvitationContext as DELETE} from '@/lib/invitation-server';

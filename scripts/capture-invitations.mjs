@@ -50,8 +50,12 @@ try{
     const inviter=await browser.newContext({viewport:size,baseURL}),recipient=await browser.newContext({viewport:size,baseURL});
     const sender=await inviter.newPage(),page=await recipient.newPage();
     const capture=async(target,stage)=>{
-      const file=`${viewport}-${stage}.png`,bytes=await target.screenshot({path:path.join(output,file)});
+      const file=`${viewport}-${stage}.png`,bytes=await target.screenshot({path:path.join(output,file),animations:'disabled'});
       manifest.artifacts.push({file,viewport,sha256:digest(bytes)});
+      if(['before-survey','ready'].includes(stage)){
+        const fullFile=`${viewport}-${stage}-full.png`,fullBytes=await target.screenshot({path:path.join(output,fullFile),fullPage:true,animations:'disabled'});
+        manifest.artifacts.push({file:fullFile,viewport,sha256:digest(fullBytes)});
+      }
       assert.equal(await target.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth),false);
     };
     await sender.goto('/login?next=/matching');await sender.getByLabel('Username o email',{exact:true}).fill(account.username);
@@ -60,6 +64,7 @@ try{
     assert.equal((await api(sender,'/auth/me')).id,account.id);
     await capture(sender,'empty');await sender.getByRole('button',{name:'Crea un invito',exact:true}).click();
     const dialog=sender.getByRole('dialog');
+    await expect(dialog).toBeVisible();await capture(sender,'dialog-open');
     await dialog.getByLabel('Email della persona da invitare').fill(account.recipient_email);
     await dialog.getByRole('checkbox',{name:'Leggere e comprendere un ETF',exact:true}).check();
     await dialog.getByRole('checkbox',{name:'Accetto di condividere la mia email dopo l’accettazione.'}).check();
@@ -67,7 +72,17 @@ try{
     await expect(dialog.getByRole('status')).toContainText('L’invio email non è disponibile');
     await capture(sender,'saved');
     const link=seed('invitation-link',account.username).url;
+    await sender.goto(link);await expect(sender.getByRole('heading',{name:`${account.username} ti invita su Socra`})).toBeVisible();
+    await sender.goto('/inviti?elenco=1');
+    await expect(sender.getByRole('heading',{name:'Il link di invito richiede attenzione',exact:true})).toBeVisible();
+    await expect(sender.getByRole('heading',{name:'Inviti inviati',exact:true})).toBeVisible();
+    await expect(sender.getByText(account.recipient_email,{exact:true})).toBeVisible();
+    await capture(sender,'context-recovery');await sender.getByRole('button',{name:'Ignora questo link',exact:true}).click();
+    await expect(sender.getByRole('heading',{name:'Il link di invito richiede attenzione',exact:true})).toHaveCount(0);
+    await expect(sender.getByRole('heading',{name:'Inviti inviati',exact:true})).toBeVisible();
     await page.goto(link);await expect(page.getByRole('heading',{name:`${account.username} ti invita su Socra`})).toBeVisible();
+    const title=await page.getByRole('heading',{name:`${account.username} ti invita su Socra`}).boundingBox(),navbar=await page.getByRole('navigation',{name:'Navigazione pubblica'}).boundingBox();
+    assert.ok(title.y>=navbar.y+navbar.height+16,'Invitation title is hidden under public navigation');
     assert.equal(new URL(page.url()).hash,'');await capture(page,'landing');
     await page.getByRole('link',{name:'Crea account e scopri la proposta',exact:true}).click();
     await page.getByLabel('Nome',{exact:true}).fill('Andrea');await page.getByLabel('Cognome',{exact:true}).fill('Demo');
@@ -91,6 +106,8 @@ try{
     await expect(verify.getByRole('status')).toContainText('Email verificata');await verify.close();
     await page.reload();await expect(page.getByRole('button',{name:'Accetta e inizia il percorso',exact:true})).toBeVisible();
     await page.getByRole('checkbox',{name:'Accetto di condividere la mia email dopo l’accettazione.'}).check();await capture(page,'ready');
+    await page.getByRole('button',{name:'Accetta e inizia il percorso',exact:true}).evaluate(button=>button.scrollIntoView({block:'center',behavior:'instant'}));
+    await capture(page,'ready-controls');
     await page.getByRole('button',{name:'Accetta e inizia il percorso',exact:true}).click();await expect(page).toHaveURL(/\/paths\//);
     const pathId=new URL(page.url()).pathname.split('/').at(-1);
     assert.equal((await api(sender,'/wallet/me')).balance,2);
@@ -102,7 +119,7 @@ try{
     await api(page,`/feedback/${pathId}/mentor`,{answers:{objective_outcomes:[{code:'etf_read',result:'yes'}],engagement:'active'}});
     assert.equal((await api(sender,'/wallet/me')).balance,5);assert.equal((await api(page,'/wallet/me')).balance,6);
     await page.goto('/wallet');await expect(page.getByText('Primo percorso da invito completato: 3 crediti bonus',{exact:false}).first()).toBeVisible();await capture(page,'wallet');
-    manifest.checks.push({viewport,real_login:true,real_invitation:true,proposal_before_survey:true,survey_return:proposalPath,email_verified:true,cost:0,mentor_reward:1,final_balances:[5,6],no_provider_calls:true});
+    manifest.checks.push({viewport,real_login:true,real_invitation:true,context_recovery:true,proposal_before_survey:true,survey_return:proposalPath,email_verified:true,cost:0,mentor_reward:1,final_balances:[5,6],no_provider_calls:true});
     // Keep each viewport's empty search independent of the prior fixture mentor.
     await page.evaluate(async()=>{const response=await fetch('/api/backend/profiles/me/mentor-status',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({is_coach:false})});if(!response.ok)throw new Error('Fixture mentor pause failed');});
     await inviter.close();await recipient.close();

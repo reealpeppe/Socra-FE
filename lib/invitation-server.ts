@@ -47,6 +47,10 @@ export async function readInvitationContext(request:NextRequest){
   if(!token||!tokenPattern.test(token))return privateResponse({detail:'Apri il link nella tua email di invito.'},404);
   return prepareContext(token);
 }
+export async function clearInvitationContext(request:NextRequest){
+  const rejected=guardMutation(request);if(rejected)return rejected;
+  const response=privateResponse({cleared:true});setContext(response,'',0);return response;
+}
 export async function claimInvitationContext(request:NextRequest){
   const rejected=guardMutation(request);if(rejected)return rejected;
   let input:Record<string,unknown>;

@@ -4,10 +4,10 @@ import {useEffect,useRef,useState} from 'react';
 import type {InvitationPreview} from '@/lib/types';
 import styles from './Invitation.module.css';
 
-export async function invitationContextRequest<T>(path:string,body?:object):Promise<T>{
+export async function invitationContextRequest<T>(path:string,body?:object,method?:'DELETE'):Promise<T>{
   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
   try{
-    const response=await fetch(path,{method:body?'POST':'GET',credentials:'include',cache:'no-store',headers:body?{'Content-Type':'application/json'}:undefined,body:body?JSON.stringify(body):undefined,signal:controller.signal});
+    const response=await fetch(path,{method:method??(body?'POST':'GET'),credentials:'include',cache:'no-store',headers:body?{'Content-Type':'application/json'}:undefined,body:body?JSON.stringify(body):undefined,signal:controller.signal});
     const data=await response.json();if(!response.ok)throw new Error(typeof data.detail==='string'?data.detail:'Invito non disponibile. Riprova.');return data;
   }finally{clearTimeout(timer);}
 }
@@ -23,7 +23,7 @@ export function InvitationLanding(){
       .catch(err=>{if(active)setError(err instanceof Error?err.message:'Invito non disponibile. Riprova.');});
     return()=>{active=false;};
   },[attempt]);
-  return <main id="main-content" className={`section ${styles.page}`}>
+  return <main id="main-content" tabIndex={-1} className={`${styles.page} ${styles.landing}`}>
     {!preview?<section className="card stack">{error?<><h1>Non riusciamo ad aprire l’invito</h1><p className={styles.error} role="alert">{error}</p><button className="button secondary" onClick={()=>setAttempt(value=>value+1)}>Riprova invito</button></>:<p role="status">Preparazione della tua proposta…</p>}</section>:<section className="card stack">
       <h1>{preview.inviter_username} ti invita su Socra</h1><p>La tua esperienza potrebbe aiutarlo a imparare qualcosa di nuovo. Ti va di dargli una mano?</p>
       <h2>{preview.topic}</h2><ul>{preview.objective_labels.map(label=><li key={label}>{label}</li>)}</ul><p className={styles.note}>{preview.discussion_mode_label}</p>

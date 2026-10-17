@@ -69,3 +69,24 @@ test('invitation returns accept only exact local routes',()=>{
   const path='/inviti/12345678-1234-1234-1234-123456789abc';assert.equal(safeInvitationReturn(path),path);
   for(const bad of ['//evil.example','/inviti?token=secret','/inviti/../settings','/inviti/123#token=a','/inviti\\evil','https://socra.it/inviti'])assert.equal(safeInvitationReturn(bad),null);
 });
+
+test('discarding context clears only its cookie without contacting the backend',async()=>{
+  const server=setup();
+  const response=await server.clearInvitationContext(new NextRequest('https://www.socra.it/api/invitations/context',{
+    method:'DELETE',headers:{Origin:'https://www.socra.it',Cookie:`socra_invitation=${token}; socra_session=private`},
+  }));
+  assert.equal(response.status,200);
+  assert.deepEqual(await response.json(),{cleared:true});
+  const cookie=response.headers.get('set-cookie');
+  assert.match(cookie,/socra_invitation=/);assert.match(cookie,/Max-Age=0/i);
+  assert.doesNotMatch(cookie,/socra_session/);
+  assert.equal(server.calls.length,0);
+});
+
+test('discarding invitation context rejects a foreign origin',async()=>{
+  const server=setup();
+  const response=await server.clearInvitationContext(new NextRequest('https://www.socra.it/api/invitations/context',{
+    method:'DELETE',headers:{Origin:'https://evil.example'},
+  }));
+  assert.equal(response.status,403);assert.equal(response.headers.get('set-cookie'),null);
+});

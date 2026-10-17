@@ -26,9 +26,31 @@ test('public invitation clears fragment and carries only safe continuation into 
   await recipient(page,baseURL!);
   await page.goto('/invito#token='+token);
   await expect(page.getByRole('heading',{name:'Giulia ti invita su Socra'})).toBeVisible();
+  const title=await page.getByRole('heading',{name:'Giulia ti invita su Socra'}).boundingBox();
+  const navbar=await page.getByRole('navigation',{name:'Navigazione pubblica'}).boundingBox();
+  expect(title!.y).toBeGreaterThanOrEqual(navbar!.y+navbar!.height+16);
   await expect.poll(()=>new URL(page.url()).hash).toBe('');
   await expect(page.getByRole('link',{name:'Crea account e scopri la proposta',exact:true})).toHaveAttribute('href','/register?next=/inviti');
   expect(await page.evaluate(()=>JSON.stringify({...localStorage,...sessionStorage}))).not.toContain(token);
+});
+
+for(const status of [404,409,503])test(`failed invitation context ${status} preserves own lists and can be ignored`,async({page,baseURL})=>{
+  await recipient(page,baseURL!);
+  let discarded=0;
+  await page.route('**/api/invitations/claim',route=>route.fulfill({status,json:{detail:'Questo link non è disponibile.'}}));
+  await page.route('**/api/invitations/context',route=>{
+    if(route.request().method()==='DELETE')discarded++;
+    return route.fulfill({json:{cleared:true}});
+  });
+  await page.goto('/inviti?elenco=1');
+  await expect(page.getByRole('heading',{name:'Proposte ricevute',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Inviti inviati',exact:true})).toBeVisible();
+  await expect(page.getByRole('link',{name:'Apri proposta',exact:true})).toHaveAttribute('href','/inviti/'+id);
+  await expect(page.getByText('Questo link non è disponibile.',{exact:true})).toBeVisible();
+  await page.getByRole('button',{name:'Ignora questo link',exact:true}).click();
+  await expect(page.getByText('Questo link non è disponibile.',{exact:true})).toHaveCount(0);
+  await expect(page.getByRole('heading',{name:'Proposte ricevute',exact:true})).toBeVisible();
+  expect(discarded).toBe(1);
 });
 
 test('registered recipient sees proposal before survey and can explicitly decline',async({page,baseURL})=>{
