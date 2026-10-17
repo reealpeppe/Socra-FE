@@ -1,5 +1,7 @@
 # Standard web Socra
 
+Dal 17/10 le pagine e i redirect del proxy usano `Cache-Control: private, no-store, no-transform`: gli intermediari devono preservare il markup per l'hydration React. Il riscontro live del footer ha mostrato Cloudflare Email Obfuscation riscrivere testo e `mailto:`, causando React418. La direttiva impedisce la trasformazione all'origine senza modificare CSP o configurazione Cloudflare; le API conservano `private, no-store` e gli asset statici esclusi dal proxy la cache esistente. Decisione canonica: Socra-BE `docs/decisions/ADR-ssr-no-transform-20261017.md`.
+
 Proprietario delle regole: backend `docs/wiki/12-security-baseline.md` sul ref corrispondente a questa release. Questo ingresso accompagna il repository frontend anche fuori dal workspace.
 
 Mutazioni cookie-based: `guardMutation` prima di rete/mutazioni; Origin esatto da `SOCRA_PUBLIC_ORIGINS`, nessuna fiducia in Host inoltrato. Production default socra.it/www.socra.it; ambienti di test aggiunti esplicitamente. JSON e streaming limitati tramite `readJsonBody` (azioni account 16 KiB, dominio 256 KiB); unica eccezione `PUT profiles/me/avatar` 3 MiB per il file UI massimo 2 MiB espanso in base64. Metodo/percorso diversi mantengono il limite normale. Logout e proxy senza body ammessi. Risposte/errori privati tramite `privateJson`. Auth restituisce solo user_id, bearer soltanto nel cookie.
