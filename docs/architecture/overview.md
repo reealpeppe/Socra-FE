@@ -1,5 +1,11 @@
 # Architettura frontend Socra
 
+## Inviti nella ricerca — slice locale 17/10/2026
+
+`InviteSomeone` rende disponibile «Invita qualcuno» nella testata della ricerca e «Crea un invito» nel box senza risultati, sia nella ricerca aggregata sia in quella per goal. `InvitationDialog` eredita il dialog nativo e i componenti di condivisione email della community perla/salvia: indirizzo, tema, attività esplicite, consenso e regole crediti. Nessuna nuova identità grafica o modifica al marchio/footer ufficiali.
+
+La mutazione usa il BFF autenticato esistente e chiavi idempotenti conservate per payload identico; un esito incerto viene verificato rileggendo gli inviti propri. Cambio sessione invalida form/risultati e impedisce scritture dell'account precedente. Il risultato distingue coda, canale spento e fallimento; gestione/reinvio nell'area inviti. Le regole restano nella wiki backend, [account/email](https://github.com/reealpeppe/Socra-BE/blob/feature/mentor-alerts-20261017/docs/wiki/09-account-email.md).
+
 ## Avvisi mentor — slice locale 17/10/2026
 
 [MentorAlerts](../../components/MentorAlerts.tsx) è condiviso tra vuoto della ricerca mentor (aggregata e legacy) e impostazioni; consensi autorevoli nel backend. Lettura indipendente, errore distinto da consenso falso, salvataggio seguito da stato server e rilettura degli esiti incerti. Marker sessione e generazione impediscono letture, scritture e risposte attribuite all'account precedente.

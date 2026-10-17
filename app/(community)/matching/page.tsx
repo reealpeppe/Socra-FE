@@ -14,6 +14,7 @@ import { AlignmentDialog } from "@/components/AlignmentDialog";
 import { GoalAlternatives } from "@/components/GoalAlternatives";
 import { useDiscoveryImpressions } from "@/lib/use-discovery-impressions";
 import { MentorAlerts } from "@/components/MentorAlerts";
+import { InviteSomeone } from "@/components/InviteSomeone";
 import { ClientApiError, clientGet, clientPost } from "@/lib/api";
 import type { Goal, GoalsMe, MatchCandidate, MatchRequestItem, UserMe } from "@/lib/types";
 
@@ -202,6 +203,7 @@ function MatchingContent() {
           </p>
         </div>
         <div className="cluster">
+          {me ? <InviteSomeone key={me.id} ownerId={me.id} goals={goals?.active_goals || goals?.goals.filter(goal => goal.is_active !== false) || []} /> : null}
           {me?.is_coach ? (
             <Link href="/matching/mentees" className="button dark">Cerca apprendisti</Link>
           ) : null}
@@ -287,6 +289,7 @@ function MatchingContent() {
           ) : filteredCandidates.length === 0 ? (
             <div className="stack">
               {me ? <MentorAlerts key={me.id} ownerId={me.id} /> : null}
+              {me ? <InviteSomeone key={`invite-${me.id}`} ownerId={me.id} goals={[activeGoal]} prominent /> : null}
               {requestedMentors.size === 0 ? !activeGoal.skill_model && <GoalAlternatives key={activeGoal.id} goalId={activeGoal.id} /> : <Link href={`/requests?tab=${pendingRequestTab}`}>Vedi la richiesta in attesa</Link>}
             </div>
           ) : (
