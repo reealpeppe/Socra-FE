@@ -80,6 +80,24 @@ test('registered recipient sees proposal before survey and can explicitly declin
   expect(state.declines).toBe(1);
 });
 
+test('unverified invitation keeps a long email and verification actions inside the notice',async({page,baseURL},testInfo)=>{
+  await recipient(page,baseURL!);
+  await page.route('**/api/backend/auth/me',route=>route.fulfill({json:{id:'u1',username:'test_user',email:'a'.repeat(64)+'@example.com',email_verified:false,email_verification_required:true,email_delivery_enabled:true}}));
+  await page.goto('/inviti/'+id);
+  const notice=page.getByRole('region',{name:'Verifica email',exact:true});
+  await expect(notice).toBeVisible();
+  const overflow=()=>notice.evaluate(element=>{
+    const bounds=element.getBoundingClientRect();
+    const range=document.createRange();range.selectNodeContents(element);
+    return [...range.getClientRects()].some(rect=>rect.left<bounds.left-1||rect.right>bounds.right+1||rect.right>innerWidth);
+  });
+  await expect.poll(overflow).toBe(false);
+  await page.getByRole('button',{name:'Correggi email',exact:true}).click();
+  await expect(page.getByLabel('Email corretta',{exact:true})).toHaveValue('a'.repeat(64)+'@example.com');
+  await expect.poll(overflow).toBe(false);
+  await page.screenshot({path:testInfo.outputPath('verification-long-email.png'),animations:'disabled'});
+});
+
 test('ready proposal requires email consent and recovers an uncertain accepted path',async({page,baseURL})=>{
   const state=await recipient(page,baseURL!,true);state.uncertain=true;
   await page.goto('/inviti/'+id);
