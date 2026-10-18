@@ -4,12 +4,13 @@ import {fixture,undisclosed} from './multi-goal-fixture';
 const id='12345678-1234-1234-1234-123456789abc';
 const token='s'.repeat(43);
 const preview={inviter_username:'Giulia',topic:'ETF',objective_labels:['Leggere la scheda di un ETF'],discussion_mode_label:'Guidami passo passo',status:'claimed',expires_at:'2026-10-24T10:00:00',mentee_cost:0,mentor_reward:1,bonus_new_users_only:true};
-async function recipient(page:Page,baseURL:string,ready=false){
-  await fixture(page,baseURL);
-  const state={accepts:0,declines:0,ready,expired:false,uncertain:false,path:null as string|null};
+async function recipient(page:Page,baseURL:string,ready=false,profileMissing=false){
+  await fixture(page,baseURL,{profileMissing});
+  const state={accepts:0,declines:0,ready,available:ready,availabilityWrites:0,expired:false,uncertain:false,path:null as string|null};
   const detail=()=>({...preview,id,role:'recipient',status:state.expired?'expired':state.path?'accepted':state.declines?'declined':'claimed',path_id:state.path,
     bonus_eligible:true,delivery_status:null,recipient_email:null,creation_key:null,
-    prerequisite_state:{email_verified:state.ready,onboarded:state.ready,skills_offered:state.ready,mentor_available:state.ready}});
+    prerequisite_state:{email_verified:true,onboarded:state.ready,skills_offered:state.ready,mentor_available:state.available}});
+  await page.route('**/api/backend/profiles/me/mentor-status',route=>{state.available=true;state.availabilityWrites++;return route.fulfill({json:{is_coach:true}});});
   await page.route('**/api/invitations/context',route=>route.fulfill({json:preview}));
   await page.route('**/api/invitations/claim',route=>route.fulfill({json:{invitation:detail()}}));
   await page.route('**/api/backend/invitations**',route=>{
@@ -21,6 +22,43 @@ async function recipient(page:Page,baseURL:string,ready=false){
     return route.fulfill({json:detail()});
   });return state;
 }
+
+test('invitation preparation has one next action without the application navigation',async({page,baseURL})=>{
+  await recipient(page,baseURL!);
+  await page.goto('/inviti/'+id);
+  await expect(page.getByRole('link',{name:'Prepara il tuo profilo',exact:true})).toHaveAttribute('href','/onboarding?next=/inviti/'+id);
+  await expect(page.getByRole('navigation',{name:'Navigazione mobile'})).toHaveCount(0);
+  await expect(page.getByRole('link',{name:'Conferma la tua email',exact:true})).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'Ho completato i passaggi: aggiorna'})).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'Rifiuta invito',exact:true})).toBeVisible();
+  await expect(page.locator('main .button.primary')).toHaveCount(1);
+});
+
+test('paused mentor accepts with explicit availability and contact consent in one action',async({page,baseURL})=>{
+  const state=await recipient(page,baseURL!,true);state.available=false;
+  await page.goto('/inviti/'+id);
+  const submit=page.getByRole('button',{name:'Accetta e inizia il percorso',exact:true});
+  await expect(submit).toBeDisabled();
+  await page.getByRole('checkbox',{name:'Accetto di condividere la mia email dopo l’accettazione.'}).check();
+  await expect(submit).toBeDisabled();
+  await page.getByRole('checkbox',{name:'Rendi disponibile il mio profilo come mentor',exact:true}).check();
+  await submit.click();await expect(page).toHaveURL(/\/paths\/new-invitation-path/);
+  expect(state.availabilityWrites).toBe(1);expect(state.accepts).toBe(1);
+});
+
+test('invited survey saves explicit offers and returns without the optional personal context',async({page,baseURL})=>{
+  const state=await recipient(page,baseURL!,false,true);
+  let saved:Record<string,unknown>|null=null;
+  await page.route('**/api/backend/skills/me',async route=>{if(route.request().method()==='PUT'){saved=route.request().postDataJSON();state.ready=true;state.available=true;}await route.fallback();});
+  await page.goto('/onboarding?next=/inviti/'+id);
+  await page.getByRole('checkbox',{name:'So: Leggere la scheda di un ETF',exact:true}).check();
+  await page.getByRole('checkbox',{name:'Posso aiutare: Leggere la scheda di un ETF',exact:true}).check();
+  await page.getByRole('button',{name:'Salva e torna all’invito',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'La proposta di Giulia',exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Aggiungi il tuo contesto personale'})).toHaveCount(0);
+  expect(saved).toMatchObject({known_skills:['etf_read'],mentor_skills:['etf_read']});
+  expect(state.accepts).toBe(0);
+});
 
 test('public invitation clears fragment and carries only safe continuation into registration',async({page,baseURL})=>{
   await recipient(page,baseURL!);
@@ -73,7 +111,7 @@ test('registered recipient sees proposal before survey and can explicitly declin
   await page.goto('/inviti');
   await expect(page).toHaveURL(new RegExp('/inviti/'+id));
   await expect(page.getByRole('heading',{name:'La proposta di Giulia'})).toBeVisible();
-  await expect(page.getByRole('link',{name:'Continua con la survey',exact:true})).toHaveAttribute('href',`/onboarding?next=/inviti/${id}`);
+  await expect(page.getByRole('link',{name:'Prepara il tuo profilo',exact:true})).toHaveAttribute('href',`/onboarding?next=/inviti/${id}`);
   expect(state.accepts).toBe(0);
   await page.getByRole('button',{name:'Rifiuta invito',exact:true}).click();
   await expect(page.getByRole('status').filter({hasText:'Hai rifiutato questo invito'})).toBeVisible();
@@ -83,7 +121,7 @@ test('registered recipient sees proposal before survey and can explicitly declin
 test('unverified invitation keeps a long email and verification actions inside the notice',async({page,baseURL},testInfo)=>{
   await recipient(page,baseURL!);
   await page.route('**/api/backend/auth/me',route=>route.fulfill({json:{id:'u1',username:'test_user',email:'a'.repeat(64)+'@example.com',email_verified:false,email_verification_required:true,email_delivery_enabled:true}}));
-  await page.goto('/inviti/'+id);
+  await page.goto('/settings');
   const notice=page.getByRole('region',{name:'Verifica email',exact:true});
   await expect(notice).toBeVisible();
   const overflow=()=>notice.evaluate(element=>{
@@ -134,8 +172,8 @@ test('survey context continues to the associated proposal instead of a learner g
   await recipient(page,baseURL!);
   await page.route('**/api/backend/skills/me',route=>route.fulfill({json:{version:1,known_skills:['etf_read'],mentor_skills:['etf_read'],section_d:undisclosed,mentor_available:true}}));
   await page.goto(`/onboarding?next=/inviti/${id}`);
-  await expect(page.getByRole('heading',{name:'Aggiungi il tuo contesto personale'})).toBeVisible();
-  await page.getByRole('button',{name:'Continua',exact:true}).click();
+  await expect(page.getByRole('heading',{name:'Il tuo profilo è pronto'})).toBeVisible();
+  await page.getByRole('button',{name:'Torna all’invito',exact:true}).click();
   await expect(page.getByRole('heading',{name:'La proposta di Giulia'})).toBeVisible();
 });
 

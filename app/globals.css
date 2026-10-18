@@ -7,7 +7,7 @@
   --navy: #12233d;
   --blue: #2563eb;
   --cyan: #0ea5e9;
-  --green: #15803d;
+  --green: var(--brand-blue);
   --amber: #b45309;
   --danger: #b42318;
   --shadow: 0 18px 50px rgba(18, 35, 61, 0.12);
@@ -473,8 +473,8 @@ textarea.input {
 }
 
 .pill.green {
-  background: #dcfce7;
-  border-color: #bbf7d0;
+  background: var(--brand-blue-soft);
+  border-color: var(--brand-blue-line);
   color: var(--green);
 }
 
@@ -515,8 +515,8 @@ textarea.input {
 }
 
 .success {
-  background: #dcfce7;
-  border: 1px solid #86efac;
+  background: var(--brand-blue-soft);
+  border: 1px solid var(--brand-blue-line);
   border-radius: 12px;
   color: var(--green);
   padding: 10px 12px;
@@ -1479,7 +1479,7 @@ textarea.input {
 
 .ops-meta-row {
   align-items: center;
-  background: #fbfcfb;
+  background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 12px;
   display: flex;
@@ -1514,7 +1514,7 @@ textarea.input {
 .ops-list-row,
 .ops-ledger-row {
   align-items: center;
-  background: #fbfcfb;
+  background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 14px;
   display: flex;
@@ -1566,8 +1566,8 @@ textarea.input {
   --gold-500: #f5b62f;
   --gold-400: #ffd36a;
   --gold-300: #ffe5a0;
-  --mint-600: #129b68;
-  --mint-100: #e7f8ef;
+  --mint-600: var(--brand-blue);
+  --mint-100: var(--brand-blue-soft);
   --violet-600: #6857d6;
   --violet-100: #f0edff;
   --blue-600: #2f62d6;
@@ -2039,8 +2039,8 @@ textarea:focus-visible {
 
 .pill.green {
   background: var(--mint-100);
-  border-color: #b9ecd3;
-  color: #08754d;
+  border-color: var(--brand-blue-line);
+  color: var(--brand-blue);
 }
 
 .pill.amber {
@@ -2064,7 +2064,7 @@ textarea:focus-visible {
 
 .icon-disc.green {
   background: var(--mint-100);
-  border-color: #c1efd8;
+  border-color: var(--brand-blue-line);
   color: var(--mint-600);
 }
 
@@ -2146,7 +2146,7 @@ textarea:focus-visible {
 
 .success {
   background: var(--mint-100);
-  border-color: #b9ecd3;
+  border-color: var(--brand-blue-line);
 }
 
 .error {
@@ -2528,7 +2528,7 @@ textarea:focus-visible {
 .level-badge.l0 { background: #e5e9f0; color: #647084; }
 .level-badge.l1 { background: #eaf1ff; color: #2f62d6; }
 .level-badge.l2 { background: #f0edff; color: #6857d6; }
-.level-badge.l3 { background: #e7f8ef; color: #129b68; }
+.level-badge.l3 { background: var(--brand-blue-soft); color: var(--brand-blue); }
 .level-badge.l4 { background: #fff4dd; color: #b07d1a; }
 .level-badge.l5 { background: #f5b62f; color: #020817; }
 
@@ -2738,10 +2738,10 @@ textarea:focus-visible {
 /* Shared UI foundation, July 2026.
    This layer intentionally extends the existing Socra visual language. */
 :root {
-  --mint-600: #08754d;
+  --mint-600: var(--brand-blue);
   --focus-ring: #2563eb;
-  --success-text: #08754d;
-  --success-surface: #e7f8ef;
+  --success-text: var(--brand-blue);
+  --success-surface: var(--brand-blue-soft);
   --warning-text: #7a4b00;
   --warning-surface: #fff1cd;
   --danger-text: #b42318;
@@ -3122,7 +3122,7 @@ summary:focus-visible,
 
 .ui-alert-success {
   background: var(--success-surface);
-  border-color: #b9dec9;
+  border-color: var(--brand-blue-line);
   color: var(--success-text);
 }
 
@@ -3289,7 +3289,7 @@ summary:focus-visible,
 .pill.green,
 .ui-status-badge.status-success {
   background: var(--success-surface);
-  border-color: #b9dec9;
+  border-color: var(--brand-blue-line);
   color: var(--success-text);
 }
 
@@ -3451,42 +3451,55 @@ summary:focus-visible,
 .route-skeleton span:first-child { height: 30px; width: 55%; }
 .route-skeleton span:last-child { width: 80%; }
 
-/* Community palette approved in the 13 October UI mockups. Public pages keep their existing theme. */
+/* Community uses the same blue and gold identity as the public home. */
 .app-shell {
-  --ink: #25322f;
-  --muted: #59666c;
-  --line: #d7dfe2;
-  --paper: #eef1f3;
+  --ink: #20272e;
+  --muted: #59666f;
+  --line: #d7dfe5;
+  --control-line: #788994;
+  --paper: #f3f6f8;
   --card: #fff;
-  --navy-950: #25322f;
-  --navy-900: #2d3f36;
-  --socra-sage: #325d4b;
-  --socra-sage-soft: #edf4ef;
-  --socra-sidebar: #e5ede8;
-  --socra-sidebar-selected: #d0e0d5;
-  --focus-ring: #325d4b;
+  --navy-950: var(--brand-blue);
+  --navy-900: var(--brand-blue-hover);
+  --blue: var(--brand-blue);
+  --blue-600: var(--brand-blue);
+  --blue-100: var(--brand-blue-soft);
+  --cyan: var(--brand-blue);
+  --info-text: var(--brand-blue);
+  --info-surface: var(--brand-blue-soft);
+  --socra-sidebar: #f6f8fa;
+  --socra-sidebar-selected: var(--brand-blue);
+  --focus-ring: var(--brand-blue);
   background: var(--paper);
 }
-.app-shell .sidebar { --focus-ring: var(--socra-sage); background: var(--socra-sidebar); color: var(--ink); border-right: 1px solid #d1dcd5; }
-.app-shell .sidebar-intro, .app-shell .nav-group > p { color: #586c61; }
+.app-shell .sidebar { background: var(--socra-sidebar); color: var(--ink); border-right: 1px solid var(--line); }
+.app-shell .sidebar-intro, .app-shell .nav-group > p { color: var(--muted); }
 .app-shell .nav-group > p { font-size: .75rem; letter-spacing: .06em; font-weight: 600; }
-.app-shell .nav-link { color: #35483e; font-weight: 500; }
-.app-shell .nav-link:hover { background: #dbe7df; color: #254e3b; }
-.app-shell .nav-link.active { background: var(--socra-sidebar-selected); color: #254e3b; }
-.app-shell .nav-link.active svg { color: #254e3b; }
-.app-shell .sidebar-dot { background: var(--socra-sage); }
-.app-shell .sidebar-level-card { border-top-color: #cbd8cf; }
+.app-shell .nav-link { color: var(--brand-blue); font-weight: 500; }
+.app-shell .nav-link:hover { background: var(--brand-blue-soft); color: var(--brand-blue); }
+.app-shell .nav-link.active { background: var(--socra-sidebar-selected); color: white; }
+.app-shell .nav-link.active svg { color: white; }
+.app-shell .sidebar-dot { background: var(--brand-gold); }
+.app-shell .sidebar-level-card { border-top-color: var(--line); }
 .app-shell .sidebar-level-card strong { color: var(--ink); }
 .app-shell .sidebar-level-card small { color: var(--muted); }
-.app-shell .sidebar-level-card a, .app-shell .sidebar-session-state > a { color: var(--socra-sage); }
-.app-shell .topbar { background: #f6f8f9; backdrop-filter: none; }
-.app-shell .topbar-shortcut { background: var(--socra-sage-soft); border-color: #cbdcd0; color: var(--socra-sage); }
-.app-shell .topbar-shortcut:hover { background: #dce9e0; }
-.app-shell .button.primary, .app-shell .button.dark { background: var(--socra-sage); color: white; }
-.app-shell .button.secondary { background: transparent; color: var(--ink); }
-.app-shell .mobile-nav { --focus-ring: var(--socra-sage); background: var(--socra-sidebar); border-top-color: #cbd8cf; }
-.app-shell .mobile-nav a { color: #435b4d; }
-.app-shell .mobile-nav a.active { color: #254e3b; background: var(--socra-sidebar-selected); }
+.app-shell .sidebar-level-card a, .app-shell .sidebar-session-state > a { color: var(--brand-blue); }
+.app-shell .topbar { background: white; backdrop-filter: none; }
+.app-shell .topbar-shortcut { background: var(--brand-blue-soft); border-color: var(--brand-blue-line); color: var(--brand-blue); }
+.app-shell .topbar-shortcut:hover { background: #dce6ed; }
+.app-shell .button.primary, .app-shell .button.dark { background: var(--brand-gold); border-color: var(--brand-gold-border); color: var(--ink); }
+.app-shell .button.primary:hover, .app-shell .button.dark:hover { background: var(--gold-400); }
+.app-shell .button.secondary { background: transparent; border-color: var(--control-line); color: var(--brand-blue); }
+.app-shell .button.secondary:hover { background: var(--brand-blue-soft); }
+.app-shell .mobile-nav { background: var(--socra-sidebar); border-top-color: var(--line); }
+.app-shell .mobile-nav a { color: var(--brand-blue); }
+.app-shell .mobile-nav a.active { color: white; background: var(--socra-sidebar-selected); }
+.app-shell .avatar, .app-shell .account-avatar { background: var(--brand-blue-soft); color: var(--brand-blue); }
+.app-shell input[type="checkbox"], .app-shell input[type="radio"] { accent-color: var(--brand-blue); }
+.app-shell .input:focus { border-color: var(--brand-blue); box-shadow: none; }
+.app-shell .ui-spinner { border-top-color: var(--brand-blue); }
+.app-shell .icon-disc { background: var(--brand-blue-soft); color: var(--brand-blue); }
+.app-shell .icon-disc.green { border-color: var(--brand-blue-line); }
 
 @media (prefers-reduced-motion: reduce) {
   html {

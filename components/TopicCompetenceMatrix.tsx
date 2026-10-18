@@ -382,14 +382,14 @@ export function TopicCompetenceStyles() {
       .topic-question { color: var(--navy-950); font-size: 1rem; font-weight: 650; line-height: 1.45; margin: 0 0 5px; }
       .topic-intro { font-size: 0.84rem; line-height: 1.55; margin: 0; }
       .topic-legend { display: grid; gap: 8px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
-      .topic-legend > div { background: #f7faf8; border: 1px solid var(--line); border-radius: 12px; display: grid; gap: 4px; padding: 10px; }
+      .topic-legend > div { background: var(--paper); border: 1px solid var(--line); border-radius: 12px; display: grid; gap: 4px; padding: 10px; }
       .topic-legend strong { color: var(--navy-950); font-size: 0.76rem; }
       .topic-legend span { color: var(--muted); font-size: 0.75rem; line-height: 1.45; }
       .topic-matrix-wrap,
       .topic-review-wrap { border: 1px solid var(--line); border-radius: 14px; max-width: 100%; overflow-x: auto; }
       .topic-matrix,
       .topic-review-table { border-collapse: collapse; table-layout: fixed; width: 100%; }
-      .topic-matrix thead { background: #f7f8f7; }
+      .topic-matrix thead { background: var(--paper); }
       .topic-matrix th,
       .topic-matrix td { border-bottom: 1px solid var(--line); padding: 10px 7px; text-align: center; vertical-align: middle; }
       .topic-matrix tr:last-child th,
@@ -399,30 +399,30 @@ export function TopicCompetenceStyles() {
       .topic-matrix tbody th { color: var(--navy-950); font-size: 0.76rem; font-weight: 650; line-height: 1.25; text-align: left; }
       .topic-matrix tbody th small { color: var(--muted); display: block; font-size: 0.75rem; font-weight: 500; line-height: 1.4; margin-top: 4px; }
       .topic-radio { align-items: center; border: 1px solid transparent; border-radius: 10px; cursor: pointer; display: flex; justify-content: center; min-height: 44px; padding: 6px; transition: background-color 150ms ease, border-color 150ms ease, transform 150ms ease; }
-      .topic-radio:hover { background: #f7f8f7; border-color: var(--line); }
-      .topic-radio.selected { background: var(--mint-100); border-color: var(--mint-600); }
-      .topic-radio:focus-within { outline: 3px solid rgba(37, 156, 105, 0.25); outline-offset: 2px; }
-      .topic-radio input { accent-color: var(--mint-600); cursor: pointer; height: 20px; margin: 0; width: 20px; }
+      .topic-radio:hover { background: var(--paper); border-color: var(--line); }
+      .topic-radio.selected { background: var(--brand-blue-soft); border-color: var(--brand-blue); }
+      .topic-radio:focus-within { outline: 3px solid var(--brand-blue); outline-offset: 2px; }
+      .topic-radio input { accent-color: var(--brand-blue); cursor: pointer; height: 20px; margin: 0; width: 20px; }
       .topic-mobile-option { display: none; }
-      .topic-matrix-row.disabled { background: #f5f6f5; }
-      .topic-matrix-row.disabled th { color: #8a918d; }
-      .topic-disabled-cell { color: #747c77; font-size: 0.72rem; font-weight: 600; text-align: left !important; }
+      .topic-matrix-row.disabled { background: var(--paper); }
+      .topic-matrix-row.disabled th { color: var(--muted); }
+      .topic-disabled-cell { color: var(--muted); font-size: 0.72rem; font-weight: 600; text-align: left !important; }
       .topic-completion { color: var(--muted); font-size: 0.75rem; font-weight: 600; margin: -8px 0 0; text-align: right; }
-      .topic-inline-notice { background: #f7f8f7; border-left: 3px solid var(--gold-500); border-radius: 8px; color: var(--muted); font-size: 0.8rem; line-height: 1.5; margin: 0; padding: 10px 12px; }
+      .topic-inline-notice { background: var(--paper); border-left: 3px solid var(--gold-500); border-radius: 8px; color: var(--muted); font-size: 0.8rem; line-height: 1.5; margin: 0; padding: 10px 12px; }
       .topic-safety-scenario { background: #fffaf0; border: 1px solid #efd59b; border-radius: 14px; display: grid; gap: 10px; margin: 0; padding: 14px; }
       .topic-safety-scenario legend { color: var(--navy-950); font-size: 0.78rem; font-weight: 650; padding-inline: 5px; }
       .topic-safety-scenario > p { color: var(--navy-950); font-size: 0.82rem; font-weight: 600; line-height: 1.45; margin: 0; }
       .topic-safety-options { display: grid; gap: 8px; }
       .topic-safety-options label { align-items: flex-start; background: white; border: 1px solid #eadfc7; border-radius: 10px; cursor: pointer; display: flex; font-size: 0.76rem; gap: 9px; line-height: 1.4; min-height: 44px; padding: 9px 10px; }
-      .topic-safety-options label:focus-within { outline: 3px solid rgba(37, 156, 105, 0.25); outline-offset: 2px; }
-      .topic-safety-options input { accent-color: var(--mint-600); flex: 0 0 auto; height: 18px; margin: 1px 0 0; width: 18px; }
+      .topic-safety-options label:focus-within { outline: 3px solid var(--brand-blue); outline-offset: 2px; }
+      .topic-safety-options input { accent-color: var(--brand-blue); flex: 0 0 auto; height: 18px; margin: 1px 0 0; width: 18px; }
       .topic-safety-feedback { background: #fff0e7; border-radius: 8px; color: #8a431f !important; font-size: 0.74rem !important; font-weight: 650 !important; padding: 8px 10px; }
       .topic-review { border: 1px solid var(--line); border-radius: var(--radius-sm); }
       .topic-review-table th,
       .topic-review-table td { border-bottom: 1px solid var(--line); font-size: 0.72rem; padding: 9px; text-align: left; }
       .topic-review-table tr:last-child th,
       .topic-review-table tr:last-child td { border-bottom: 0; }
-      .topic-review-table thead { background: #f7f8f7; color: var(--muted); }
+      .topic-review-table thead { background: var(--paper); color: var(--muted); }
       .topic-review-table tbody th { color: var(--navy-950); }
       .review-edit-actions { display: flex; flex-wrap: wrap; gap: 8px; }
       .review-edit-actions .button { font-size: 0.72rem; min-height: 38px; padding: 7px 10px; }
@@ -437,7 +437,7 @@ export function TopicCompetenceStyles() {
         .topic-matrix thead { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
         .topic-matrix tbody { display: grid; gap: 12px; }
         .topic-matrix tbody tr { background: white; border: 1px solid var(--line); border-radius: 14px; display: grid; gap: 8px; grid-template-columns: repeat(2, minmax(0, 1fr)); overflow: hidden; padding: 13px; }
-        .topic-matrix tbody tr.disabled { background: #f5f6f5; }
+        .topic-matrix tbody tr.disabled { background: var(--paper); }
         .topic-matrix tbody th { border: 0; font-size: 0.88rem; grid-column: 1 / -1; padding: 0 0 4px; }
         .topic-matrix tbody td { border: 0; padding: 0; }
         .topic-radio { border-color: var(--line); gap: 8px; justify-content: flex-start; min-height: 48px; padding: 9px 10px; }

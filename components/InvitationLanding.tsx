@@ -28,7 +28,7 @@ export function InvitationLanding(){
       <h1>{preview.inviter_username} ti invita su Socra</h1><p>La tua esperienza potrebbe aiutarlo a imparare qualcosa di nuovo. Ti va di dargli una mano?</p>
       <h2>{preview.topic}</h2><ul>{preview.objective_labels.map(label=><li key={label}>{label}</li>)}</ul><p className={styles.note}>{preview.discussion_mode_label}</p>
       {preview.status==='expired'?<p role="status">Questo invito è scaduto. Chiedi alla persona che ti ha invitato di inviarti un nuovo link.</p>:preview.status==='declined'?<p role="status">Questo invito è stato rifiutato.</p>:<>
-        <p>Leggi la proposta e scegli se iniziare un percorso insieme. Prima di aprirlo, confermerai l’email e compilerai la survey sulle tue esperienze.</p>
+        <p>Crea il tuo account con l’indirizzo che ha ricevuto questa email: il link lo conferma già. Poi indica la tua esperienza e scegli se iniziare il percorso.</p>
         <p className={styles.note}>Se non eri ancora su Socra quando è partito l’invito, al completamento del primo percorso riceverete 3 coin bonus ciascuno. Come mentor riceverai anche il normale credito per il percorso.</p>
         <div className={styles.controls}><Link className="button primary" href="/register?next=/inviti">Crea account e scopri la proposta</Link><Link className="button secondary" href="/login?next=/inviti">Ho già un account</Link></div>
       </>}

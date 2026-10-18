@@ -1,5 +1,12 @@
-/* Grafite e miele. Semantic foundations and shared interaction states. */
+/* Socra blue and gold. Semantic foundations and shared interaction states. */
 :root {
+  --brand-blue: #20313e;
+  --brand-blue-hover: #344957;
+  --brand-blue-soft: #edf2f6;
+  --brand-blue-line: #cbd7df;
+  --brand-gold: #f3bb40;
+  --brand-gold-border: #a7791f;
+  --focus-ring: var(--brand-blue);
   --ink: #20272e;
   --muted: #62676e;
   --line: #e4e3df;
@@ -11,7 +18,7 @@
   --navy-900: #293139;
   --navy-850: #323a42;
   --navy-800: #3b444c;
-  --gold-500: #f3bb40;
+  --gold-500: var(--brand-gold);
   --gold-400: #e7ab2b;
   --gold-300: #fff0ca;
   --honey-soft: #fff5dc;
@@ -20,18 +27,18 @@
   --blue-600: #344653;
   --blue-100: #f0f2f3;
   --cyan: #344653;
-  --mint-600: #32654c;
-  --mint-100: #edf5ef;
+  --mint-600: var(--brand-blue);
+  --mint-100: var(--brand-blue-soft);
   --violet-600: #55545c;
   --violet-100: #f1f0f3;
   --orange-100: #fff5dc;
-  --green: #32654c;
+  --green: var(--brand-blue);
   --amber: #795611;
   --danger: #a33028;
   --info-surface: #f0f3f5;
   --info-text: #344653;
-  --success-surface: #edf5ef;
-  --success-text: #32654c;
+  --success-surface: var(--brand-blue-soft);
+  --success-text: var(--brand-blue);
   --warning-surface: #fff5dc;
   --warning-text: #795611;
   --danger-surface: #fdf0ee;

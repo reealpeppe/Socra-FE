@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import {useRouter} from 'next/navigation';
 import {useEffect,useRef,useState} from 'react';
-import {clientGet,clientPost} from '@/lib/api';
+import {clientGet,clientPost,refreshClientSession} from '@/lib/api';
 import type {InvitationDetail} from '@/lib/types';
 import {invitationSessionMarker,invitationStateLabel} from '@/lib/invitations';
 import {invitationContextRequest} from './InvitationLanding';
@@ -23,7 +23,7 @@ export function ReceivedInvitations(){
         catch(err){contextWarning=err instanceof Error?err.message:'Non riusciamo ad aprire questo link. Puoi comunque leggere i tuoi inviti.';}
         if(!owns(version))return;
         setContextError(contextWarning);
-        if(context.invitation){router.replace('/inviti/'+context.invitation.id);return;}
+        if(context.invitation){refreshClientSession();router.replace('/inviti/'+context.invitation.id);return;}
         const [incoming,outgoing]=await Promise.all([clientGet<InvitationDetail[]>('/invitations/received'),clientGet<InvitationDetail[]>('/invitations/sent')]);
         if(!owns(version))return;
         const active=incoming.filter(item=>item.status==='claimed');

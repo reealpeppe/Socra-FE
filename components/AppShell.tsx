@@ -29,6 +29,8 @@ import { parseApiDate } from "@/lib/date";
 import type { MatchRequestItem, NotificationItem, UserMe } from "@/lib/types";
 import proposalStyles from "./ProposalBanner.module.css";
 import { EmailVerificationNotice } from "@/components/EmailVerificationNotice";
+import { InvitationFlowShell } from "@/components/InvitationFlowShell";
+import { safeInvitationReturn } from "@/lib/invitations";
 
 type NavItem = {
   id: string;
@@ -113,6 +115,11 @@ type AppShellProps = {
 
 function SearchAwareAppShell({ children, primaryAction }: AppShellProps) {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
+  const next = safeInvitationReturn(searchParams.get("next"));
+  const focused = (pathname === "/inviti" && searchParams.get("elenco") !== "1") || /^\/inviti\/[a-f0-9-]+$/i.test(pathname)
+    || (["/onboarding", "/competenze"].includes(pathname) && next);
+  if (focused) return <InvitationFlowShell returnTo={next || pathname}>{children}</InvitationFlowShell>;
   return (
     <AppShellContent currentTab={searchParams.get("tab")} primaryAction={primaryAction}>
       {children}

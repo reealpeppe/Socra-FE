@@ -12,6 +12,7 @@ import { clientGet, clientPost, clientPut } from "@/lib/api";
 import { emptySkillAnswers, restoreSkillAnswers, type SkillAnswers } from "@/lib/skills";
 import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes-guard";
 import { safeInvitationReturn } from "@/lib/invitations";
+import { InvitationSteps } from "./InvitationFlowShell";
 import type { InvitationDetail } from "@/lib/types";
 import type { PublicProfile, SkillCatalog, SkillGroup, SkillProfile } from "@/lib/types";
 import styles from "./SkillLearning.module.css";
@@ -33,6 +34,8 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
   const [loaded, setLoaded] = useState(false);
   const [existing, setExisting] = useState(false);
   const [contextStep, setContextStep] = useState(false);
+  const [invitationReturn,setInvitationReturn] = useState<string|null>(null);
+  const [invitation,setInvitation] = useState<InvitationDetail|null>(null);
   const [savedProfile, setSavedProfile] = useState<SkillProfile | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,12 +59,16 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
     ownerRef.current = owner;
     saveChain.current = Promise.resolve();
     finalizing.current = false;
+    const next = safeInvitationReturn(new URLSearchParams(window.location.search).get("next"));
+    const proposal = next && next !== "/inviti" ? clientGet<InvitationDetail>(`/invitations/${next.split("/")[2]}`).catch(()=>null) : Promise.resolve(null);
     Promise.all([
       clientGet<{ user_id: string }>("/surveys/onboarding/me"),
       clientGet<SkillProfile | null>("/skills/me"),
       reassessment ? Promise.resolve(null) : clientGet<Draft | null>("/surveys/onboarding/me/draft").catch(() => null),
-    ]).then(([user, profile, draft]) => {
+      proposal,
+    ]).then(([user, profile, draft, proposal]) => {
       if (!ownsSession(owner)) return;
+      setInvitationReturn(next);setInvitation(proposal?.role==='recipient'?proposal:null);
       draftKey.current = `socra_skills_draft:${user.user_id}:${reassessment ? "edit" : "onboarding"}`;
       userId.current = user.user_id;
       setContextOwner(user.user_id);
@@ -153,6 +160,11 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
       try { sessionStorage.removeItem(draftKey.current); } catch { /* Saved on the server. */ }
       setInitial(JSON.stringify(answers));
       setSavedProfile(profile);
+      if (safeInvitationReturn(new URLSearchParams(window.location.search).get("next"))) {
+        setContextStep(true);
+        await continueAfterContext();
+        return;
+      }
       setContextStep(true);
       if (reassessment) {
         try { sessionStorage.setItem(`socra_experience_saved:${userId.current}`, "1"); } catch { /* The saved profile remains available. */ }
@@ -172,30 +184,38 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
           : [await clientGet<InvitationDetail>(`/invitations/${next.split("/")[2]}`)];
         if (!ownsSession(owner)) return;
         if (rows.some(row => row.role === "recipient")) { router.push(next); return; }
+        setError("Il profilo è salvato. Questo invito non è associato al tuo account: riapri il link ricevuto via email.");return;
       } catch { if (ownsSession(owner)) setError("Le risposte sono salvate. Non riusciamo a riprendere l’invito: premi di nuovo Continua."); return; }
     }
     router.push(reassessment ? "/dashboard" : "/goal");
   }
+  const invitationTopics=invitation?catalog.topics.filter(topic=>topic.label===invitation.topic||topic.skills.some(skill=>invitation.objective_labels.includes(skill.label))):[];
+  const otherTopics=invitation?catalog.topics.filter(topic=>!invitationTopics.includes(topic)):[];
+  function topicFields(topic:SkillCatalog['topics'][number],index:number){
+    return <details className={styles.topic} key={topic.code} open={index===0||answers.known_skills.some(code=>topic.skills.some(skill=>skill.code===code))}>
+      <summary>{topic.label}<small>{topic.skills.filter(skill=>answers.known_skills.includes(skill.code)).length} conosciute · {topic.skills.filter(skill=>answers.mentor_skills.includes(skill.code)).length} offerte</small></summary>
+      {topic.code==='etf_funds'?<EtfExplanation className={styles.offerHelp}/>:null}
+      {topic.skills.map(skill=><div className={styles.skill} key={skill.code}>
+        <label className={styles.check}><input type="checkbox" aria-label={`So: ${skill.label}`} checked={answers.known_skills.includes(skill.code)} disabled={busy} onChange={event=>toggleKnown(skill.code,event.target.checked)}/><span>{skill.label}</span></label>
+        <label className={styles.check}><input type="checkbox" aria-label={`Posso aiutare: ${skill.label}`} checked={answers.mentor_skills.includes(skill.code)} disabled={busy||!answers.known_skills.includes(skill.code)} onChange={event=>update({...answers,mentor_skills:event.target.checked?[...answers.mentor_skills,skill.code]:answers.mentor_skills.filter(code=>code!==skill.code)})}/><span>Posso aiutare</span></label>
+      </div>)}
+    </details>;
+  }
   return <AppShell>{confirmationDialog}<div className={styles.page}>
+    {loaded&&invitationReturn?<InvitationSteps current={2}/>:null}
     {!loaded ? <div className="card" role={error ? "alert" : "status"}>{error || "Caricamento delle tue risposte…"}{error ? <button className="button secondary" onClick={() => { setError(null); setAttempt(value => value + 1); }}>Riprova</button> : null}</div>
-      : contextStep ? <section className={`${styles.section} stack`}><p className={styles.eyebrow}>Il tuo profilo</p><h1>Aggiungi il tuo contesto personale</h1><p>La tua esperienza è salvata.</p><PersonalContext key={contextOwner} profile={savedProfile} expanded onSaved={setSavedProfile} onContinue={()=>void continueAfterContext()}/>{error ? <p className="error" role="alert">{error}</p> : null}</section>
+      : contextStep ? <section className={`${styles.section} stack`}><h1>{invitationReturn?'Il tuo profilo è pronto':'Aggiungi il tuo contesto personale'}</h1><p>La tua esperienza è salvata.</p>{invitationReturn?<><p>Puoi tornare alla proposta e confermare il percorso. Il contesto personale è facoltativo e potrai aggiungerlo in seguito.</p><button className="button primary" onClick={()=>void continueAfterContext()}>Torna all’invito</button></>:<PersonalContext key={contextOwner} profile={savedProfile} expanded onSaved={setSavedProfile} onContinue={()=>void continueAfterContext()}/>} {error ? <p className="error" role="alert">{error}</p> : null}</section>
       : <form className={styles.page} onSubmit={submit} aria-busy={busy}>
-        <header className={styles.intro}><p className={styles.eyebrow}>La tua esperienza</p><h1>{reassessment ? "Rivedi ciò che sai fare" : "Cosa sai fare, cosa vuoi condividere?"}</h1><p>Indica le attività che sai svolgere. Tra queste, scegli quelle su cui ti fa piacere aiutare un’altra persona. Puoi partire senza selezionarne nessuna.</p></header>
+        <header className={styles.intro}><h1>{invitationReturn?'Prepara il tuo profilo':reassessment ? "Rivedi ciò che sai fare" : "Cosa sai fare, cosa vuoi condividere?"}</h1><p>{invitationReturn?'Indica cosa sai fare e scegli su quali attività vuoi aiutare la persona che ti ha invitato. Nessuna capacità viene selezionata al posto tuo.':'Indica le attività che sai svolgere. Tra queste, scegli quelle su cui ti fa piacere aiutare un’altra persona. Puoi partire senza selezionarne nessuna.'}</p></header>
         {reassessment && existing ? <section className={styles.section} aria-label="Preparazione per argomento"><h2>Preparazione per argomento</h2><p className="muted">Il tuo punto di partenza attuale, dalle attività dichiarate e confermate nei percorsi.</p>{preparation.length ? <div className={styles.preparationGrid}>{preparation.map(group => <SkillPreparation key={group.topic} group={group} />)}</div> : <p className="muted">Non hai ancora indicato attività conosciute.</p>}</section> : null}
         <section className={styles.section} aria-label="Capacità per tema"><h2>Le tue capacità</h2><p className="muted">Sul profilo sarà visibile la preparazione per argomento. Scegli separatamente le attività su cui vuoi aiutare.</p>
           <MentorOfferHelp />
-          {catalog.topics.map((topic, index) => <details className={styles.topic} key={topic.code} open={index === 0 || answers.known_skills.some(code => topic.skills.some(skill => skill.code === code))}>
-            <summary>{topic.label}<small>{topic.skills.filter(skill => answers.known_skills.includes(skill.code)).length} conosciute · {topic.skills.filter(skill => answers.mentor_skills.includes(skill.code)).length} offerte</small></summary>
-            {topic.code === 'etf_funds' ? <EtfExplanation className={styles.offerHelp} /> : null}
-            {topic.skills.map(skill => <div className={styles.skill} key={skill.code}>
-              <label className={styles.check}><input type="checkbox" aria-label={`So: ${skill.label}`} checked={answers.known_skills.includes(skill.code)} disabled={busy} onChange={event => toggleKnown(skill.code, event.target.checked)} /><span>{skill.label}</span></label>
-              <label className={styles.check}><input type="checkbox" aria-label={`Posso aiutare: ${skill.label}`} checked={answers.mentor_skills.includes(skill.code)} disabled={busy || !answers.known_skills.includes(skill.code)} onChange={event => update({ ...answers, mentor_skills: event.target.checked ? [...answers.mentor_skills, skill.code] : answers.mentor_skills.filter(code => code !== skill.code) })} /><span>Posso aiutare</span></label>
-            </div>)}
-          </details>)}
+          {(invitationTopics.length?invitationTopics:catalog.topics).map(topicFields)}
+          {invitationTopics.length&&otherTopics.length?<details className={styles.topic}><summary>Altre esperienze, facoltativo</summary>{otherTopics.map(topicFields)}</details>:null}
         </section>
         {existing ? <p className={styles.notice}>Le modifiche non riattivano una disponibilità mentor messa in pausa. I percorsi già svolti restano nel tuo storico.</p> : null}
         {error ? <p className="error" role="alert">{error}</p> : null}
-        <div className={styles.actions}><small className="muted" role="status">{saveMessage}</small><button className="button dark" disabled={busy} type="submit">{busy ? "Salvataggio…" : "Conferma le risposte"}</button></div>
+        <div className={styles.actions}><small className="muted" role="status">{saveMessage}</small><button className="button dark" disabled={busy} type="submit">{busy ? "Salvataggio…" : invitationReturn?'Salva e torna all’invito':"Conferma le risposte"}</button></div>
       </form>}
   </div></AppShell>;
 }

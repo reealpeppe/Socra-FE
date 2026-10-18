@@ -7,6 +7,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { authPost, ClientApiError } from "@/lib/api";
 import { safeInvitationReturn } from "@/lib/invitations";
+import { invitationContextRequest } from "@/components/InvitationLanding";
 import styles from "../login/auth.module.css";
 
 export default function RegisterPage() {
@@ -40,7 +41,8 @@ export default function RegisterPage() {
     setLoading(true);
     setError(null);
     try {
-      await authPost("register", form);
+      const invited = safeInvitationReturn(new URLSearchParams(window.location.search).get("next"));
+      await authPost("register", invited ? {...form, invitation_context: true} : form);
       router.push(safeInvitationReturn(new URLSearchParams(window.location.search).get("next")) || "/onboarding");
       router.refresh();
     } catch (err) {
@@ -61,10 +63,10 @@ export default function RegisterPage() {
           </div>
           <h1 className={styles.title} id="register-title">Crea il tuo account</h1>
           <p className={styles.subtitle}>
-            {invitationNext ? "Crea il tuo account per leggere la proposta della persona che ti ha invitato." : "Entra nella community, completa la survey e definisci il primo obiettivo su cui vuoi confrontarti."}
+            {invitationNext ? "Usa l’indirizzo che ha ricevuto l’invito: il link conferma già la tua email. Dopo la registrazione, ti guidiamo verso il percorso." : "Entra nella community, completa la survey e definisci il primo obiettivo su cui vuoi confrontarti."}
           </p>
 
-          {error ? <p className={styles.error} id="register-error" role="alert">{error}</p> : null}
+          {error ? <><p className={styles.error} id="register-error" role="alert">{error}</p>{invitationNext?<button className="button secondary" type="button" disabled={loading} onClick={async()=>{setLoading(true);try{await invitationContextRequest('/api/invitations/context',undefined,'DELETE');router.replace('/register');setInvitationNext(null);setError(null);}catch{setError('Non riusciamo a chiudere l’invito. Riprova tra poco.');}finally{setLoading(false);}}}>Continua senza invito</button>:null}</> : null}
 
           <form
             aria-label="Crea il tuo account"
@@ -183,7 +185,7 @@ export default function RegisterPage() {
           </form>
 
           <p className={styles.hint} style={{ marginTop: 18, textAlign: "center" }}>
-            {invitationNext ? "Dopo l’iscrizione vedrai la proposta. Prima di iniziare il percorso, confermerai la tua email e compilerai la survey." : "Dopo l’iscrizione potrai compilare subito la survey. Conferma la tua email per cercare persone e usare il matching."}
+            {invitationNext ? "Dopo l’iscrizione vedrai la proposta. Preparerai il tuo profilo e sceglierai se iniziare il percorso." : "Dopo l’iscrizione potrai compilare subito la survey. Conferma la tua email per cercare persone e usare il matching."}
           </p>
 
           <p className={styles.footerText}>

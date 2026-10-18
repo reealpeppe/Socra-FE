@@ -15,8 +15,8 @@ const dateFormatter = new Intl.DateTimeFormat("it-IT", {
 });
 
 const TX_TYPE_STYLES: Record<string, { background: string; color: string; label: string }> = {
-  earn:  { background: "#d1fae5", color: "#059669", label: "Accredito" },
-  reward: { background: "#d1fae5", color: "#059669", label: "Percorso completato" },
+  earn:  { background: "var(--brand-blue-soft)", color: "var(--brand-blue)", label: "Accredito" },
+  reward: { background: "var(--brand-blue-soft)", color: "var(--brand-blue)", label: "Percorso completato" },
   bonus: { background: "#fef3c7", color: "#b07d1a", label: "Bonus" },
   spend: { background: "#fee2e2", color: "#dc2626", label: "Utilizzo" },
 };
@@ -162,7 +162,7 @@ export default function WalletPage() {
                     </div>
                     <span
                       className="wallet-tx-amount"
-                      style={{ color: isPositive ? "var(--mint-600)" : "#dc2626" }}
+                      style={{ color: isPositive ? "var(--brand-blue)" : "#dc2626" }}
                     >
                       {row.amount > 0 ? `+${row.amount}` : row.amount}
                     </span>
@@ -264,7 +264,7 @@ export default function WalletPage() {
           font-size: 0.8125rem;
           font-weight: 600;
         }
-        .wallet-summary-item.positive { color: var(--mint-600); }
+        .wallet-summary-item.positive { color: var(--brand-blue); }
         .wallet-summary-item.negative { color: #dc2626; }
         .wallet-tx-list {
           display: grid;
