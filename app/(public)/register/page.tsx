@@ -41,7 +41,8 @@ export default function RegisterPage() {
     setLoading(true);
     setError(null);
     try {
-      await authPost("register", {...form, invitation_context: Boolean(safeInvitationReturn(new URLSearchParams(window.location.search).get("next")))});
+      const invited = safeInvitationReturn(new URLSearchParams(window.location.search).get("next"));
+      await authPost("register", invited ? {...form, invitation_context: true} : form);
       router.push(safeInvitationReturn(new URLSearchParams(window.location.search).get("next")) || "/onboarding");
       router.refresh();
     } catch (err) {
