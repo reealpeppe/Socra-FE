@@ -424,8 +424,11 @@ p {
 }
 
 .button:disabled {
+  background: var(--disabled-surface);
+  border-color: var(--disabled-line);
+  color: var(--disabled-text);
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: 1;
 }
 
 .field {
@@ -2989,8 +2992,11 @@ summary:focus-visible,
 }
 
 .account-button:disabled {
+  background: var(--disabled-surface);
+  border-color: var(--disabled-line);
+  color: var(--disabled-text);
   cursor: wait;
-  opacity: 0.76;
+  opacity: 1;
 }
 
 .account-button:disabled:hover {

@@ -41,9 +41,17 @@ test("safety and FAQ do not promise recordings, instant moderation, chat or an S
   await expect(page.locator("body")).not.toContainText(/risposta entro 24 ore|risposta in pochi minuti|avvia chat/i);
 });
 
-test("public navigation remains complete and keyboard dismissible on mobile", async ({ page }) => {
+test("public navigation remains complete and keyboard dismissible on mobile", async ({ page }, testInfo) => {
+  await page.route("**/api/backend/auth/me", route => route.fulfill({ status: 401, json: { detail: "Non autenticato" } }));
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/community");
+
+  const headerLogin = page.getByRole("navigation", { name: "Navigazione pubblica" }).getByRole("link", { name: "Accedi", exact: true });
+  await expect(headerLogin).toBeVisible();
+  await expect(headerLogin).toHaveAttribute("href", "/login");
+  await headerLogin.focus();
+  await expect(headerLogin).toBeFocused();
+  await page.screenshot({ path: testInfo.outputPath("public-mobile-390.png") });
 
   const toggle = page.getByRole("button", { name: "Apri menu" });
   await expect(toggle).toBeVisible();
@@ -54,6 +62,13 @@ test("public navigation remains complete and keyboard dismissible on mobile", as
   await page.keyboard.press("Escape");
   await expect(page.getByRole("link", { name: "Accedi al tuo account" })).toHaveCount(0);
   await expect(toggle).toBeFocused();
+  await page.setViewportSize({ width: 320, height: 700 });
+  await expect(headerLogin).toBeVisible();
+  const widths = await page.evaluate(() => ({ client: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth }));
+  expect(widths.scroll).toBeLessThanOrEqual(widths.client);
+  await toggle.click();
+  await expect(page.getByRole("link", { name: "Inizia ora", exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("public-mobile-320.png") });
 });
 
 test("terms and privacy are public, linked and transparent about pending validation", async ({ page }) => {
@@ -104,6 +119,9 @@ test("FAQ category is reflected in the URL and answers expose their open state",
   const question = page.getByText("I crediti Socra si possono acquistare?");
   await question.click();
   await expect(question.locator("xpath=ancestor::details")).toHaveAttribute("open", "");
+  const timing = page.getByText("Quando vengono spostati i crediti?");
+  await timing.click();
+  await expect(timing.locator("xpath=ancestor::details")).toContainText(/dopo.*feedback di entrambi.*apprendista.*mentor/i);
 });
 
 test("public pages contain no placeholder hash links or unsupported population claims", async ({ page }) => {

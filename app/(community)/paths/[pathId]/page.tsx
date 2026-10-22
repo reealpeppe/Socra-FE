@@ -11,7 +11,7 @@ import { AlertTriangle, CheckCircle2, ChevronLeft, Copy, ExternalLink, RefreshCc
 import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
 import { ClientApiError, clientGet, clientPost } from "@/lib/api";
-import type { CallMetadataSync, CallRoom, PathItem, UserMe } from "@/lib/types";
+import type { CallRoom, PathItem, UserMe } from "@/lib/types";
 
 const STATUS = {
   open: { bg: "var(--blue-100)", color: "var(--blue-600)", label: "Aperto" },
@@ -50,6 +50,8 @@ function PathDetailContent({ pathId }: { pathId: string }) {
   const [path, setPath] = useState<PathItem | null>(null);
   const [callRoom, setCallRoom] = useState<CallRoom | null>(null);
   const [meetAvailable, setMeetAvailable] = useState(false);
+  const [meetLoading, setMeetLoading] = useState(false);
+  const [meetError, setMeetError] = useState<string | null>(null);
   const [user, setUser] = useState<UserMe | null>(null);
   const [notes, setNotes] = useState("");
   const [report, setReport] = useState("");
@@ -61,6 +63,8 @@ function PathDetailContent({ pathId }: { pathId: string }) {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setMeetLoading(true);
+    setMeetError(null);
     setError(null);
     try {
       const [userResponse, pathResponse, capabilities] = await Promise.all([
@@ -72,24 +76,32 @@ function PathDetailContent({ pathId }: { pathId: string }) {
       setPath(pathResponse);
       setMeetAvailable(capabilities?.google_meet_available === true);
       try {
-        const room = await clientGet<CallRoom>(`/calls/first-session/room?path_id=${encodeURIComponent(pathId)}`);
-        setCallRoom(room);
-      } catch (roomErr) {
-        if (roomErr instanceof ClientApiError && roomErr.status === 404) {
-          setCallRoom(null);
-        } else {
-          throw roomErr;
+        let room: CallRoom | null = null;
+        try {
+          room = await clientGet<CallRoom>(`/calls/first-session/room?path_id=${encodeURIComponent(pathId)}`);
+        } catch (roomErr) {
+          if (!(roomErr instanceof ClientApiError && roomErr.status === 404)) throw roomErr;
+          if (capabilities?.google_meet_available && pathResponse.status !== "completed"
+            && [pathResponse.mentor_id, pathResponse.mentee_id].includes(userResponse.id)) {
+            room = await clientPost<CallRoom>("/calls/first-session/room", { path_id: pathId });
+          }
         }
+        setCallRoom(room);
+      } catch {
+        setMeetError("Il link Google Meet non è disponibile in questo momento. Riprova oppure usa i contatti del percorso per accordarti con l’altra persona.");
       }
     } catch (err) {
       setError(err instanceof ClientApiError ? err.message : "Percorso non disponibile");
     } finally {
       setLoading(false);
+      setMeetLoading(false);
     }
   }, [pathId]);
 
   useEffect(() => {
-    queueMicrotask(() => void load());
+    let active = true;
+    queueMicrotask(() => { if (active) void load(); });
+    return () => { active = false; };
   }, [load]);
 
   useEffect(() => {
@@ -115,13 +127,13 @@ function PathDetailContent({ pathId }: { pathId: string }) {
   }, []);
 
   async function closeSide() {
-    if (!await confirm("Confermi di aver concluso il percorso e di voler chiudere il tuo lato?")) return;
+    if (!await confirm("Confermi di voler chiudere la tua partecipazione al percorso? Potrai poi lasciare il feedback.")) return;
     setError(null);
     setMessage(null);
     setPendingAction("close");
     try {
       await clientPost(`/paths/${pathId}/close-side`, { notes });
-      setMessage("Chiusura lato utente registrata.");
+      setMessage("Hai chiuso il percorso. Ora puoi lasciare il feedback.");
       await load();
     } catch (err) {
       setError(err instanceof ClientApiError ? err.message : "Chiusura non registrata");
@@ -149,29 +161,6 @@ function PathDetailContent({ pathId }: { pathId: string }) {
     }
   }
 
-  async function prepareMeet() {
-    setError(null);
-    setMessage(null);
-    setPendingAction("prepare-meet");
-    const meetWindow = window.open("about:blank", "_blank");
-    if (meetWindow) meetWindow.opener = null;
-    try {
-      const room = await clientPost<CallRoom>("/calls/first-session/room", { path_id: pathId });
-      setCallRoom(room);
-      if (meetWindow) {
-        meetWindow.location.replace(room.join_url);
-        setMessage("Google Meet aperto in una nuova scheda.");
-      } else {
-        setMessage("Link Google Meet pronto. Aprilo con il pulsante qui sotto.");
-      }
-    } catch (err) {
-      meetWindow?.close();
-      setError(err instanceof ClientApiError ? err.message : "Meet non disponibile");
-    } finally {
-      setPendingAction(null);
-    }
-  }
-
   async function replaceMeet() {
     if (!await confirm("Il link attuale non sarà più utilizzabile. Vuoi crearne uno nuovo?")) return;
     setError(null);
@@ -180,7 +169,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
     try {
       const room = await clientPost<CallRoom>("/calls/first-session/room/replace", { path_id: pathId });
       setCallRoom(room);
-      setMessage("Nuovo link Google Meet creato e inviato alla controparte.");
+      setMessage("Nuovo link Google Meet disponibile per entrambi nel percorso.");
     } catch (err) {
       setError(err instanceof ClientApiError ? err.message : "Nuovo link non creato");
     } finally {
@@ -198,29 +187,6 @@ function PathDetailContent({ pathId }: { pathId: string }) {
     }
   }
 
-  async function syncMetadata() {
-    setError(null);
-    setMessage(null);
-    setPendingAction("sync");
-    try {
-      const result = await clientPost<CallMetadataSync>("/calls/first-session/sync-metadata", { path_id: pathId });
-      await load();
-      if (result.verification_status === "verified") {
-        setMessage("Prima sessione verificata.");
-      } else if (result.verification_status === "pending_provider_metadata") {
-        setMessage("Google sta ancora elaborando i dati della sessione. Riprova tra qualche minuto.");
-      } else if (result.verification_status === "insufficient_participants") {
-        setError("Non risultano almeno due partecipanti alla prima sessione. Verifica di aver usato il link del percorso e riprova.");
-      } else {
-        setError("La prima sessione non risulta ancora verificata. Riprova dopo aver concluso l’incontro.");
-      }
-    } catch (err) {
-      setError(err instanceof ClientApiError ? err.message : "Verifica della sessione non riuscita");
-    } finally {
-      setPendingAction(null);
-    }
-  }
-
   const role = path && user ? (path.mentor_id === user.id ? "mentor" : path.mentee_id === user.id ? "mentee" : null) : null;
   const feedbackHref = role ? `/feedback/${pathId}/${role}` : null;
   const feedbackLabel = role === "mentor" ? "Lascia feedback sull’apprendista" : "Lascia feedback sul mentor";
@@ -231,7 +197,6 @@ function PathDetailContent({ pathId }: { pathId: string }) {
     : role === "mentee"
       ? !!path?.mentee_feedback_submitted
       : false;
-  const firstCallCompleted = !!path?.first_call_completed;
   const actionPending = pendingAction !== null;
   const pathsHref = role ? `/paths?tab=${role}` : "/paths";
 
@@ -267,7 +232,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
             {path?.goal?.goal_tag || "Dettaglio percorso"}
           </h1>
           <p style={{ color: "var(--muted)", fontSize: "0.88rem", margin: 0 }}>
-            La prima sessione usa solo informazioni essenziali per la sicurezza della piattaforma, senza registrare la chiamata.
+            Ritrovate qui i contatti, il link per incontrarvi e i passaggi per concludere il percorso.
           </p>
         </div>
         {path && <StatusBadge status={path.status} />}
@@ -350,26 +315,11 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                   }}>
                     <Video size={18} aria-hidden />
                   </span>
-                  <h2 style={{ fontSize: "1rem", fontWeight: 650, margin: 0 }}>Prima sessione</h2>
+                  <h2 style={{ fontSize: "1rem", fontWeight: 650, margin: 0 }}>Incontri su Google Meet</h2>
                 </div>
                 <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0 }}>
-                  {firstCallCompleted
-                    ? "La partecipazione al primo incontro è stata verificata. Non sono necessarie altre azioni per questa verifica."
-                    : meetAvailable
-                    ? "Organizza il primo incontro con Google Meet. Il link resta disponibile finché il percorso non viene completato."
-                    : "Google Meet integrato non è disponibile in questo momento. Per la verifica del primo incontro usa “Segnala un problema” e concorda i passaggi con l’amministrazione."}
+                  Usate lo stesso link per i vostri incontri. Rimane disponibile fino al completamento del percorso. Socra non registra le chiamate.
                 </p>
-                <span style={{
-                  alignSelf: "start",
-                  background: firstCallCompleted ? "var(--mint-100)" : "var(--orange-100)",
-                  borderRadius: "999px",
-                  color: firstCallCompleted ? "var(--mint-600)" : "#8a6111",
-                  fontSize: "0.75rem",
-                  fontWeight: 650,
-                  padding: "5px 10px"
-                }}>
-                  {firstCallCompleted ? "Prima sessione verificata" : "Prima sessione da completare"}
-                </span>
 
                 {isCompleted ? (
                   <span style={{
@@ -384,9 +334,9 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                       background: "var(--paper)", border: "1px solid var(--line)",
                       borderRadius: "var(--radius-sm)", padding: "10px 12px"
                     }}>
-                      <p style={{ color: "var(--muted)", fontSize: "0.8rem", margin: "0 0 4px", overflowWrap: "anywhere" }}>
+                      <a href={callRoom.join_url} target="_blank" rel="noreferrer" style={{ color: "var(--blue-600)", fontSize: "0.9rem", overflowWrap: "anywhere" }}>
                         {callRoom.join_url}
-                      </p>
+                      </a>
                       {callRoom.provider_meeting_code && (
                         <span style={{
                           background: "var(--blue-100)", borderRadius: "999px", color: "var(--blue-600)",
@@ -402,27 +352,25 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                     <button className="button secondary" type="button" onClick={copyMeetLink}>
                       <Copy size={15} /> Copia link
                     </button>
-                    <button className="button secondary" type="button" onClick={replaceMeet} disabled={actionPending || !meetAvailable}>
-                      <RefreshCcw size={15} /> {pendingAction === "replace-meet" ? "Creazione…" : "Crea nuovo link"}
-                    </button>
-                    {!firstCallCompleted ? (
-                      <button className="button secondary" type="button" onClick={syncMetadata} disabled={actionPending || !meetAvailable}>
-                        <RefreshCcw size={15} /> {pendingAction === "sync" ? "Verifica…" : "Verifica prima sessione"}
+                    <details>
+                      <summary style={{ cursor: "pointer", padding: "12px 0" }}>Problemi con il link?</summary>
+                      <p className="muted">Se serve, puoi sostituirlo per entrambi. Il vecchio link verrà chiuso.</p>
+                      <button className="button secondary" type="button" onClick={replaceMeet} disabled={actionPending || !meetAvailable}>
+                        <RefreshCcw size={15} /> {pendingAction === "replace-meet" ? "Creazione…" : "Crea nuovo link"}
                       </button>
-                    ) : null}
+                    </details>
                   </div>
-                ) : meetAvailable ? (
-                  <button className="button dark" type="button" onClick={prepareMeet} disabled={actionPending}>
-                    {pendingAction === "prepare-meet" ? "Preparazione…" : "Prepara Google Meet"}
-                  </button>
-                ) : null}
+                ) : meetLoading ? <p role="status">Recupero del link Google Meet…</p> : <>
+                  <p className="muted" role="status">{meetError || "Google Meet non è disponibile in questo momento. Potete accordarvi usando i contatti del percorso."}</p>
+                  <button className="button secondary" type="button" onClick={() => void load()} disabled={actionPending || loading}>Riprova link Meet</button>
+                </>}
               </div>
             </div>
 
             <div className="card">
               <div style={{ display: "grid", gap: "14px" }}>
                 <h2 style={{ fontSize: "1rem", fontWeight: 650, margin: 0 }}>
-                  {isCompleted ? "Percorso completato" : ownClosed ? "Il tuo lato è chiuso" : "Concludi il percorso"}
+                  {isCompleted ? "Percorso completato" : ownClosed ? "Hai chiuso il percorso" : "Concludi il percorso"}
                 </h2>
                 {!role ? (
                   <p className="error" role="alert">Non fai parte di questo percorso.</p>
@@ -434,12 +382,9 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                         : "Feedback inviato. Il percorso si completa quando anche l’altra persona conclude i passaggi richiesti."
                       : "Ora completa il feedback. Le risposte dell’altra persona restano nascoste finché non invia anche la propria."}
                   </p>
-                ) : !firstCallCompleted ? (
-                  <p style={{ color: "var(--muted)", fontSize: "0.85rem", margin: 0 }}>
-                    Puoi chiudere il tuo lato dopo che la prima sessione con entrambi i partecipanti è stata verificata.
-                  </p>
                 ) : (
                   <>
+                    <p className="muted">Puoi concludere la tua partecipazione in qualsiasi momento. Nei nuovi percorsi, addebito e accredito avvengono dopo i feedback di entrambi, secondo i crediti previsti. I percorsi già addebitati non vengono pagati di nuovo.</p>
                     <label htmlFor="closure-notes" style={{ color: "var(--navy-950)", fontSize: "0.85rem", fontWeight: 650 }}>
                       Nota privata opzionale
                     </label>
@@ -451,8 +396,8 @@ function PathDetailContent({ pathId }: { pathId: string }) {
                       placeholder="Aggiungi una nota per il team Socra…"
                       disabled={actionPending}
                     />
-                    <button className="button dark" type="button" onClick={closeSide} disabled={actionPending || isCompleted}>
-                      <CheckCircle2 size={15} /> {pendingAction === "close" ? "Chiusura…" : "Chiudi il mio lato"}
+                    <button className="button primary" type="button" onClick={closeSide} disabled={actionPending || isCompleted}>
+                      <CheckCircle2 size={15} /> {pendingAction === "close" ? "Chiusura…" : "Chiudi il percorso"}
                     </button>
                   </>
                 )}

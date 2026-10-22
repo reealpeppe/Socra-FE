@@ -72,10 +72,11 @@ test("used advance keeps zero spendable credits and explains compensation", asyn
   await expect(page.getByText(/margine/i)).toHaveCount(0);
 });
 
-test("acceptance explains that the path will use the advance", async ({ page }) => {
+test("acceptance explains that an advance is charged only after both feedbacks", async ({ page }) => {
   await fixture(page, "available", true);
   await page.goto("/requests");
   await page.getByRole("button", { name: "Accetta", exact: true }).click();
-  await expect(page.getByRole("dialog")).toContainText("Questo percorso utilizzerà il tuo credito anticipato.");
+  await expect(page.getByRole("dialog")).toContainText(/addebitati dopo i feedback di entrambi/i);
+  await expect(page.getByRole("dialog")).toContainText(/credito anticipato potrà coprire questo costo/i);
   await expect(page.getByRole("dialog")).toContainText("Crediti disponibili: 1");
 });

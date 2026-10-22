@@ -140,7 +140,10 @@ export function PublicNavbar() {
             {sessionState === "authenticated" ? (
               <Link prefetch={true} className={styles.navLink} href="/dashboard" onClick={closeMobileMenu}>Torna alla community</Link>
             ) : sessionState === "anonymous" ? (
-              <Link prefetch={true} aria-current={pathname === "/login" ? "page" : undefined} className={styles.loginLink} href="/login" onClick={closeMobileMenu}>Accedi al tuo account</Link>
+              <>
+                <Link prefetch={true} aria-current={pathname === "/login" ? "page" : undefined} className={styles.loginLink} href="/login" onClick={closeMobileMenu}>Accedi al tuo account</Link>
+                <Link prefetch={true} aria-current={pathname === "/register" ? "page" : undefined} className={styles.mobileRegisterLink} href="/register" onClick={closeMobileMenu}>Inizia ora</Link>
+              </>
             ) : sessionState === "error" ? (
               <p className={styles.sessionMessage}>Sessione non verificabile. Riprova dal pulsante in alto.</p>
             ) : null}

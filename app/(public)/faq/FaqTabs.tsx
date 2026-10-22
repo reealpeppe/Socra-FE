@@ -34,7 +34,7 @@ const sections = [
       },
       {
         q: "Quando vengono spostati i crediti?",
-        a: "All’accettazione di una proposta viene scalato un credito dal saldo dell’apprendista. Il mentor riceve un credito solo quando entrambi hanno chiuso il percorso e lasciato il feedback. Rifiutare una proposta non comporta un addebito.",
+        a: "Dopo i feedback di entrambi, il costo previsto viene addebitato all’apprendista e il mentor riceve un credito. Accettare o rifiutare una proposta non comporta un addebito.",
       },
       {
         q: "Cosa succede se il saldo non basta?",

@@ -13,7 +13,7 @@ import { instrumentOptions } from "@/lib/options";
 import type { OwnProfile, SkillProfile, TopicCompetenceSnapshot, TopicCompetenceSnapshotItem, UserMe } from "@/lib/types";
 import { SkillCatalogBoundary } from "@/components/SkillCatalogBoundary";
 import { SkillMentorPreferences } from "@/components/SkillMentorPreferences";
-import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
+import { ProfileCompletionBanner, incompleteProfileCompletion } from "@/components/ProfileCompletionBanner";
 import { PersonalContext } from "@/components/PersonalContext";
 import { MentorAlerts } from "@/components/MentorAlerts";
 import { ONBOARDING_POLICY } from "@/lib/onboarding";
@@ -350,9 +350,9 @@ export default function SettingsPage() {
           ) : null}
         </div>
 
-        {skills?.profile_completion ? <ProfileCompletionBanner completion={skills.profile_completion} /> : null}
+        {skills !== undefined && (skills === null || skills.profile_completion) ? <ProfileCompletionBanner completion={skills?.profile_completion ?? incompleteProfileCompletion} /> : null}
         <MentorAlerts key={me.id} ownerId={me.id} settings />
-        {skills !== undefined ? <PersonalContext key={me?.id} profile={skills} onSaved={setSkills} /> : null}
+        {skills !== undefined ? <PersonalContext key={me?.id} profile={skills} onSaved={setSkills} navigationReady={!loading} /> : null}
 
         <div className="card settings-card">
           <h2 className="settings-section-title">Account</h2>

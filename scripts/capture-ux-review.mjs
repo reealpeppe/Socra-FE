@@ -66,21 +66,21 @@ try {
     const pageErrors = [];
     page.on("pageerror", error => pageErrors.push(error.message));
     const trace = [];
-    async function capture(scenario, intent, facts = {}) {
-      await page.evaluate(() => document.fonts.ready);
+    async function capture(scenario, intent, facts = {}, targetPage = page) {
+      await targetPage.evaluate(() => document.fonts.ready);
       if (scenario === 'context-four' || scenario === 'context-ready') {
-        await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        await targetPage.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+        await targetPage.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
       }
       const file = `${viewportName}-${scenario}`;
-      const bytes = await page.screenshot({ fullPage: true, animations: "disabled" });
+      const bytes = await targetPage.screenshot({ fullPage: true, animations: "disabled" });
       await writeFile(path.join(directory, `${file}.png`), bytes);
       manifest.artifacts.push({ file: `${file}.png`, sha256: hash(bytes) });
-      const viewportBytes = await page.screenshot({ animations: "disabled" });
+      const viewportBytes = await targetPage.screenshot({ animations: "disabled" });
       await writeFile(path.join(directory, `${file}-viewport.png`), viewportBytes);
       manifest.artifacts.push({ file: `${file}-viewport.png`, sha256: hash(viewportBytes) });
-      const overflow = await page.evaluate(() => ({ viewport: innerWidth, content: document.documentElement.scrollWidth }));
-      const clipped = await page.evaluate(() => {
+      const overflow = await targetPage.evaluate(() => ({ viewport: innerWidth, content: document.documentElement.scrollWidth }));
+      const clipped = await targetPage.evaluate(() => {
         const issues = [];
         const visible = element => element.getClientRects().length && getComputedStyle(element).visibility !== "hidden" && !element.closest('[aria-hidden="true"]');
         for (const element of document.querySelectorAll('main h1, main section, main article, main form, main details, main .card, main button, main a.button, main progress, main input, main select, main textarea, main .settings-field-value')) {
@@ -99,15 +99,42 @@ try {
         }
         return issues;
       });
-      const entry = { scenario, intent, viewport, url: page.url(), facts, actions: [...trace], overflow,
+      const entry = { scenario, intent, viewport, url: targetPage.url(), facts, actions: [...trace], overflow,
         clipped_elements: clipped,
-        visible_text: await page.locator("body").innerText(), accessibility: await page.locator("body").ariaSnapshot() };
+        visible_text: await targetPage.locator("body").innerText(), accessibility: await targetPage.locator("body").ariaSnapshot() };
       await json(`${file}.json`, entry);
       assert.ok(overflow.content <= overflow.viewport + 1, `Horizontal overflow: ${file}`);
       assert.deepEqual(clipped, [], `Clipped content despite hidden document overflow: ${file}`);
       manifest.checks.push({ viewport: viewportName, scenario, status: "passed" });
       console.log(`${viewportName}: ${scenario}`);
     }
+    const publicContext = await browser.newContext({ baseURL, viewport, isMobile: viewportName === "mobile", hasTouch: viewportName === "mobile" });
+    const publicPage = await publicContext.newPage();
+    await publicPage.goto(`${baseURL}/`);
+    await expect(publicPage.getByRole("link", { name: "Accedi", exact: true }).first()).toBeVisible();
+    await capture("public-entry", "L’accesso resta evidente e raggiungibile anche su schermo stretto.",
+      { login_visible: true }, publicPage);
+    await publicContext.close();
+    const lockedContext = await browser.newContext({ baseURL, viewport, isMobile: viewportName === "mobile", hasTouch: viewportName === "mobile" });
+    await login(lockedContext, `profile_locked_${viewportName}`);
+    const lockedPage = lockedContext.pages()[0];
+    lockedPage.setDefaultTimeout(20000);
+    lockedPage.on("pageerror", error => pageErrors.push(error.message));
+    assert.equal(await api(lockedContext, "/skills/me"), null, "Locked persona must have no V4 experience profile");
+    assert.ok((await api(lockedContext, "/surveys/onboarding/me")).latest_answer_id,
+      "Locked persona must have completed the legacy onboarding survey");
+    for (const [route, scenario] of [["/dashboard", "profile-locked-dashboard"], ["/settings", "profile-locked-settings"]]) {
+      await lockedPage.goto(route);
+      const banner = lockedPage.getByRole("complementary", { name: "Completa il tuo profilo" });
+      await expect(banner).toBeVisible();
+      await expect(banner.getByRole("button", { name: "Completa il profilo · 0/5" })).toBeVisible();
+      await expect(banner.getByRole("button", { name: "Completa il profilo · 0/5" })).toBeDisabled();
+      await expect(banner.getByRole("link", { name: "Prima completa la tua esperienza" })).toHaveAttribute("href", "/competenze");
+      await capture(scenario, "Il contesto resta visibile ma non disponibile prima dell’esperienza; il passo richiesto è chiaro.",
+        { onboarding_completed: true, skill_profile: null, context_button_disabled: true,
+          experience_link: "/competenze" }, lockedPage);
+    }
+    await lockedContext.close();
     const before = await api(context, "/skills/me");
     assert.equal(before.mentor_available, false);
     await page.goto("/dashboard");
@@ -135,7 +162,7 @@ try {
     assert.deepEqual(afterHelp,beforeHelp);assert.deepEqual(selectedAfter,selectedBefore);
     trace.push({action:'Cosa significa Posso aiutare → apertura spiegazione',interaction:viewportName==='mobile'?'touch':'keyboard Enter',aria_expanded:true,profile_unchanged:true,ui_selections_unchanged:true});
     await capture('offer-help','Spiegazione accessibile senza cambiare capacità o offerte.',{interaction:viewportName==='mobile'?'touch':'keyboard Enter',before_profile_version:beforeHelp.version,after_profile_version:afterHelp.version,mentor_available:afterHelp.mentor_available});
-    // Capture the incomplete state before the explicit context step completes it.
+    // Capture the incomplete state before any optional context answers are saved.
     await page.goto('/dashboard');await expect(page.getByText('Completa il tuo profilo!',{exact:true})).toBeVisible();
     await capture('profile-incomplete','Richiamo privato prima delle cinque risposte esplicite.');
     await page.goto('/competenze');await expect(page.getByRole('heading',{name:'Rivedi ciò che sai fare'})).toBeVisible();
@@ -144,34 +171,59 @@ try {
     const change = page.getByRole("checkbox", { name: "So: Impostare un PAC con ETF", exact: true });
     await change.setChecked(!before.known_skills.includes("etf_pac"));
     await page.getByRole("button", { name: "Conferma le risposte", exact: true }).click();
-    await expect(page.getByRole('heading', {name:'Aggiungi il tuo contesto personale'})).toBeVisible();
-    assert.deepEqual((await api(context,'/skills/me')).section_d,before.section_d);
-    await expect(page.getByRole('button',{name:'Continua',exact:true})).toHaveCount(0);
-    const why=page.locator('#personal-context').getByText('Perché ci serve questa informazione?',{exact:true});
-    if(viewportName==='mobile')await why.tap();else{await why.focus();await why.press('Enter');}
-    await expect(page.getByText(/Ci aiuti a capire chi fa parte di Socra/)).toBeVisible();
-    trace.push({action:'Esperienza confermata → contesto privato',context_preserved_before_explicit_answers:true,continue_visible:false,why_opened_with:viewportName==='mobile'?'touch':'keyboard Enter'});
-    await capture('survey-context', 'Contesto privato con spiegazione della finalità; nessuna seconda conferma o salto.');
-    for(let i=1;i<=4;i++)await page.locator(`select[name=D${i}]`).selectOption('undisclosed');
-    await expect(page.getByRole('button',{name:'Continua',exact:true})).toHaveCount(0);
-    await capture('context-four','Quattro risposte non rendono disponibile Continua.',{answered_count:4,continue_visible:false});
-    await page.locator('select[name=D5]').selectOption('undisclosed');
-    await expect(page.getByRole('button',{name:'Continua',exact:true})).toBeVisible();
-    await capture('context-ready','Cinque scelte esplicite, anche tutte Preferisco non rispondere, mostrano un solo Continua.',{answered_count:5});
-    await page.getByRole('button',{name:'Continua',exact:true}).click();
     await expect(page).toHaveURL(/\/dashboard$/);
     await expect(page.getByRole("status").filter({ hasText: /esperienza.*aggiornata/i })).toBeVisible();
     const saved = await api(context, "/skills/me");
     assert.equal(saved.known_skills.includes("etf_pac"), !before.known_skills.includes("etf_pac"));
     assert.equal(saved.mentor_available, false);
-    assert.deepEqual(saved.section_d,Object.fromEntries([1,2,3,4,5].map(i=>[`D${i}`,'undisclosed'])));
+    assert.deepEqual(saved.section_d,before.section_d);
     await expect(page.getByRole("progressbar", { name: "Preparazione su ETF" })).toHaveAttribute("value", String(saved.known_skills.filter(code => code.startsWith("etf_")).length));
     trace.push({ action: "Modifica esperienza → Conferma le risposte", actual_url: page.url(), persisted: true, private_context_preserved: true, mentor_paused: true });
-    await capture("experience-saved", "Conferma visibile e ritorno alla dashboard dopo il salvataggio.");
+    await capture("experience-saved", "Conferma visibile e ritorno diretto alla dashboard dopo il salvataggio, senza ripetere il contesto.");
     await page.goto("/competenze");
     await expect(page.getByRole("heading", { name: "Rivedi ciò che sai fare" })).toBeVisible();
     assert.equal(await change.isChecked(), saved.known_skills.includes("etf_pac"));
     trace.push({ action: "Riapertura esperienza", saved_selection_still_checked: true });
+
+    await page.goto('/onboarding');
+    await expect(page.getByRole('heading', {name:'Aggiungi il tuo contesto personale'})).toBeVisible();
+    const contextSection=page.locator('#personal-context');
+    await expect(contextSection.getByText(/Conoscere la tua situazione economica e professionale/)).toBeVisible();
+    await expect(contextSection.getByText('Le risposte sono facoltative e riservate. Non saranno visibili agli altri utenti.')).toBeVisible();
+    await expect(contextSection).not.toContainText('Preferisco non rispondere');
+    await expect(page.getByRole('button',{name:'Salva e continua',exact:true})).toBeDisabled();
+    await expect(page.getByRole('button',{name:'Salta',exact:true})).toBeEnabled();
+    trace.push({action:'Contesto privato facoltativo',answered_count:0,save_enabled:false,skip_enabled:true,disclaimer_visible:true});
+    await capture('survey-context', 'Finalità e riservatezza sempre visibili; Salta disponibile e Salva e continua grigio senza risposte.');
+    await page.getByRole('button',{name:'Salta',exact:true}).click();
+    await expect(page).toHaveURL(/\/goal$/);
+    assert.deepEqual((await api(context,'/skills/me')).section_d,before.section_d);
+    trace.push({action:'Salta contesto → obiettivi',context_unchanged:true});
+    await page.goto('/onboarding');
+    await expect(page.getByRole('heading', {name:'Aggiungi il tuo contesto personale'})).toBeVisible();
+    await page.locator('select[name=D1]').selectOption('student');
+    await expect(page.getByRole('button',{name:'Salva e continua',exact:true})).toBeEnabled();
+    await capture('context-ready','Una risposta effettiva abilita Salva e continua; Salta resta disponibile.',{answered_count:1,save_enabled:true});
+    await page.locator('select[name=D2]').selectOption('lt_15k');
+    await page.locator('select[name=D3]').selectOption('none');
+    await page.locator('select[name=D4]').selectOption('none');
+    await capture('context-four','Quattro risposte effettive sono parziali e possono essere salvate.',{answered_count:4,save_enabled:true});
+    await page.getByRole('button',{name:'Salva e continua',exact:true}).click();
+    await expect(page).toHaveURL(/\/goal$/);
+    const partial=await api(context,'/skills/me');
+    assert.deepEqual(partial.section_d,{D1:'student',D2:'lt_15k',D3:'none',D4:'none'});
+    assert.equal(partial.profile_completion.context_answered_count,4);
+    trace.push({action:'Quattro risposte → Salva e continua',persisted:true,answered_count:4});
+
+    await page.goto('/dashboard');
+    const partialBanner = page.getByRole('complementary', { name: 'Completa il tuo profilo' });
+    await expect(partialBanner).toBeVisible();
+    await expect(partialBanner.getByRole('link', { name: 'Completa il profilo · 4/5' })).toBeVisible();
+    const persistedPartial = await api(context, '/skills/me');
+    assert.equal(persistedPartial.profile_completion.context_answered_count, 4);
+    assert.equal(persistedPartial.profile_completion.context_completed, false);
+    await capture('profile-partial-saved', 'Dopo il salvataggio di quattro risposte effettive il richiamo resta presente con conteggio 4/5.',
+      { profile_completion: persistedPartial.profile_completion, section_d: persistedPartial.section_d });
 
     await page.goto('/goal');await expect(page.getByRole('heading',{name:'I tuoi obiettivi',exact:true})).toBeVisible();
     await capture('goal-selection','Temi e attività separate con modalità propria.');
@@ -180,17 +232,17 @@ try {
     await expect(page.getByRole("combobox", { name: "Qual è la tua situazione professionale?", exact: true })).toBeVisible();
     const select = page.getByRole("combobox", { name: "Qual è la tua situazione professionale?", exact: true });
     const choices = await select.locator("option").evaluateAll(options => options.map(option => option.value).filter(Boolean));
-    const next = choices.find(value => value !== saved.section_d.D1);
-    await select.selectOption(next);
-    for (let i = 2; i <= 5; i++) await page.locator(`select[name=D${i}]`).selectOption("undisclosed");
+    assert.ok(choices.every(value => value !== 'undisclosed'));
+    await expect(select).toHaveValue('student');
+    await page.locator('select[name=D5]').selectOption('adequate');
     await page.getByRole("button", { name: "Salva contesto personale", exact: true }).click();
     await expect(page.getByRole("status").filter({ hasText: "Contesto personale aggiornato." })).toBeVisible();
     const withContext = await api(context, "/skills/me");
     assert.deepEqual(withContext.known_skills, saved.known_skills);
     assert.deepEqual(withContext.mentor_skills, saved.mentor_skills);
     assert.equal(withContext.mentor_available, false);
-    assert.equal(withContext.section_d.D1, next);
-    trace.push({ action: "Impostazioni → Contesto personale → Salva", skills_and_pause_preserved: true });
+    assert.deepEqual(withContext.section_d,{...partial.section_d,D5:'adequate'});
+    trace.push({ action: "Impostazioni → Contesto personale → Salva", skills_and_pause_preserved: true, answered_count:5 });
     await capture("private-context", "Dati privati facoltativi in una sezione distinta delle impostazioni, salvataggio indipendente.");
 
     await page.goto('/dashboard');
@@ -238,6 +290,14 @@ try {
     await card.getByRole("button", { name: "Chiedi un confronto", exact: true }).click();
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
+    const sendRequest = dialog.getByRole("button", { name: "Invia richiesta", exact: true });
+    await expect(sendRequest).toBeDisabled();
+    const disabledBackground = await sendRequest.evaluate(element => getComputedStyle(element).backgroundColor);
+    assert.equal(disabledBackground, "rgb(230, 232, 233)", "Unavailable request action must use neutral gray");
+    await dialog.evaluate(element => { element.scrollTop = element.scrollHeight; });
+    await capture("agreement-disabled", "Messaggio obbligatorio e azione non disponibile chiaramente riconoscibili.",
+      { send_disabled: true, background: disabledBackground });
+    await dialog.evaluate(element => { element.scrollTop = 0; });
     await dialog.getByRole("radio", {name:/ETF/}).check();
     await dialog.getByRole("checkbox", { name: "Leggere e comprendere un ETF", exact: true }).check();
     await dialog.getByLabel("Il tuo messaggio").fill("Vorrei leggere insieme una scheda ETF e comprendere i suoi dati principali.");
@@ -337,7 +397,6 @@ try {
       assert.equal(cancelledExperience.mentor_available, true);
       await saveExperience.click();
       await removal.getByRole("button", { name: "Conferma", exact: true }).click();
-      await page.getByRole('button', {name:'Continua',exact:true}).click();
       await expect(page).toHaveURL(/\/dashboard$/);
       await expect(page.getByRole("status").filter({ hasText: /esperienza.*aggiornata/i })).toBeVisible();
       await expect(page.getByRole("region", { name: "I tuoi percorsi come mentor", exact: true }).getByText("Disponibilità mentor disattivata", { exact: true })).toBeVisible();
@@ -354,6 +413,131 @@ try {
       await api(context, "/skills/me", { method: "PUT", data: { known_skills: withContext.known_skills, mentor_skills: withContext.mentor_skills, idempotency_key: crypto.randomUUID() } });
       await api(context, "/profiles/me/mentor-status", { method: "PATCH", data: { is_coach: false } });
     }
+    const lifecycle = fixture.lifecycle[viewportName];
+    const lifecycleContexts = {};
+    for (const role of ["mentee", "mentor"]) {
+      const actorContext = await browser.newContext({ baseURL, viewport, isMobile: viewportName === "mobile", hasTouch: viewportName === "mobile" });
+      await login(actorContext, `lifecycle_${viewportName}_${role}`);
+      const actorPage = actorContext.pages()[0];
+      actorPage.setDefaultTimeout(20000);
+      actorPage.on("pageerror", error => pageErrors.push(error.message));
+      lifecycleContexts[role] = actorContext;
+    }
+    const menteeContext = lifecycleContexts.mentee;
+    const mentorContext = lifecycleContexts.mentor;
+    const menteePage = menteeContext.pages()[0];
+    const mentorPage = mentorContext.pages()[0];
+    const pathEndpoint = `/paths/${lifecycle.path_id}`;
+    const walletSnapshot = async () => ({
+      mentee: { wallet: await api(menteeContext, "/wallet/me"), transactions: await api(menteeContext, "/wallet/me/transactions") },
+      mentor: { wallet: await api(mentorContext, "/wallet/me"), transactions: await api(mentorContext, "/wallet/me/transactions") },
+    });
+    const opened = await api(menteeContext, pathEndpoint);
+    assert.equal(opened.status, "open");
+    assert.equal(opened.first_call_completed, false);
+    assert.equal(opened.skill_model, true);
+    const starting = await walletSnapshot();
+    for (const role of ["mentee", "mentor"]) {
+      assert.deepEqual(starting[role].wallet, lifecycle.wallet_before_open[role]);
+      assert.equal(starting[role].transactions.length, lifecycle.transaction_count_before_open[role]);
+    }
+    await menteePage.goto(pathEndpoint);
+    await expect(menteePage.getByRole("button", { name: "Chiudi il percorso" })).toBeVisible();
+    await capture("path-lifecycle-open", "Il percorso è aperto, senza prima call e senza movimento crediti.",
+      { path_id: lifecycle.path_id, request_id: lifecycle.request_id, first_call_completed: false,
+        cost_at_request: lifecycle.cost_at_request, mentor_reward_at_request: lifecycle.mentor_reward_at_request,
+        wallet: starting }, menteePage);
+    await menteePage.getByRole("button", { name: "Chiudi il percorso" }).click();
+    await menteePage.getByRole("dialog", { name: "Conferma la scelta" }).getByRole("button", { name: "Conferma" }).click();
+    await expect(menteePage.getByRole("link", { name: "Lascia feedback sul mentor" })).toBeVisible();
+    await menteePage.getByRole("link", { name: "Lascia feedback sul mentor" }).click();
+    await expect(menteePage.getByRole("heading", { name: "Cosa porti con te?" })).toBeVisible();
+    await menteePage.getByRole("combobox", { name: /Risultato:/ }).selectOption("partly");
+    await menteePage.getByRole("combobox", { name: "Chiarezza del confronto" }).selectOption("clear");
+    await menteePage.getByRole("combobox", { name: "Rifaresti questo percorso?" }).selectOption("yes");
+    await menteePage.getByRole("combobox", { name: "Hai ricevuto proposte commerciali esterne?" }).selectOption("no");
+    await menteePage.getByRole("button", { name: "Invia feedback" }).click();
+    await expect(menteePage).toHaveURL(new RegExp(`/paths/${lifecycle.path_id}`));
+    const waiting = await api(menteeContext, pathEndpoint);
+    assert.equal(waiting.status, "feedback_pending");
+    assert.equal(waiting.mentee_feedback_submitted, true);
+    assert.equal(waiting.mentor_feedback_submitted, false);
+    const afterFirst = await walletSnapshot();
+    for (const role of ["mentee", "mentor"]) {
+      assert.deepEqual(afterFirst[role].wallet, starting[role].wallet);
+      assert.equal(afterFirst[role].transactions.length, starting[role].transactions.length);
+    }
+    await capture("path-lifecycle-waiting", "Il primo feedback non muove i crediti; manca ancora il mentor.",
+      { path_id: lifecycle.path_id, status: waiting.status, wallet: afterFirst }, menteePage);
+    await mentorPage.goto(pathEndpoint);
+    await expect(mentorPage.getByRole("button", { name: "Chiudi il percorso" })).toBeVisible();
+    await mentorPage.getByRole("button", { name: "Chiudi il percorso" }).click();
+    await mentorPage.getByRole("dialog", { name: "Conferma la scelta" }).getByRole("button", { name: "Conferma" }).click();
+    await expect(mentorPage.getByRole("link", { name: "Lascia feedback sull’apprendista" })).toBeVisible();
+    await mentorPage.getByRole("link", { name: "Lascia feedback sull’apprendista" }).click();
+    await expect(mentorPage.getByRole("heading", { name: "Com’è andato il percorso?" })).toBeVisible();
+    await mentorPage.getByRole("combobox", { name: /Risultato:/ }).selectOption("partly");
+    await mentorPage.getByRole("combobox", { name: "Partecipazione dell’apprendista" }).selectOption("active");
+    await mentorPage.getByRole("button", { name: "Invia feedback" }).click();
+    await expect(mentorPage).toHaveURL(new RegExp(`/paths/${lifecycle.path_id}`));
+    const completed = await api(mentorContext, pathEndpoint);
+    assert.equal(completed.status, "completed");
+    const finalWallet = await walletSnapshot();
+    assert.equal(finalWallet.mentee.wallet.balance,
+      starting.mentee.wallet.balance - lifecycle.cost_at_request);
+    assert.equal(finalWallet.mentor.wallet.balance,
+      starting.mentor.wallet.balance + lifecycle.mentor_reward_at_request);
+    assert.equal(finalWallet.mentee.transactions.length,
+      starting.mentee.transactions.length + (lifecycle.cost_at_request > 0 ? 1 : 0));
+    assert.equal(finalWallet.mentor.transactions.length,
+      starting.mentor.transactions.length + (lifecycle.mentor_reward_at_request > 0 ? 1 : 0));
+    await capture("path-lifecycle-completed", "Solo il secondo feedback completa il percorso e applica costo e compenso fotografati nella richiesta.",
+      { path_id: lifecycle.path_id, status: completed.status, wallet: finalWallet }, mentorPage);
+    const reportText = `${lifecycle.report_marker}: segnalazione sintetica del percorso completato per verificare la coda admin.`;
+    await menteePage.goto(pathEndpoint);
+    await menteePage.getByText("Segnala un problema", { exact: true }).click();
+    await menteePage.getByLabel("Descrizione", { exact: true }).fill(reportText);
+    await menteePage.getByRole("button", { name: "Invia segnalazione" }).click();
+    await expect(menteePage.getByText("Segnalazione inviata al team Socra.")).toBeVisible();
+    const adminContext = await browser.newContext({ baseURL, viewport, isMobile: viewportName === "mobile", hasTouch: viewportName === "mobile" });
+    await login(adminContext, `lifecycle_${viewportName}_admin`);
+    const adminPage = adminContext.pages()[0];
+    adminPage.setDefaultTimeout(20000);
+    adminPage.on("pageerror", error => pageErrors.push(error.message));
+    const adminMe = await api(adminContext, "/auth/me");
+    assert.equal(adminMe.role, "admin");
+    assert.equal(adminMe.id, lifecycle.admin_id);
+    const queue = await api(adminContext, "/admin/review-queue");
+    const ownReviews = queue.filter(item => item.source_type === "report"
+      && item.payload?.path_id === lifecycle.path_id && item.payload?.reporter_id === lifecycle.mentee_id);
+    assert.equal(ownReviews.length, 1, "Fresh path must identify exactly one own report among retained fixture history");
+    const ownReview = ownReviews[0];
+    await adminPage.goto("/admin");
+    await expect(adminPage.getByRole("heading", { name: "Amministrazione" })).toBeVisible();
+    const reportCard = adminPage.getByText(ownReview.source_id, { exact: true }).first().locator("xpath=../../..");
+    await reportCard.getByRole("button", { name: "Esamina segnalazione" }).click();
+    await expect(reportCard.getByText(reportText, { exact: true })).toBeVisible();
+    const reportDetail = await api(adminContext, `/admin/review-queue/${ownReview.id}/report`);
+    assert.equal(reportDetail.details, reportText);
+    assert.equal(reportDetail.reporter_id, lifecycle.mentee_id);
+    assert.equal(reportDetail.path_id, lifecycle.path_id);
+    assert.equal(reportDetail.status, "open");
+    await capture("admin-report", "L’admin trova e legge il testo della segnalazione del percorso reale.",
+      { path_id: lifecycle.path_id, report_id: reportDetail.id, review_id: ownReview.id,
+        marker: lifecycle.report_marker, report_detail: reportDetail }, adminPage);
+    await reportCard.getByLabel("Motivazione della decisione").fill("Verifica sintetica conclusa senza violazione.");
+    await reportCard.getByRole("button", { name: "Archivia senza violazione" }).click();
+    await expect(adminPage.getByText(ownReview.source_id, { exact: true })).toHaveCount(0);
+    const resolved = await api(adminContext, `/admin/review-queue/${ownReview.id}/report`);
+    assert.equal(resolved.status, "dismissed");
+    assert.equal(resolved.resolution, "Verifica sintetica conclusa senza violazione.");
+    assert.ok(!(await api(adminContext, "/admin/review-queue")).some(item => item.id === ownReview.id));
+    await capture("admin-report-resolved", "La segnalazione archiviata esce dalla coda e conserva la motivazione.",
+      { path_id: lifecycle.path_id, report_id: resolved.id, review_id: ownReview.id,
+        report_status: resolved.status, resolution: resolved.resolution }, adminPage);
+    await adminContext.close();
+    await menteeContext.close();
+    await mentorContext.close();
     assert.deepEqual(pageErrors, [], "Uncaught browser errors");
     await context.close();
   }

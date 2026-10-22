@@ -105,14 +105,16 @@ motivo. Se l'evidenza manca, non attribuire 2. Registrare i difetti con gravità
 | ID | Domanda da verificare |
 |---|---|
 | objectives | Dashboard: numero/contenuto degli obiettivi comprensibili, abbreviazioni spiegate, sezioni inferiori compatte e saluto/username lungo interamente leggibile senza tagli o margini persi su mobile? |
-| private-context | Esperienza centrata sulle capacità; privacy e finalità comprensibili; contesto con cinque scelte anche PNR, unico Continua nella survey e salvataggio separato nelle impostazioni; nome pubblico/email lunghi leggibili senza tagli o margini persi? |
-| experience-save | Risposte precompilate, modifica persistita senza casella ridondante, contesto salvato prima di Continua e ritorno dashboard; pausa e contesto conservati? |
+| private-context | Esperienza centrata sulle capacità; finalità e riservatezza sempre visibili nel contesto; Salta disponibile, Salva e continua grigio con zero risposte effettive e attivo da una risposta; salvataggio separato nelle impostazioni; nome pubblico/email lunghi leggibili senza tagli o margini persi? |
+| experience-save | Risposte precompilate, modifica persistita senza casella ridondante e ritorno diretto alla dashboard; pausa e risposte del contesto già salvate conservate senza chiedere di ricompilarle? |
 | goal-hierarchy | Tema, obiettivi e modalità distinguibili velocemente, anche su mobile? |
 | matching-score | Percentuale di compatibilità reale visibile, distinta da copertura e disponibilità, nel risultato finale caricato? |
 | partial-agreement | Attività incluse/escluse comprensibili e stessa selezione nella richiesta salvata? |
 | mentor-paths | “Vedi i percorsi” apre davvero i propri percorsi anche in pausa, senza riattivare la disponibilità, con contenuto finale caricato? |
 | preparation | Barre per singolo tema con numeratore/denominatore, capacità conosciute distinte dalle offerte e dalle conferme? |
 | mentor-removal | Rimuovere l'ultima offerta nelle impostazioni o nell'esperienza spiega la disattivazione, permette di annullare senza scritture e lascia accessibili i percorsi già aperti? |
+| path-lifecycle | Su desktop e mobile, un percorso V4 aperto senza prima call si può chiudere da entrambi i lati e concludere con feedback bilaterale? Le schermate spiegano che addebito e accredito avvengono solo dopo entrambi i feedback, in coerenza con gli snapshot di wallet e transazioni nei JSON? |
+| report-management | Dopo il completamento, l'apprendista riesce a segnalare il percorso e l'admin trova la propria segnalazione, legge il testo reale e può archiviarla con una motivazione? La coda e il dettaglio API concordano dopo la decisione? |
 
 Fixture discriminanti: il learner ha un percorso attivo come mentor ma è in
 pausa; il mentor ha 4/6 capacità ETF conosciute, solo 2 offerte e 2/6 Azioni
@@ -121,6 +123,33 @@ copre 2, e lo score API è diverso da 67%. Il runner modifica una capacità,
 salva/rilegge il contesto, invia una richiesta con una sola attività e poi la
 annulla modificando il tema interessato, conservando lo storico e gli account separati per viewport. Queste azioni restano nello
 storico dei soli account sintetici; non cancellano dati.
+
+Il runner crea inoltre una coppia sintetica nuova per viewport, apre un percorso
+V4 con costo e compenso fotografati nella richiesta e registra i wallet prima e
+dopo l'apertura. Il browser entra con i moduli reali, chiude ciascun lato e
+invia i feedback. Gli artefatti `path-lifecycle-open`, `path-lifecycle-waiting`
+e `path-lifecycle-completed` includono schermate e snapshot JSON di wallet e
+transazioni: nessun movimento all'apertura o dopo il primo feedback, addebito
+e accredito soltanto al completamento. `public-entry` documenta l'accesso
+visibile e `agreement-disabled` lo stato della richiesta ancora incompleta.
+La stessa coppia apre una segnalazione con un marcatore unico per esecuzione;
+un admin sintetico separato per viewport entra dal form reale, esamina il testo
+e archivia senza violazione. `admin-report` e `admin-report-resolved` conservano
+schermate, identificativi della propria segnalazione e stato API nel manifest.
+Una persona aggiuntiva per viewport completa la survey legacy tramite il
+servizio normale, senza creare il profilo esperienza V4: `profile-locked-dashboard`
+e `profile-locked-settings` mostrano il pulsante del contesto visibile e
+disabilitato, insieme al link che porta prima all'esperienza.
+`profile-partial-saved` mostra inoltre il banner 4/5 dopo il salvataggio e la
+rilettura API, prima della quinta risposta nelle impostazioni.
+
+Follow-up navigazione 22/10: verificare anche il clic reale su «Completa il
+profilo» dalla dashboard, con caricamento ritardato delle impostazioni, e il
+secondo clic nelle impostazioni con lo stesso hash già presente. Il titolo
+«Contesto personale» deve essere nella viewport e ricevere il focus; una
+sezione aperta più in basso nel documento non basta. Le regressioni sono in
+`tests/e2e/profile-completion-v4.spec.ts`. La review precedente dei 35 scenari
+non copriva questa condizione di scorrimento.
 
 ## Limiti
 
@@ -140,18 +169,32 @@ Ora 22 scenari e 14 criteri per viewport. Fixture con due apprendisti distinti p
 |---|---|
 | multi-goals | Tutti i temi selezionati sono visibili e modificabili separatamente, mantenendo 1–3 attività e modalità proprie? |
 | matching-pagination | «Mostra altri» raggiunge più di dieci persone senza duplicati e preserva tutti i temi di ogni scheda? |
-| profile-completion | Contesto sempre proposto nella survey, scelta sostanziale facoltativa tramite PNR, Continua assente con zero/quattro scelte e presente con cinque; banner privato incompleto e sua scomparsa dopo cinque risposte realmente salvate? |
+| profile-completion | Contesto facoltativo saltabile senza scritture; risposta parziale persistita, conteggio delle sole risposte effettive, banner ancora presente a quattro e scomparsa dopo cinque; pulsante contesto visibile ma disabilitato finché l’esperienza manca? |
 | offer-help | «Posso aiutare» spiegato con clic/tocco/tastiera senza cambiare capacità, offerte o disponibilità? |
 | goal-cancellation | La modifica avvisa prima di annullare la proposta e lo stato terminale è comprensibile senza aprire percorsi? |
 
 ## Revisione survey e verifica email del 06/10
 
-Ora 25 scenari e 15 criteri per viewport. Il passo contesto ha un solo «Continua»,
+Storico precedente alla revisione del 22/10: 25 scenari e 15 criteri per viewport. Il passo contesto aveva un solo «Continua»,
 visibile dopo cinque scelte valide e capace di salvare prima della destinazione;
 ogni domanda conserva PNR. Capture a zero, quattro e cinque risposte e aiuto
 «Perché ci serve questa informazione?» aperto con tastiera/tocco. La modifica
 dell’esperienza mantiene il contesto prima che la persona lo salvi esplicitamente;
 le impostazioni conservano la loro azione separata. Nessun «Salta per ora».
+
+## Revisione del contesto personale del 22/10
+
+La cattura corrente comprende 35 scenari e 17 criteri per viewport, inclusi
+il ciclo del percorso, le segnalazioni admin e gli stati del contesto. Dopo
+la conferma dell’esperienza la dashboard compare direttamente e conserva il
+contesto precedente. Il contesto facoltativo si apre separatamente: a zero
+risposte mostra Salta e Salva e continua disabilitato, a una risposta effettiva
+abilita il salvataggio, a quattro lo consente ancora. La cattura esegue Salta
+senza scrivere dati, poi salva quattro risposte tramite API reale e aggiunge la
+quinta dalle impostazioni. Il banner resta fino a cinque risposte effettive;
+«Preferisco non rispondere» non è più tra le scelte del modulo V4. Il testo di
+finalità e riservatezza è visibile senza aprire un aiuto. La survey storica V3
+conserva la propria opzione PNR e non è oggetto di questa cattura.
 
 | ID | Domanda da verificare |
 |---|---|

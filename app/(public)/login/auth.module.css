@@ -235,8 +235,11 @@
 }
 
 .submit:disabled {
+  background: var(--disabled-surface);
+  border-color: var(--disabled-line);
+  color: var(--disabled-text);
   cursor: wait;
-  opacity: 0.62;
+  opacity: 1;
 }
 
 .submit:active:not(:disabled) { transform: scale(.98); }

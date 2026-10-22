@@ -424,7 +424,13 @@
   }
 
   .loginLink {
-    display: none;
+    background: #fff;
+    border: 1px solid var(--control-line);
+    color: var(--ink);
+    display: inline-flex;
+    font-weight: 650;
+    justify-content: center;
+    padding-inline: 14px;
   }
 
   .mobileToggle {
@@ -453,6 +459,24 @@
     justify-content: space-between;
     min-height: 46px;
     padding: 10px 14px;
+  }
+
+  .mobilePanel .mobileRegisterLink {
+    align-items: center;
+    background: var(--gold-500);
+    border-radius: 8px;
+    color: var(--ink);
+    display: none;
+    font-size: .96rem;
+    font-weight: 650;
+    min-height: 46px;
+    padding: 10px 14px;
+    text-decoration: none;
+  }
+
+  .mobilePanel .mobileRegisterLink:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 3px;
   }
 
   .mobilePanel .navLink[aria-current="page"] {
@@ -536,6 +560,12 @@
   .actionOnDark {
     width: 100%;
   }
+}
+
+@media (max-width: 380px) {
+  .navActions { gap: 6px; }
+  .navCta { display: none; }
+  .mobilePanel .mobileRegisterLink { display: inline-flex; }
 }
 
 @media (prefers-reduced-motion: reduce) {
