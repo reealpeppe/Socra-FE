@@ -19,7 +19,7 @@ const STEPS = [
     icon: Handshake,
     eyebrow: "2 · Richiesta",
     title: "Il mentor ha 48 ore per rispondere",
-    body: "Inviare una proposta non apre ancora il percorso. Quando l’altra persona accetta, nasce il percorso e viene addebitato un credito all’apprendista.",
+    body: "Inviare una proposta non apre ancora il percorso. Quando l’altra persona accetta, il percorso si apre. Il costo previsto viene addebitato all’apprendista solo dopo i feedback di entrambi.",
     note: "Puoi avere un solo percorso attivo come apprendista; un mentor può seguirne al massimo tre.",
   },
   {

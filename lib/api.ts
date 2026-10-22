@@ -161,7 +161,7 @@ const ERROR_TRANSLATIONS: Record<string, string> = {
   "Mentee must review the completed path goal before starting a new cycle": "Rivedi l’obiettivo del percorso completato prima di iniziare un nuovo ciclo.",
   "Mentor has reached open path capacity": "Il mentor ha già raggiunto il limite di tre percorsi aperti.",
   "Wallet account is required": "Portafoglio crediti non disponibile.",
-  "Insufficient balance for L0/L1 path": "I crediti disponibili non bastano per aprire questo percorso.",
+  "Insufficient balance for L0/L1 path": "I crediti disponibili non bastano per questo percorso.",
   "Match request not found": "Richiesta non disponibile.",
   "Only the requested mentor can respond": "Solo il mentor destinatario può rispondere.",
   "Only the recipient of the proposal can respond": "Solo la persona che ha ricevuto la proposta può rispondere.",

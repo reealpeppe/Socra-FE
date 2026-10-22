@@ -15,6 +15,19 @@ type ReviewItem = {
   payload: Record<string, unknown>;
 };
 
+type ReportDetail = {
+  id: string;
+  review_item_id: string;
+  path_id: string | null;
+  reporter_id: string;
+  mentee_id: string | null;
+  mentor_id: string | null;
+  reason: string;
+  details: string | null;
+  status: string;
+  resolution: string | null;
+};
+
 const SEVERITY_STYLES: Record<string, { bg: string; color: string }> = {
   critical: { bg: "#fee2e2", color: "#dc2626" },
   high:     { bg: "#fff4dd", color: "#b07d1a" },
@@ -72,6 +85,73 @@ function ExternalReviewActions({ reviewId, onDone }: { reviewId: string; onDone:
     <div className="cluster">
       <button className="button dark" disabled={busy || !checked || reason.trim().length < 20} onClick={() => void decide(true)}>Approva verifica</button>
       <button className="button secondary" disabled={busy || reason.trim().length < 20} onClick={() => void decide(false)}>Non approvare</button>
+    </div>
+    {error ? <p className="error" role="alert">{error}</p> : null}
+  </div>;
+}
+
+function ReportReviewActions({ reviewId, onDone }: { reviewId: string; onDone: () => void }) {
+  const [report, setReport] = useState<ReportDetail | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [reason, setReason] = useState("");
+  const [targetUserId, setTargetUserId] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  async function loadReport() {
+    if (loading) return;
+    setLoading(true); setError(null);
+    try {
+      setReport(await clientGet<ReportDetail>(`/admin/review-queue/${reviewId}/report`));
+    } catch (err) { setError(err instanceof Error ? err.message : "Segnalazione non disponibile."); }
+    finally { setLoading(false); }
+  }
+
+  async function decide(confirm: boolean) {
+    if (busy || reason.trim().length < 10 || (confirm && !targetUserId.trim())) return;
+    setBusy(true); setError(null);
+    try {
+      await clientPost(`/admin/review-queue/${reviewId}/decision`, {
+        confirm, target_user_id: confirm ? targetUserId.trim() : null, reason: reason.trim()
+      });
+      onDone();
+    } catch (err) { setError(err instanceof Error ? err.message : "Decisione non salvata."); }
+    finally { setBusy(false); }
+  }
+
+  if (!report) return <div className="stack">
+    <button className="button secondary" type="button" disabled={loading} onClick={() => void loadReport()}>
+      {loading ? "Caricamento…" : "Esamina segnalazione"}
+    </button>
+    {error ? <p className="error" role="alert">{error}</p> : null}
+  </div>;
+
+  return <div className="stack">
+    <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--radius-sm)", padding: "12px" }}>
+      <p style={{ fontWeight: 650, margin: "0 0 6px" }}>Testo della segnalazione</p>
+      <p style={{ margin: 0, overflowWrap: "anywhere", whiteSpace: "pre-wrap" }}>{report.details || "Nessun dettaglio fornito."}</p>
+      <small className="muted">Autore: {report.reporter_id}{report.path_id ? ` · Percorso: ${report.path_id}` : ""}</small>
+    </div>
+    <label htmlFor={`report-target-${reviewId}`}>Account coinvolto nella violazione confermata</label>
+    {report.mentee_id && report.mentor_id ? <select
+      id={`report-target-${reviewId}`} className="input" value={targetUserId} disabled={busy}
+      onChange={(event) => setTargetUserId(event.target.value)}
+    >
+      <option value="">Seleziona solo dopo la verifica</option>
+      <option value={report.mentee_id}>Apprendista · {report.mentee_id}{report.reporter_id === report.mentee_id ? " (autore)" : ""}</option>
+      <option value={report.mentor_id}>Mentor · {report.mentor_id}{report.reporter_id === report.mentor_id ? " (autore)" : ""}</option>
+    </select> : <input
+      id={`report-target-${reviewId}`} className="input" value={targetUserId} disabled={busy}
+      onChange={(event) => setTargetUserId(event.target.value)} placeholder="ID account verificato" />}
+    <small className="muted">Serve soltanto per confermare una violazione; per archiviare la segnalazione non selezionare un account.</small>
+    <label htmlFor={`report-reason-${reviewId}`}>Motivazione della decisione</label>
+    <textarea id={`report-reason-${reviewId}`} className="input" minLength={10} maxLength={255}
+      value={reason} disabled={busy} onChange={(event) => setReason(event.target.value)} />
+    <div className="cluster">
+      <button className="button dark" type="button" disabled={busy || reason.trim().length < 10 || !targetUserId.trim()}
+        onClick={() => void decide(true)}>Conferma violazione</button>
+      <button className="button secondary" type="button" disabled={busy || reason.trim().length < 10}
+        onClick={() => void decide(false)}>Archivia senza violazione</button>
     </div>
     {error ? <p className="error" role="alert">{error}</p> : null}
   </div>;
@@ -306,6 +386,7 @@ export default function AdminPage() {
                         </div>
                       ))}
                       {item.source_type === "external_competence_v3" && item.status === "open" ? <ExternalReviewActions reviewId={item.id} onDone={() => setRetryVersion((value) => value + 1)} /> : null}
+                      {item.source_type === "report" && item.status === "open" ? <ReportReviewActions reviewId={item.id} onDone={() => setRetryVersion((value) => value + 1)} /> : null}
                     </div>
 
                   </div>

@@ -149,7 +149,7 @@ function MenteeMatchingContent() {
           <UsersRound size={22} aria-hidden />
           <span>La tua disponibilità</span>
           <strong>{activeMentorPaths === null ? "Capacità in verifica" : `${activeMentorPaths} di 3 percorsi attivi`}</strong>
-          <small>Il costo è addebitato all’apprendista solo quando accetta.</small>
+          <small>Il costo previsto viene addebitato all’apprendista dopo i feedback di entrambi.</small>
         </div>
       </header>
 
@@ -462,20 +462,11 @@ function MenteeMatchingContent() {
           transform: translateY(-1px);
         }
 
-      .mentee-proposal-button.sent {
-        background: var(--brand-blue-soft, #edf2f6);
-        color: var(--brand-blue, #20313e);
-        cursor: default;
-      }
-
-      .mentee-proposal-button.pending:disabled {
-        background: #fff1cd;
-        color: #8a6111;
-      }
-
-      .mentee-proposal-button.unavailable:disabled {
-        background: #eef1f4;
-        color: var(--muted);
+      .mentee-proposal-button:disabled {
+        background: var(--disabled-surface);
+        border: 1px solid var(--disabled-line);
+        color: var(--disabled-text);
+        cursor: not-allowed;
       }
 
         .mentee-search-empty {

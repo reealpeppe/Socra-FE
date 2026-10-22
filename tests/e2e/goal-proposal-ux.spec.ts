@@ -127,7 +127,7 @@ test("incoming mentor offer links to the mentor public profile", async ({ page }
   await page.goto("/requests?tab=received");
   await expect(page.getByText("Ti propone di essere il tuo mentor")).toBeVisible();
   await expect(page.getByRole("link", { name: /Profilo di Anna/ })).toHaveAttribute("href", "/profiles/mentor-1?from=requests&tab=received");
-  await expect(page.getByText(/Costo all.accettazione: 1 credito/)).toBeVisible();
+  await expect(page.getByText(/Costo dopo i feedback di entrambi: 1 credito/)).toBeVisible();
 });
 
 test("a learner profile opened from a proposal stays public and returns to proposals", async ({ page }) => {

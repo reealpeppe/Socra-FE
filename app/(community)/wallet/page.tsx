@@ -23,9 +23,9 @@ const TX_TYPE_STYLES: Record<string, { background: string; color: string; label:
 
 const TX_REASON_LABELS: Record<string, string> = {
   initial_grant: "Dotazione iniziale",
-  path_payment: "Apertura percorso",
+  path_payment: "Costo del percorso",
   path_reward: "Percorso completato",
-  credit_advance_used: "Apertura percorso con anticipo",
+  credit_advance_used: "Utilizzo credito anticipato",
   credit_advance_settled: "Credito maturato destinato all’anticipo",
   invitation_bonus: "Bonus invito"
 };
@@ -132,7 +132,7 @@ export default function WalletPage() {
           ) : transactions.length === 0 ? (
             <div className="wallet-empty">
               <strong>Nessun movimento</strong>
-              <p className="muted">I movimenti appariranno quando apri o completi percorsi.</p>
+              <p className="muted">I movimenti appariranno quando ricevi crediti o completi percorsi.</p>
             </div>
           ) : (
             <div className="wallet-tx-list">

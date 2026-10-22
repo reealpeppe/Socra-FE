@@ -82,7 +82,7 @@ export function InvitationProposal({invitationId}:{invitationId:string}){
             <button className="button primary" disabled={busy||!sharing||(!requirements.mentor_available&&!available)} aria-busy={busy} onClick={()=>void act('accept')}>{busy?'Apertura del percorso…':'Accetta e inizia il percorso'}</button>
           </>}
         </section>:<p role="status">{invitationStateLabel[value.status]||'In attesa di risposta'}</p>}
-      <details className={styles.benefits}><summary>Crediti e bonus</summary><div><p>Il mentor riceve 1 credito al completamento. Questo percorso non usa i crediti dell’invitante.</p><p>{value.bonus_eligible===true?'Quando completerete il primo percorso insieme, riceverete anche 3 coin bonus ciascuno.':value.bonus_eligible===false?'Il bonus per nuovi iscritti non si applica a questo invito.':'Il bonus di 3 coin ciascuno al completamento vale solo per persone nuove su Socra.'}</p></div></details>
+      <details className={styles.benefits}><summary>Crediti e bonus</summary><div><p>Il mentor riceve 1 credito dopo i feedback di entrambi. Questo percorso non usa i crediti dell’invitante.</p><p>{value.bonus_eligible===true?'Quando completerete il primo percorso insieme, riceverete anche 3 coin bonus ciascuno.':value.bonus_eligible===false?'Il bonus per nuovi iscritti non si applica a questo invito.':'Il bonus di 3 coin ciascuno al completamento vale solo per persone nuove su Socra.'}</p></div></details>
       <footer className={styles.proposalFooter}>{active?<button className={styles.quietButton} disabled={busy} onClick={()=>void act('decline')}>Rifiuta invito</button>:<Link className={styles.link} href="/inviti?elenco=1">I tuoi inviti</Link>}</footer>
     </article>
   </div>;

@@ -24,5 +24,5 @@
 .action { width: 100%; background: var(--brand-gold); color: var(--ink); border: 1px solid var(--brand-gold-border); border-radius: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 11px 14px; min-height: 44px; font-size: .9375rem; font-weight: 500; text-align: left; }
 .action svg { flex-shrink: 0; }
 .action:hover:not(:disabled) { background: var(--gold-400); transform: none; }
-.action:disabled { background: var(--brand-blue-soft); color: var(--muted); opacity: 1; }
+.action:disabled { background: var(--disabled-surface); border-color: var(--disabled-line); color: var(--disabled-text); cursor: not-allowed; opacity: 1; }
 @media (max-width: 520px) { .card { padding: 21px; } .identity { gap: 11px; margin-bottom: 18px; } .name a { min-height: 38px; } }

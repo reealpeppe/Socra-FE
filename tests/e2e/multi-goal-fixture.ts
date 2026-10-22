@@ -18,10 +18,18 @@ export async function fixture(page: Page, baseURL: string, options: {empty?:bool
     const method=route.request().method();
     const body=method==='GET'?null:route.request().postDataJSON();
     if(p==='/goals/me/selection'){state.selectionWrites++;state.selections=body.selections.map((s: typeof etf)=>({...s,id:`g-${s.topic}`,topic_code:s.topic,topic:catalog.topics.find(t=>t.code===s.topic)?.label,skill_model:true,is_active:true,objective_labels:s.objective_codes.map(c=>catalog.topics.flatMap(t=>t.skills).find(a=>a.code===c)?.label)}));}
-    if(p==='/skills/me/context'){state.contextWrites++;state.profile={...state.profile,section_d:body.section_d,version:state.profile.version+1};}
+    if(p==='/skills/me/context'){
+      state.contextWrites++;
+      const sectionD={...state.profile.section_d};
+      for(const [key,value] of Object.entries(body.section_d ?? {})){
+        if(value===null)delete sectionD[key];
+        else sectionD[key]=value as string;
+      }
+      state.profile={...state.profile,section_d:sectionD,version:state.profile.version+1};
+    }
     if(p==='/skills/me'&&method==='PUT'){state.profile={...state.profile,...body,version:state.profile.version+1};profileSaved=true;}
     if(p==='/matching/requests'&&method==='POST')state.sent=body;
-    const answered=Object.values(state.profile.section_d).filter(Boolean).length;
+    const answered=Object.values(state.profile.section_d).filter(value=>Boolean(value)&&value!=='undisclosed').length;
     const user={id:'u1',username:'test_user',nickname:'Giulia',email:'test@example.com',level:'L0',role:'user',account_status:'active',is_coach:true,email_verified:true};
     const goals={current:state.selections[0]??null,active_goals:state.selections,goals:state.selections};
     const data:Record<string,unknown>={

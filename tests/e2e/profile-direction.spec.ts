@@ -51,6 +51,28 @@ async function prepareProposal(page: Page, topic: 'ETF' | 'Azioni', objective: s
   await dialog.getByRole('button', { name: 'Invia richiesta', exact: true }).click();
 }
 
+test('comparison request explains the required message and visually separates unavailable send', async ({ page, baseURL }, testInfo) => {
+  await profileFixture(page, baseURL!);
+  await page.goto('/profiles/mentor?from=matching&role=mentee');
+  await page.getByRole('button', { name: 'Invia richiesta al mentor', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  const message = dialog.getByRole('textbox', { name: 'Il tuo messaggio' });
+  const send = dialog.getByRole('button', { name: 'Invia richiesta', exact: true });
+  await expect(dialog.getByText(/obbligatorio.*20.*500 caratteri/i)).toBeVisible();
+  await expect(message).toHaveAttribute('aria-describedby', /alignment-help/);
+  await expect(send).toBeDisabled();
+  const unavailable = await send.evaluate(element => getComputedStyle(element).backgroundColor);
+  await send.scrollIntoViewIfNeeded();
+  await dialog.screenshot({ path: testInfo.outputPath('request-dialog-disabled.png') });
+  await message.fill('Vorrei capire come scegliere un ETF per iniziare.');
+  await dialog.getByRole('radio', { name: /ETF/ }).check();
+  await dialog.getByRole('checkbox', { name: 'Leggere la scheda di un ETF' }).check();
+  await dialog.getByRole('checkbox', { name: /Accetto.*email/ }).check();
+  await expect(send).toBeEnabled();
+  await expect(send).not.toHaveCSS('background-color', unavailable);
+  await dialog.screenshot({ path: testInfo.outputPath('request-dialog-ready.png') });
+});
+
 test('mentor opens learner profile and proposes only covered objectives without own goals', async ({ page, baseURL }, testInfo) => {
   const state = await profileFixture(page, baseURL!, { ownGoals: false });
   await page.goto('/matching/mentees');

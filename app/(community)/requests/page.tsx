@@ -166,7 +166,7 @@ function RequestsContent() {
         return;
       }
       const costCopy = typeof cost === "number" && cost > 0
-        ? ` Il percorso costerà ${cost} ${cost === 1 ? "credito" : "crediti"}. Crediti disponibili: ${availableCredits(currentWallet) ?? "non disponibili"}.${cost === 1 && currentWallet?.advance_available === 1 ? " Questo percorso utilizzerà il tuo credito anticipato." : ""}`
+        ? ` Il percorso costerà ${cost} ${cost === 1 ? "credito" : "crediti"}, addebitati dopo i feedback di entrambi. Crediti disponibili: ${availableCredits(currentWallet) ?? "non disponibili"}.${cost === 1 && currentWallet?.advance_available === 1 ? " Il credito anticipato potrà coprire questo costo, se ancora disponibile." : ""}`
         : "";
       if (!await confirm(`Vuoi accettare e aprire questo percorso?${costCopy}`, { emailSharing: true })) return;
     }
@@ -377,7 +377,7 @@ function RequestRow({
           {request.alignment_message ? <p className="requests-message"><span>Messaggio iniziale</span><span>{request.alignment_message}</span></p> : null}
           {isReceived && initiatedByMentor && typeof request.cost_at_request === "number" ? (
             <span>
-              {request.status === "pending" ? "Costo all’accettazione" : request.status === "accepted" ? "Costo del percorso" : "Costo proposto"}: {request.cost_at_request} {request.cost_at_request === 1 ? "credito" : "crediti"}
+              {request.status === "pending" ? "Costo dopo i feedback di entrambi" : "Costo previsto per il percorso"}: {request.cost_at_request} {request.cost_at_request === 1 ? "credito" : "crediti"}
             </span>
           ) : null}
         </div>

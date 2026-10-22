@@ -62,7 +62,7 @@ export function AlignmentDialog({ name, userId, avatarUrl, topic, mode, mentorPr
         <div className={styles.heading}><h2 id="alignment-title">{mentorProposal ? "Proponi un percorso" : "Chiedi un confronto"}</h2><p><strong>{name}</strong>{selectedTopic ? <span className={styles.topic}>{selectedTopic}</span> : null}</p></div>
         <button className={styles.close} type="button" aria-label="Chiudi richiesta" disabled={busy} onClick={onClose}><X size={18} aria-hidden="true" /></button>
       </header>
-      {!mentorProposal && wallet?.advance_available === 1 ? <p className={styles.coverage}>Quando la proposta verrà accettata, questo percorso utilizzerà il tuo credito anticipato. La disponibilità sarà verificata all’accettazione.</p> : null}
+      {!mentorProposal && wallet?.advance_available === 1 ? <p className={styles.coverage}>Puoi usare il credito anticipato per questo percorso. La disponibilità sarà verificata all’accettazione; l’eventuale addebito avverrà dopo i feedback di entrambi.</p> : null}
       {matches && matches.length > 1 ? <fieldset className={styles.fieldset} disabled={busy}><GoalMatchChoices matches={matches} selectedGoalId={selectedGoalId} onSelect={id => { setSelectedGoalId(id); setAgreed([]); }} /></fieldset> : null}
       {needsAgreement && selectedCoverage ? <fieldset className={styles.fieldset} disabled={busy}>
         <legend>Su cosa vuoi lavorare?</legend>
@@ -75,9 +75,10 @@ export function AlignmentDialog({ name, userId, avatarUrl, topic, mode, mentorPr
       </fieldset> : null}
       <div className={styles.message}>
         <label htmlFor="alignment-message">Il tuo messaggio</label>
+        <p id="alignment-help" className={styles.help}>Messaggio obbligatorio: da 20 a 500 caratteri per spiegare cosa vorresti approfondire insieme.</p>
         <textarea id="alignment-message" required minLength={20} maxLength={500} rows={3} placeholder={mentorProposal ? "Racconta l’esperienza che puoi condividere su questo obiettivo…" : "Racconta da dove parti e cosa vuoi capire insieme…"}
-          value={message} disabled={busy} onChange={event => setMessage(event.target.value)} aria-describedby="alignment-count" />
-        <span id="alignment-count" className={styles.count}>{message.trim().length}/500 · min. 20</span>
+          value={message} disabled={busy} onChange={event => setMessage(event.target.value)} aria-describedby="alignment-help alignment-count" />
+        <span id="alignment-count" className={styles.count}>{message.trim().length}/500 caratteri</span>
       </div>
       <EmailSharingNotice compact accepted={emailSharing} onChange={setEmailSharing} disabled={busy} />
       {error ? <p className={styles.error} role="alert">{error}</p> : null}

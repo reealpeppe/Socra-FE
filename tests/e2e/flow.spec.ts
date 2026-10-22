@@ -907,7 +907,7 @@ test("accepting a mentor proposal confirms both path cost and available credits"
   });
 
   await page.goto("/requests?tab=received");
-  await expect(page.getByText(/Costo all.accettazione: 2 crediti/)).toBeVisible();
+  await expect(page.getByText(/Costo dopo i feedback di entrambi: 2 crediti/)).toBeVisible();
   await page.getByRole("button", { name: "Accetta" }).click();
   await expect(page.getByRole("dialog")).toContainText("Il percorso costerà 2 crediti");
   await expect(page.getByRole("dialog")).toContainText("Crediti disponibili: 10");
@@ -977,6 +977,37 @@ test("non-admin users see an access-denied state without admin queue metrics", a
   await expect(page.getByRole("heading", { name: "Area riservata" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Amministrazione" })).toHaveCount(0);
   await expect(page.getByText("Verifiche attive")).toHaveCount(0);
+});
+
+test("admin can read a report and confirm it with a target and reason", async ({ page }) => {
+  let resolved = false;
+  let decision: Record<string, unknown> | null = null;
+  await page.route("**/api/backend/admin/review-queue", async (route) => route.fulfill({ json: resolved ? [] : [{
+    id: "review-1", source_type: "report", source_id: "report-1", status: "open", severity: "high",
+    payload: { report_id: "report-1", reason: "path_issue" }
+  }] }));
+  await page.route("**/api/backend/admin/review-queue/review-1/report", async (route) => route.fulfill({ json: {
+    id: "report-1", review_item_id: "review-1", path_id: "path-1", reporter_id: "mentee-1",
+    mentee_id: "mentee-1", mentor_id: "mentor-1", reason: "path_issue",
+    details: "La controparte ha chiesto dati privati.", status: "open", resolution: null
+  } }));
+  await page.route("**/api/backend/admin/review-queue/review-1/decision", async (route) => {
+    decision = route.request().postDataJSON() as Record<string, unknown>;
+    resolved = true;
+    await route.fulfill({ json: { id: "review-1", status: "confirmed" } });
+  });
+
+  await page.goto("/admin");
+  await expect(page.getByRole("heading", { name: "Amministrazione" })).toBeVisible();
+  await expect(page.getByText("La controparte ha chiesto dati privati.")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Esamina segnalazione" })).toBeVisible();
+  await page.getByRole("button", { name: "Esamina segnalazione" }).click();
+  await expect(page.getByText("La controparte ha chiesto dati privati.")).toBeVisible();
+  await page.getByLabel("Account coinvolto nella violazione confermata").selectOption("mentor-1");
+  await page.getByLabel("Motivazione della decisione").fill("Richiesta impropria verificata.");
+  await page.getByRole("button", { name: "Conferma violazione" }).click();
+  await expect(page.getByText("Nessun elemento")).toBeVisible();
+  expect(decision).toEqual({ confirm: true, target_user_id: "mentor-1", reason: "Richiesta impropria verificata." });
 });
 
 test("profile restores a pending request without requiring candidate reload", async ({ page }) => {
@@ -1090,9 +1121,7 @@ test("paths are grouped by current user role", async ({ page }) => {
   await expect(page.getByText("mentor_goal")).toBeVisible();
 });
 
-test("first-session verification uses user-safe provider states", async ({ page }) => {
-  let verificationStatus: "verified" | "pending_provider_metadata" | "insufficient_participants" = "pending_provider_metadata";
-  let firstCallCompleted = false;
+test("path exposes a reusable Meet link and replacement only when requested", async ({ page }) => {
   const path = {
     id: "path-sync",
     status: "open",
@@ -1109,7 +1138,7 @@ test("first-session verification uses user-safe provider states", async ({ page 
     goal_review_completed: false
   };
   await page.route("**/api/backend/paths/path-sync", async (route) => {
-    await route.fulfill({ json: { ...path, first_call_completed: firstCallCompleted } });
+    await route.fulfill({ json: { ...path, first_call_completed: false } });
   });
   await page.route("**/api/backend/calls/first-session/room?path_id=path-sync", async (route) => {
     await route.fulfill({ json: {
@@ -1129,37 +1158,25 @@ test("first-session verification uses user-safe provider states", async ({ page 
       updated_at: "2026-07-25T12:00:00Z"
     } });
   });
-  await page.route("**/api/backend/calls/first-session/sync-metadata", async (route) => {
-    if (verificationStatus === "verified") firstCallCompleted = true;
-    await route.fulfill({ json: {
-      metadata_id: verificationStatus === "verified" ? "metadata-1" : null,
-      verification_status: verificationStatus,
-      transcripts_enabled: false,
-      anomaly_flags: [],
-      conference_record_name: null,
-      active_participants_count: verificationStatus === "verified" ? 2 : 1,
-      conferences_synced: 0,
-      participant_sessions_synced: 0,
-      transcripts_synced: 0,
-      transcript_entries_synced: 0
-    } });
+  let replacements = 0;
+  await page.route("**/api/backend/calls/first-session/room/replace", async (route) => {
+    replacements += 1;
+    await route.fulfill({ json: { id: "room-2", path_id: path.id, status: "active", join_url: "https://meet.google.com/new-room-abc", provider_meeting_code: "new-room-abc" } });
   });
 
   await page.goto("/paths/path-sync");
-  await page.getByRole("button", { name: "Verifica prima sessione" }).click();
-  await expect(page.getByRole("status")).toContainText("Google sta ancora elaborando");
-
-  verificationStatus = "insufficient_participants";
-  await page.getByRole("button", { name: "Verifica prima sessione" }).click();
-  await expect(page.getByText(/Non risultano almeno due partecipanti alla prima sessione/)).toBeVisible();
-
-  verificationStatus = "verified";
-  await page.getByRole("button", { name: "Verifica prima sessione" }).click();
-  await expect(page.getByRole("status")).toContainText("Prima sessione verificata");
+  await expect(page.getByRole("link", { name: "Apri Google Meet" })).toHaveAttribute("href", "https://meet.google.com/abc-defg-hij");
   await expect(page.getByRole("button", { name: "Verifica prima sessione" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Prepara Google Meet" })).toHaveCount(0);
+  expect(replacements).toBe(0);
+  await page.getByText("Problemi con il link?", { exact: true }).click();
+  await page.getByRole("button", { name: "Crea nuovo link" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Conferma", exact: true }).click();
+  await expect(page.getByRole("link", { name: "Apri Google Meet" })).toHaveAttribute("href", "https://meet.google.com/new-room-abc");
+  expect(replacements).toBe(1);
 });
 
-test("path closure and feedback actions follow first-call and actor state", async ({ page }) => {
+test("path closure and feedback actions follow actor state without a first-call gate", async ({ page }) => {
   await page.route("**/api/backend/calls/capabilities", route => route.fulfill({ json: { google_meet_available: false } }));
   let pathState = {
     id: "path-1",
@@ -1183,17 +1200,9 @@ test("path closure and feedback actions follow first-call and actor state", asyn
   });
 
   await page.goto("/paths/path-1");
-  await expect(page.getByText(/Google Meet integrato non è disponibile/)).toBeVisible();
+  await expect(page.getByText(/Google Meet non è disponibile/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Prepara Google Meet" })).toHaveCount(0);
-  await expect(page.getByText(/Puoi chiudere il tuo lato dopo che la prima sessione/)).toBeVisible();
-  await expect(page.getByRole("button", { name: "Chiudi il mio lato" })).toHaveCount(0);
-  await expect(page.getByRole("link", { name: "Lascia feedback sul mentor" })).toHaveCount(0);
-
-  pathState = { ...pathState, first_call_completed: true };
-  await page.reload();
-  await expect(page.getByRole("button", { name: "Chiudi il mio lato" })).toBeVisible();
-  await expect(page.getByText(/Non sono necessarie altre azioni per questa verifica/)).toBeVisible();
-  await expect(page.getByText(/Google Meet integrato non è disponibile/)).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Chiudi il percorso" })).toBeEnabled();
   await expect(page.getByRole("link", { name: "Lascia feedback sul mentor" })).toHaveCount(0);
 
   pathState = {
@@ -1203,7 +1212,7 @@ test("path closure and feedback actions follow first-call and actor state", asyn
   };
   await page.reload();
   await expect(page.getByRole("link", { name: "Lascia feedback sul mentor" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Chiudi il mio lato" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Chiudi il percorso" })).toHaveCount(0);
 
   pathState = { ...pathState, mentee_feedback_submitted: true };
   await page.reload();

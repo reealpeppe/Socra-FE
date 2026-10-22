@@ -77,11 +77,10 @@ export default function PrivacyPage() {
             </p>
             <h3>Sezione di contesto personale</h3>
             <p>
-              La survey include professione, fascia di reddito, risparmio mensile,
-              debiti e fondo di emergenza. Per ciascuna domanda puoi scegliere
-              “Preferisco non rispondere”. Le informazioni che scegli di condividere
-              servono a conoscere la community in forma aggregata: restano private,
-              non cambiano il matching e non sono visibili ai mentor. Questa scelta
+              Il contesto personale include professione, fascia di reddito, risparmio mensile,
+              debiti e fondo di emergenza. Nel percorso delle competenze puoi saltare la sezione o salvare anche
+              una sola risposta. Le informazioni che scegli di condividere
+              restano riservate e non sono visibili agli altri utenti. Questa scelta
               non attiva comunicazioni marketing o usi commerciali.
             </p>
           </section>

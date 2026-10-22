@@ -165,11 +165,12 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
         await continueAfterContext();
         return;
       }
-      setContextStep(true);
       if (reassessment) {
         try { sessionStorage.setItem(`socra_experience_saved:${userId.current}`, "1"); } catch { /* The saved profile remains available. */ }
-
+        router.push("/dashboard");
+        return;
       }
+      setContextStep(true);
     } catch (err) { if (ownsSession(owner)) { finalizing.current = false; setError(err instanceof Error ? err.message : "Risposte non salvate."); } }
     finally { if (ownsSession(owner)) setBusy(false); }
   }

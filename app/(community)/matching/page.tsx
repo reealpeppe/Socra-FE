@@ -694,20 +694,11 @@ function MatchingStyles() {
         white-space: nowrap;
       }
 
-      .mcc-request-btn.sent {
-        background: var(--brand-blue-soft, #edf2f6);
-        color: var(--brand-blue, #20313e);
-        cursor: default;
-      }
-
-      .mcc-request-btn.pending:disabled {
-        background: #fff1cd;
-        color: #8a6111;
-      }
-
-      .mcc-request-btn.unavailable:disabled {
-        background: #eef1f4;
-        color: var(--muted);
+      .mcc-request-btn:disabled {
+        background: var(--disabled-surface);
+        border: 1px solid var(--disabled-line);
+        color: var(--disabled-text);
+        cursor: not-allowed;
       }
 
       .mcc-profile-link,

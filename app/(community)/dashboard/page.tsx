@@ -8,7 +8,7 @@ import { EtfExplanation } from "@/components/EtfExplanation";
 import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
 import { UserAvatar } from "@/components/Ui";
-import { ProfileCompletionBanner } from "@/components/ProfileCompletionBanner";
+import { ProfileCompletionBanner, incompleteProfileCompletion } from "@/components/ProfileCompletionBanner";
 import { SkillPreparation } from "@/components/SkillPreparation";
 import { clientGet, cachedClientValue, hasCachedClientValues } from "@/lib/api";
 import type { GoalsMe, PathItem, PublicProfile, UserMe, Wallet, SkillProfile } from "@/lib/types";
@@ -94,7 +94,11 @@ export default function DashboardPage() {
     let active = true;
     try {
       const key = `socra_experience_saved:${me.id}`;
-      if (sessionStorage.getItem(key)) { sessionStorage.removeItem(key); queueMicrotask(() => { if (active) setExperienceSaved(true); }); }
+      if (sessionStorage.getItem(key)) { queueMicrotask(() => {
+        if (!active) return;
+        sessionStorage.removeItem(key);
+        setExperienceSaved(true);
+      }); }
     } catch { /* The profile itself remains available without a local confirmation. */ }
     return () => { active = false; };
   }, [me?.id]);
@@ -141,7 +145,7 @@ export default function DashboardPage() {
             </Link>
           </header>
 
-          {!loading && ownSkills?.profile_completion ? <ProfileCompletionBanner completion={ownSkills.profile_completion} /> : null}
+          {!loading && ownSkills !== undefined && (ownSkills === null || ownSkills.profile_completion) ? <ProfileCompletionBanner completion={ownSkills?.profile_completion ?? incompleteProfileCompletion} /> : null}
           {errors.context ? <p role="alert">{errors.context}</p> : null}
           {experienceSaved ? <div className={styles.success} role="status">La tua esperienza è stata aggiornata.</div> : null}
 

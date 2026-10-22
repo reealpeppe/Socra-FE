@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 import type { OwnProfile, UserMe } from "../../lib/types";
 
 const user: UserMe = { id: "u1", username: "giulia_skills", email: "giulia@example.com", nickname: "Giulia", level: "L0", is_coach: true, role: "user", account_status: "active", email_verified: true, email_verification_required: true, email_delivery_enabled: false };
@@ -51,10 +51,6 @@ test.beforeEach(async ({ page, context: browser, baseURL }) => {
   });
 });
 
-async function privateContext(page: Page) {
-  for (const key of ["D1", "D2", "D3", "D4", "D5"]) await page.locator(`select[name="${key}"]`).selectOption("undisclosed");
-}
-
 for (const source of ["settings", "experience"] as const) {
   test(`last mentor offer removal requires confirmation in ${source} and disables availability`, async ({ page }, testInfo) => {
     let profile = { version: 1, known_skills: ["etf_read"], mentor_skills: ["etf_read"], section_d: context, mentor_available: true };
@@ -96,7 +92,7 @@ for (const source of ["settings", "experience"] as const) {
     expect(profile.mentor_available).toBe(true);
     await save.click();
     await dialog.getByRole("button", { name: "Conferma", exact: true }).click();
-    if (source === "experience") { await page.getByRole("button",{name:"Continua",exact:true}).click(); await expect(page).toHaveURL(/\/dashboard$/); }
+    if (source === "experience") { await expect(page).toHaveURL(/\/dashboard$/); }
     else {
       await expect(page.getByRole("status").filter({ hasText: "Capacità offerte aggiornate" })).toBeVisible();
       await expect(page.getByText("Disponibilità come mentor attivata.", { exact: true })).toHaveCount(0);
@@ -349,14 +345,13 @@ test("experience saves only skills and returns to dashboard with confirmation", 
   await expect(page.locator('select[name="D1"]')).toHaveCount(0);
   await page.getByRole("checkbox", { name: "So: Costruire un piano periodico", exact: true }).uncheck();
   await page.getByRole("button", { name: "Conferma le risposte" }).click();
-  await page.getByRole("button", {name:"Continua",exact:true}).click();
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByRole("status").filter({ hasText: "La tua esperienza è stata aggiornata." })).toBeVisible();
   expect(sent).toMatchObject({ known_skills: ["etf_read", "etf_compare"], mentor_skills: ["etf_read"] });
   expect(sent).not.toHaveProperty("section_d");
 });
 
-test("personal context is optional and saves through its own endpoint", async ({ page }) => {
+test("personal context saves one real answer and shows its purpose without disclosure", async ({ page }) => {
   const profile = { version: 1, known_skills: ["etf_read"], mentor_skills: [], section_d: {}, mentor_available: false };
   let sent: Record<string, unknown> | undefined;
   let skillWrites = 0;
@@ -364,24 +359,104 @@ test("personal context is optional and saves through its own endpoint", async ({
     if (route.request().method() !== "GET") skillWrites++;
     return route.fulfill({ json: profile });
   });
-  await page.route("**/api/backend/skills/me/context", route => { sent = route.request().postDataJSON(); return route.fulfill({ json: { ...profile, section_d: context, version: 2 } }); });
+  await page.route("**/api/backend/skills/me/context", route => { sent = route.request().postDataJSON(); return route.fulfill({ json: { ...profile, section_d: { D1: "student" }, version: 2 } }); });
   await page.goto("/settings");
   await page.getByText("Contesto personale", { exact: true }).click();
+  await expect(page.getByText("Conoscere la tua situazione economica e professionale ci aiuta a comprendere meglio il tuo punto di partenza e a favorire connessioni più pertinenti tra mentor e apprendisti, tenendo conto delle esperienze e delle esigenze di ciascuno.")).toBeVisible();
+  await expect(page.getByText("Le risposte sono facoltative e riservate. Non saranno visibili agli altri utenti.")).toBeVisible();
   await expect(page.locator('select[name="D1"]')).toHaveValue("");
+  await expect(page.locator('select[name="D1"]')).not.toContainText("Preferisco non rispondere");
   await expect(page.getByRole("button", { name: "Salva contesto personale" })).toBeDisabled();
-  await privateContext(page);
+  await page.locator('select[name="D1"]').selectOption("student");
   await page.getByRole("button", { name: "Salva contesto personale" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Contesto personale aggiornato." })).toBeVisible();
-  expect(sent).toEqual({ section_d: context, idempotency_key: expect.any(String) });
+  expect(sent).toEqual({ section_d: { D1: "student" }, idempotency_key: expect.any(String) });
   expect(skillWrites).toBe(0);
+});
+
+test("new experience saves a partial context answer before continuing", async ({ page }) => {
+  let sent: Record<string, unknown> | undefined;
+  await page.route("**/api/backend/skills/me", route => route.fulfill({ json: route.request().method() === "PUT"
+    ? { version: 1, known_skills: [], mentor_skills: [], section_d: {}, mentor_available: false }
+    : null }));
+  await page.route("**/api/backend/skills/me/context", route => { sent = route.request().postDataJSON(); return route.fulfill({ json: {
+    version: 2, known_skills: [], mentor_skills: [], section_d: { D1: "student" }, mentor_available: false,
+  } }); });
+  await page.goto("/onboarding");
+  await page.getByRole("button", { name: "Conferma le risposte" }).click();
+  await expect(page.getByRole("button", { name: "Salva e continua" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Salta" })).toBeEnabled();
+  await page.locator('select[name="D1"]').selectOption("student");
+  await expect(page.getByRole("button", { name: "Salva e continua" })).toBeEnabled();
+  await page.getByRole("button", { name: "Salva e continua" }).click();
+  await expect(page).toHaveURL(/\/goal$/);
+  expect(sent).toEqual({ section_d: { D1: "student" }, idempotency_key: expect.any(String) });
+});
+
+test("new experience can skip unanswered context without writing it", async ({ page }) => {
+  let contextWrites = 0;
+  await page.route("**/api/backend/skills/me", route => route.fulfill({ json: route.request().method() === "PUT"
+    ? { version: 1, known_skills: [], mentor_skills: [], section_d: {}, mentor_available: false }
+    : null }));
+  await page.route("**/api/backend/skills/me/context", route => { contextWrites++; return route.fulfill({ status: 500 }); });
+  await page.goto("/onboarding");
+  await page.getByRole("button", { name: "Conferma le risposte" }).click();
+  await expect(page.getByRole("button", { name: "Salva e continua" })).toBeDisabled();
+  await page.getByRole("button", { name: "Salta" }).click();
+  await expect(page).toHaveURL(/\/goal$/);
+  expect(contextWrites).toBe(0);
+});
+
+test("legacy undisclosed context displays as unanswered and keeps other stored answers", async ({ page }) => {
+  let profile = { version: 1, known_skills: [], mentor_skills: [], section_d: { ...context, D1: "student" } as Record<string, string>, mentor_available: false };
+  let sent: Record<string, unknown> | undefined;
+  await page.route("**/api/backend/skills/me", route => route.fulfill({ json: profile }));
+  await page.route("**/api/backend/skills/me/context", route => {
+    sent = route.request().postDataJSON();
+    const section_d = { ...profile.section_d };
+    for (const [key, value] of Object.entries(sent!.section_d as Record<string, string | null>)) {
+      if (value === null) delete section_d[key]; else section_d[key] = value;
+    }
+    profile = { ...profile, section_d };
+    return route.fulfill({ json: profile });
+  });
+  await page.goto("/settings");
+  await page.getByText("Contesto personale", { exact: true }).click();
+  await expect(page.locator('select[name="D1"]')).toHaveValue("student");
+  await expect(page.locator('select[name="D2"]')).toHaveValue("");
+  await expect(page.locator('#personal-context')).not.toContainText("Preferisco non rispondere");
+  await page.locator('select[name="D2"]').selectOption("lt_15k");
+  await page.getByRole("button", { name: "Salva contesto personale" }).click();
+  expect(sent).toEqual({ section_d: { D2: "lt_15k" }, idempotency_key: expect.any(String) });
+  await page.locator('select[name="D1"]').selectOption("");
+  await page.getByRole("button", { name: "Salva contesto personale" }).click();
+  expect(sent).toEqual({ section_d: { D1: null }, idempotency_key: expect.any(String) });
+  await expect(page.locator('select[name="D2"]')).toHaveValue("lt_15k");
+});
+
+test("editing experience preserves saved context and returns directly", async ({ page }) => {
+  const original = { D1: "student" };
+  let sent: Record<string, unknown> | undefined;
+  await page.route("**/api/backend/skills/me", route => {
+    if (route.request().method() === "PUT") sent = route.request().postDataJSON();
+    return route.fulfill({ json: { version: 2, known_skills: ["etf_read"], mentor_skills: [], section_d: original, mentor_available: false } });
+  });
+  await page.goto("/competenze");
+  await page.getByRole("button", { name: "Conferma le risposte" }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  expect(sent).not.toHaveProperty("section_d");
 });
 
 test("context with no skill profile directs to experience without creating a profile", async ({ page }) => {
   await page.route("**/api/backend/skills/me", route => route.fulfill({ json: null }));
   await page.goto("/settings");
+  await expect(page.getByRole("button", { name: "Completa il profilo · 0/5" })).toBeDisabled();
+  await expect(page.getByRole("link", { name: "Prima completa la tua esperienza" })).toHaveAttribute("href", "/competenze");
   await page.getByText("Contesto personale", { exact: true }).click();
-  await expect(page.getByText(/Prima completa la tua esperienza/)).toBeVisible();
+  await expect(page.locator('#personal-context').getByText(/Prima completa la tua esperienza/)).toBeVisible();
   await expect(page.getByRole("button", { name: "Salva contesto personale" })).toHaveCount(0);
+  await page.goto("/dashboard");
+  await expect(page.getByRole("button", { name: "Completa il profilo · 0/5" })).toBeDisabled();
 });
 
 test("dashboard shows explicit objectives, preparation and mentor paths while paused", async ({ page }) => {

@@ -47,6 +47,7 @@
 .alignmentForm { grid-template-columns: minmax(0, 1fr); min-width: 0; }
 .fieldset legend { font-weight: 650; font-size: 1.1rem; margin-bottom: 12px; color: var(--navy-950); }
 .contextSummary { cursor: pointer; font-weight: 650; font-size: 1.1rem; color: var(--navy-950); }
+button.contextSave:disabled, button.contextLocked:disabled { background: var(--disabled-surface); border-color: var(--disabled-line); color: var(--disabled-text); opacity: 1; }
 .preparationGrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: 22px; }
 .preparation, .preparationCompact { display: grid; gap: 8px; min-width: 0; }
 .preparationHeading { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--navy-950); }
