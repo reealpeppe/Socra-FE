@@ -45,3 +45,23 @@ test('confirmation removes the token and requires an explicit action', async ({p
   await expect(page.getByRole('status').filter({hasText:'Ti avviseremo'})).toBeVisible();
   expect(confirmed).toBe(1);
 });
+
+test('prelaunch settings loads and saves the profile without operational alerts', async ({page}) => {
+  await setup(page);
+  const operational:string[]=[];
+  page.on('request', request => { if (/\/api\/backend\/(mentor-alerts|notifications|matching|wallet)/.test(request.url())) operational.push(request.url()); });
+  await page.route('**/api/backend/skills/me', route => route.fulfill({json:null}));
+  let profile={user_id:'u1',username:'reader',nickname:'Reader',first_name:'Test',last_name:'User',bio:'Presentazione iniziale',avatar_url:null};
+  await page.route('**/api/backend/profiles/me', async route => {
+    if (route.request().method()==='PATCH') profile={...profile,...route.request().postDataJSON()};
+    await route.fulfill({json:profile});
+  });
+  await page.route('**/api/backend/mentor-alerts/**', route => route.fulfill({json:[]}));
+  await page.goto('/settings');
+  await expect(page.getByLabel('Username',{exact:true})).toHaveValue('reader');
+  await page.getByLabel('Presentazione breve').fill('Profilo pronto per il lancio');
+  await page.getByRole('button',{name:'Salva profilo',exact:true}).click();
+  await expect(page.getByRole('status').filter({hasText:'Profilo aggiornato.'})).toBeVisible();
+  expect(profile.bio).toBe('Profilo pronto per il lancio');
+  expect(operational).toEqual([]);
+});

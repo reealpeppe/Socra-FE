@@ -204,7 +204,7 @@ export default function SettingsPage() {
         {loading ? <div className="card" role="status">Caricamento impostazioni…</div> : null}
         {me ? (
         <>
-        {profile ? <ProfileEditor key={profile.user_id} initialProfile={profile} user={me} onUpdated={setProfile} /> : <div className="card"><p role="alert">Non riusciamo a caricare il profilo modificabile.</p><button className="button secondary" onClick={() => setRetryVersion(value => value + 1)}>Ricarica profilo</button></div>}
+        {profile ? <ProfileEditor key={profile.user_id} initialProfile={profile} user={me} onUpdated={setProfile} /> : !loading ? <div className="card"><p role="alert">Non riusciamo a caricare il profilo modificabile.</p><button className="button secondary" onClick={() => setRetryVersion(value => value + 1)}>Ricarica profilo</button></div> : null}
         <div className="card settings-card">
           <h2 className="settings-section-title">Il tuo account</h2>
           <div className="settings-profile-top">
@@ -351,7 +351,7 @@ export default function SettingsPage() {
         </div>
 
         {skills !== undefined && (skills === null || skills.profile_completion) ? <ProfileCompletionBanner completion={skills?.profile_completion ?? incompleteProfileCompletion} /> : null}
-        <MentorAlerts key={me.id} ownerId={me.id} settings />
+        {!me.prelaunch_blocked ? <MentorAlerts key={me.id} ownerId={me.id} settings /> : null}
         {skills !== undefined ? <PersonalContext key={me?.id} profile={skills} onSaved={setSkills} navigationReady={!loading} /> : null}
 
         <div className="card settings-card">
