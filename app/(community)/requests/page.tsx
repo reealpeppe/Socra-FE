@@ -107,9 +107,18 @@ function RequestsContent() {
       }
       throw reason;
     });
+    // The access gate may mount this page after the shell's initial snapshot event.
+    // Publish available requests independently of a slow optional wallet read.
+    const requestsPromise = clientGet<RequestWithCost[]>("/matching/requests/me?role=all").then(value => {
+      if (mountedRef.current && generation === loadGenerationRef.current
+        && requestsGeneration === requestsGenerationRef.current) {
+        setRequests(Array.isArray(value) ? value : []);
+      }
+      return value;
+    });
     const [userResult, requestsResult, walletResult] = await Promise.allSettled([
       userPromise,
-      clientGet<RequestWithCost[]>("/matching/requests/me?role=all"),
+      requestsPromise,
       clientGet<Wallet>("/wallet/me")
     ]);
     if (!mountedRef.current || generation !== loadGenerationRef.current) return;

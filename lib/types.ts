@@ -5,6 +5,7 @@ export type TokenResponse = {
 };
 
 export type UserMe = {
+  prelaunch_blocked?: boolean;
   id: string;
   username: string;
   email: string;

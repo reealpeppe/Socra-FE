@@ -51,7 +51,7 @@ export function proxy(request: NextRequest) {
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   response.headers.set("Content-Security-Policy", csp);
   response.headers.set("Cache-Control", pageCacheControl);
-  if (/^\/invit[oi](\/|$)/.test(request.nextUrl.pathname)) {
+  if (/^\/(invit[oi]|prelancio\/(conferma|revoca))(\/|$)/.test(request.nextUrl.pathname)) {
     response.headers.set("Referrer-Policy", "no-referrer");
     response.headers.set("X-Robots-Tag", "noindex, nofollow");
   }

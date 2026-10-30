@@ -27,7 +27,8 @@ const TX_REASON_LABELS: Record<string, string> = {
   path_reward: "Percorso completato",
   credit_advance_used: "Utilizzo credito anticipato",
   credit_advance_settled: "Credito maturato destinato all’anticipo",
-  invitation_bonus: "Bonus invito"
+  invitation_bonus: "Bonus invito",
+  prelaunch_bonus: "Bonus pre-lancio"
 };
 
 function userSafeDescription(value: string): string {

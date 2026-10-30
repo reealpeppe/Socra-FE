@@ -1,0 +1,14 @@
+import Link from "next/link";
+import styles from "@/components/Prelaunch.module.css";
+export const metadata = {title:"Informativa sull’avviso di lancio — Socra"};
+export default function Page(){return <main className={styles.page} id="main-content"><article className={styles.terms}>
+  <p className="eyebrow">Avviso di lancio · versione 30 ottobre 2026</p><h1>La tua email, per avvisarti.</h1>
+  <aside aria-label="Stato del documento"><strong>Documento in validazione.</strong> Identità del titolare, fornitori e condizioni di conservazione devono essere completati e validati prima della raccolta di dati reali.</aside>
+  <p>Questa informativa integra l’<Link href="/privacy">informativa generale di Socra</Link>, nella quale saranno completati i riferimenti del titolare, dei fornitori e degli eventuali trasferimenti. Per richieste e revoca puoi scrivere a <a href="mailto:info@socra.it">info@socra.it</a>.</p>
+  <h2>Perché chiediamo l’indirizzo</h2><p>Raccogliamo la tua email per la richiesta facoltativa di ricevere gli avvisi di apertura di Socra, sulla base del tuo consenso specifico. Inviamo una mail di conferma e, dopo la conferma, un avviso prima del lancio e uno quando la community apre. Non creiamo un account e non ti iscriviamo a newsletter o comunicazioni promozionali ulteriori.</p>
+  <h2>Quali dati conserviamo</h2><p>Indirizzo email, data della richiesta e della conferma, versione dell’informativa, eventuale revoca e stato tecnico degli invii. Usiamo token protetti per conferma e revoca e contatori temporanei per limitare richieste abusive. Non raccogliamo risposte della survey con questo modulo.</p>
+  <h2>Chi gestisce gli invii</h2><p>Quando il canale è attivo, Resend tratta l’indirizzo e il contenuto delle email come fornitore tecnico degli invii. Hosting e altre informazioni sui fornitori sono descritti nell’informativa generale. I dati non vengono ceduti per marketing di terzi.</p>
+  <h2>Per quanto tempo</h2><p>Gli indirizzi non confermati vengono rimossi dopo 30 giorni dalla richiesta. Gli indirizzi confermati vengono rimossi entro 30 giorni dall’apertura, oppure dopo la revoca. Restano soltanto i metadati minimi necessari a documentare la scelta, evitare nuovi invii dopo una revoca e impedire doppi bonus; l’account eventualmente creato segue la propria informativa.</p>
+  <h2>Puoi cambiare idea</h2><p>La richiesta è facoltativa. Puoi revocarla dal collegamento presente nell’email o scrivendoci, senza effetti sul tuo eventuale account. La revoca non pregiudica i trattamenti già effettuati. Puoi esercitare i diritti di accesso, rettifica, cancellazione, limitazione e portabilità nei casi previsti, e proporre reclamo al Garante per la protezione dei dati personali.</p>
+  <p><Link href="/prelancio">Torna alla richiesta di avviso</Link> · <Link href="/prelancio/condizioni">Condizioni dei bonus</Link></p>
+</article></main>;}

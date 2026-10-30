@@ -9,9 +9,11 @@ import { authPost, ClientApiError } from "@/lib/api";
 import { safeInvitationReturn } from "@/lib/invitations";
 import { invitationContextRequest } from "@/components/InvitationLanding";
 import styles from "../login/auth.module.css";
+import { useLaunchStatus } from "@/lib/prelaunch";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { state: launch } = useLaunchStatus();
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
@@ -63,8 +65,9 @@ export default function RegisterPage() {
           </div>
           <h1 className={styles.title} id="register-title">Crea il tuo account</h1>
           <p className={styles.subtitle}>
-            {invitationNext ? "Usa l’indirizzo che ha ricevuto l’invito: il link conferma già la tua email. Dopo la registrazione, ti guidiamo verso il percorso." : "Entra nella community, completa la survey e definisci il primo obiettivo su cui vuoi confrontarti."}
+            {launch?.phase === "prelaunch" ? "Socra sta arrivando. Puoi già creare l’account e preparare il tuo profilo: gli scambi apriranno al lancio." : invitationNext ? "Usa l’indirizzo che ha ricevuto l’invito: il link conferma già la tua email. Dopo la registrazione, ti guidiamo verso il percorso." : "Entra nella community, completa la survey e definisci il primo obiettivo su cui vuoi confrontarti."}
           </p>
+          {launch?.phase === "prelaunch" ? <p className={styles.hint}>Crea e verifica il nuovo account prima del lancio per ricevere <strong>2 crediti extra</strong>. Il bonus sostituisce quello da 1 credito per l’adesione via email. <Link href="/prelancio/condizioni">Condizioni dei bonus</Link>. Preferisci aspettare? <Link href="/prelancio">Lascia solo l’email</Link>.</p> : null}
 
           {error ? <><p className={styles.error} id="register-error" role="alert">{error}</p>{invitationNext?<button className="button secondary" type="button" disabled={loading} onClick={async()=>{setLoading(true);try{await invitationContextRequest('/api/invitations/context',undefined,'DELETE');router.replace('/register');setInvitationNext(null);setError(null);}catch{setError('Non riusciamo a chiudere l’invito. Riprova tra poco.');}finally{setLoading(false);}}}>Continua senza invito</button>:null}</> : null}
 

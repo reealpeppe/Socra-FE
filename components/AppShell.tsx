@@ -177,6 +177,7 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
   const accountDialogRef = useRef<HTMLDivElement>(null);
   const notificationOwnerRef = useRef<string | null>(null);
   const canReadRequestsRef = useRef(false);
+  const prelaunchBlockedRef = useRef(false);
   const notificationGenerationRef = useRef(0);
   const unreadCount = useMemo(() => notifications.filter((notification) => !notification.read_at).length, [notifications]);
   const incomingProposals = useMemo(() => notifications.filter((notification) =>
@@ -201,7 +202,7 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
 
   const refreshNotifications = useCallback(async () => {
     const owner = notificationOwnerRef.current;
-    if (!owner) return;
+    if (!owner || prelaunchBlockedRef.current) return;
     const generation = ++notificationGenerationRef.current;
     setNotificationsLoading(true);
     try {
@@ -255,6 +256,7 @@ function AppShellContent({ children, currentTab, primaryAction }: AppShellConten
           setDismissedProposalIds(readDismissedProposals(currentUser.id));
         }
         setUser(currentUser);
+        prelaunchBlockedRef.current = currentUser.prelaunch_blocked === true;
         canReadRequestsRef.current = currentUser.email_verified || !currentUser.email_verification_required;
         setSessionState("authenticated");
         if (!isOnboarding) void refreshNotifications();
