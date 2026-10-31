@@ -43,3 +43,11 @@ test('effective lint still enforces Next core-web-vitals, React hooks and TypeSc
   assert.ok(result.messages.some(message => message.ruleId === '@next/next/no-img-element'));
   assert.ok(result.messages.some(message => message.ruleId === '@next/next/no-html-link-for-pages'));
 });
+
+test('patched minimatch preserves callable matching in legacy lint plugins', async () => {
+  const eslint = new ESLint({ overrideConfig: [{ rules: {
+    'react/no-danger': ['error', { customComponentNames: ['Html*'] }],
+  } }] });
+  const [result] = await eslint.lintText('export default function Page() { return <HtmlBlock dangerouslySetInnerHTML={{__html: "test"}} />; }', { filePath: 'app/page.tsx' });
+  assert.ok(result.messages.some(message => message.ruleId === 'react/no-danger'));
+});
