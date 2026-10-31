@@ -28,7 +28,7 @@ export function PrelaunchGate({children}:{children:React.ReactNode}) {
     return () => {active=false;window.removeEventListener("socra:session-refresh",refresh);window.clearInterval(interval);};
   },[pathname]);
   if(personal) return <>{user?.prelaunch_blocked ? <aside className={styles.preparation}>
-    <strong>Socra sta arrivando!</strong> Prima del lancio ti avviseremo via email. Prepara il tuo profilo se non lo hai già fatto.
+    <strong>Socra sta arrivando!</strong> Prepara il tuo profilo se non lo hai già fatto.
     {" "}<Link href="/dashboard">Il tuo accesso al lancio</Link>
   </aside>:null}{children}</>;
   if(!user) return <main className={styles.page} id="main-content"><div className={styles.content}>
@@ -55,9 +55,9 @@ function WaitingScreen({user}:{user:UserMe}) {
       <section className={styles.waitCard} aria-labelledby="launch-title">
         <p className="eyebrow">Grazie di esserci</p>
         <h1 id="launch-title">La community sta arrivando.</h1>
-        <p>Ti terremo aggiornato via email e ti avviseremo prima dell’apertura. Nel frattempo, prepara il tuo profilo se non lo hai già fatto.</p>
+        <p>Se hai scelto di ricevere gli aggiornamenti, ti avviseremo via email prima dell’apertura. Nel frattempo, prepara il tuo profilo se non lo hai già fatto.</p>
         <p className={styles.fine}>Survey, esperienza e obiettivi restano salvati e puoi aggiornarli quando vuoi.</p>
-        {!user.email_verified ? <p>Conferma il tuo indirizzo dalle impostazioni per ricevere l’avviso e rendere valido il bonus.</p>:null}
+        {!user.email_verified ? <p>Conferma il tuo indirizzo dalle impostazioni per rendere valido il bonus previsto dalle condizioni.</p>:null}
         <div className={styles.actions}>
           <Link className="button dark" href="/settings">Modifica il tuo profilo</Link>
           <Link className="button secondary" href="/competenze">La mia esperienza</Link>

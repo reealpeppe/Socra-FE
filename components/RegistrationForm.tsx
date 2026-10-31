@@ -171,7 +171,7 @@ export function RegistrationForm({proof}:{proof?:{token:string;email:string}}) {
                   <Link className={styles.legalLink} href="/termini">Termini</Link>
                   {" "}e l’{" "}
                   <Link className={styles.legalLink} href="/privacy">informativa privacy</Link>.
-                  Non chiediamo consensi facoltativi in anticipo.
+                  I consensi facoltativi restano separati dall’accettazione dei Termini.
                 </p>
               </div>
             </div>

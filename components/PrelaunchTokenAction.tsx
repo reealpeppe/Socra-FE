@@ -22,10 +22,10 @@ export function PrelaunchTokenAction({action}:{action:"confirm"|"unsubscribe"}) 
   }
   const confirming=action==="confirm";
   return <main className={styles.page} id="main-content"><div className={styles.content}>
-    <h1>{confirming ? "Ci sentiamo al lancio." : "Annulla l’avviso di apertura"}</h1>
-    {success ? <div className={styles.success} role="status">{confirming ? "Indirizzo confermato. Ti avviseremo via email prima del lancio di Socra." : "Richiesta annullata. Non riceverai l’avviso su questo indirizzo."}</div>
+    <h1>{confirming ? "Ci sentiamo al lancio." : "Annulla le comunicazioni di pre-lancio"}</h1>
+    {success ? <div className={styles.success} role="status">{confirming ? "Indirizzo confermato. Ti avviseremo via email prima del lancio di Socra." : "Consenso revocato. Non riceverai altre comunicazioni di pre-lancio su questo indirizzo."}</div>
       : !ready ? <p role="status">Preparazione del link…</p> : !hasToken ? <p role="alert">Il link è incompleto. <Link href="/prelancio">Torna alla richiesta di avviso</Link>.</p>
-      : <><p>{confirming ? "Conferma il tuo indirizzo per ricevere l’avviso di apertura e riservare il bonus previsto dalle condizioni." : "Conferma per rimuovere il tuo indirizzo dalla lista degli avvisi. Il tuo eventuale account Socra resterà disponibile."}</p>
+      : <><p>{confirming ? "Conferma il tuo indirizzo per ricevere l’avviso di apertura e riservare il bonus previsto dalle condizioni." : "Conferma per interrompere aggiornamenti, promemoria e avvisi di pre-lancio. Il tuo eventuale account Socra resterà disponibile."}</p>
         <button className="button dark" disabled={busy} onClick={()=>void submit()}>{busy ? "Conferma…" : confirming ? "Conferma il mio indirizzo" : "Annulla la richiesta"}</button></>}
     {error ? <p role="alert" className={styles.error}>{error}</p>:null}
     <div className={styles.secondary}><Link className="button secondary" href="/register">Crea il tuo account</Link> <p><Link href="/prelancio/condizioni">Condizioni dei bonus</Link></p></div>

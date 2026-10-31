@@ -1,9 +1,6 @@
-.notice { margin-top: 64px; background: var(--honey-soft, #fff5dc); color: var(--brand-blue, #20313e); padding: 14px 24px; text-align: center; font-size: .9rem; line-height: 1.65; }
-.notice a { color: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; margin-inline-start: 8px; }
 .preparation { margin: 16px 24px 0; border: 1px solid var(--brand-blue-line, #cbd7df); border-radius: 12px; padding: 16px 20px; background: var(--brand-blue-soft, #edf2f6); line-height: 1.65; }
 .preparation a { color: var(--brand-blue, #20313e); font-weight: 650; text-decoration: underline; text-underline-offset: 3px; }
 .page { min-height: 75svh; padding: calc(64px + clamp(32px, 6vw, 80px)) 24px clamp(32px, 6vw, 80px); background: var(--paper); }
-.notice + .page { padding-top: clamp(32px, 6vw, 80px); }
 .content { max-width: 600px; margin: 0 auto; }
 .content h1 { color: var(--brand-blue); font-size: clamp(2rem, 5vw, 3rem); line-height: 1.15; letter-spacing: -.03em; margin: 12px 0 20px; }
 .content p { line-height: 1.75; color: var(--muted); }
@@ -12,6 +9,7 @@
 .field input { width: 100%; min-height: 48px; border: 1px solid var(--control-line); border-radius: 10px; background: var(--card); padding: 12px; color: var(--ink); font: inherit; }
 .consent { display: flex; align-items: flex-start; gap: 12px; font-size: .9rem; line-height: 1.65; }
 .consent input { flex-shrink: 0; width: 20px; height: 20px; margin-top: 3px; accent-color: var(--brand-blue); }
+.optional { color: var(--muted); }
 .content a, .terms a { color: var(--brand-blue); text-underline-offset: 3px; }
 .honeypot { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
 .success { padding: 24px; background: var(--brand-blue-soft); border-radius: 12px; margin: 28px 0; }
@@ -34,4 +32,4 @@
 .terms h1 { font-size: clamp(2rem, 5vw, 2.7rem); line-height: 1.2; margin-bottom: 24px; color: var(--brand-blue); }
 .terms h2 { font-size: 1.2rem; margin-top: 32px; }
 .terms li { margin-block: 10px; }
-@media (max-width: 560px) { .notice { padding: 12px 16px; text-align: left; } .notice a { display: inline-block; margin-inline-start: 0; margin-inline-end: 12px; } .actions > a, .actions > button { width: 100%; justify-content: center; } .preview { inset: 4%; grid-template-columns: 60px 1fr; gap: 16px; } .preparation { margin: 12px 12px 0; } }
+@media (max-width: 560px) { .actions > a, .actions > button { width: 100%; justify-content: center; } .preview { inset: 4%; grid-template-columns: 60px 1fr; gap: 16px; } .preparation { margin: 12px 12px 0; } }

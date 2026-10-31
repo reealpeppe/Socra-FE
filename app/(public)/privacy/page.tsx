@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import publicStyles from "@/components/PublicLayout.module.css";
 import styles from "./legal.module.css";
+import {PrivacyIdentity} from '@/components/PrivacyIdentity';
 
 export const metadata: Metadata = {
   title: "Privacy Socra — Come trattiamo i dati",
@@ -24,14 +25,7 @@ export default function PrivacyPage() {
         </header>
 
         <div className={styles.content}>
-          <aside className={styles.status} aria-label="Stato del documento">
-            <strong>Documento in validazione</strong>
-            <p>
-              Questa pagina rende consultabili le regole già definite. Identità del
-              gestore, contatti privacy, fornitori e data di efficacia devono essere
-              completati e validati prima dell’apertura a utenti reali.
-            </p>
-          </aside>
+          <section className={styles.section}><h2>Titolare del trattamento e contatti</h2><PrivacyIdentity/></section>
 
           <section className={styles.section}>
             <h2>1. Che cos’è Socra</h2>
@@ -75,6 +69,8 @@ export default function PrivacyPage() {
               abusi e rispondere a obblighi applicabili. Le funzioni facoltative richiedono
               una scelta separata quando vengono proposte.
             </p>
+            <p>La creazione dell’account e le funzioni richieste si fondano sull’esecuzione del servizio e sulle attività precontrattuali richieste dall’utente, ai sensi dell’articolo 6, paragrafo 1, lettera b) del GDPR. I trattamenti necessari per obblighi di legge seguono la lettera c); sicurezza e prevenzione degli abusi si fondano sul legittimo interesse a proteggere utenti e servizio, lettera f). Per le comunicazioni facoltative usiamo il consenso, lettera a), separato dalla registrazione.</p>
+            <h3>Ingresso durante il pre-lancio</h3><p>Il modulo iniziale raccoglie l’email per inviarti il link di registrazione che richiedi. Solo se selezioni una seconda casella riceverai aggiornamenti, eventuali promemoria e comunicazioni sul pre-lancio: la scelta è facoltativa e revocabile. Il link personale completa la verifica dell’email quando crei l’account; poi puoi preparare survey e obiettivo. L’inserimento dell’email da solo non crea un account. Finalità, conservazione e revoca sono descritte nell’<Link href="/prelancio/privacy">informativa del pre-lancio</Link>.</p>
             <h3>Sezione di contesto personale</h3>
             <p>
               Il contesto personale include professione, fascia di reddito, risparmio mensile,
@@ -132,9 +128,12 @@ export default function PrivacyPage() {
           <section className={styles.section}>
             <h2>6. Conservazione e sicurezza</h2>
             <p>
-              I dati restano disponibili solo per il tempo necessario alla finalità
-              dichiarata. Le durate definitive, le procedure di cancellazione e la
-              gestione dei backup devono essere validate prima dell’apertura pubblica.
+              I dati dell’account restano disponibili per erogare il servizio finché mantieni
+              l’account. Puoi richiederne la cancellazione scrivendo al contatto privacy.
+              Le informazioni necessarie a obblighi di legge, sicurezza, documentazione delle
+              scelte e tutela di diritti sono conservate soltanto per il tempo necessario
+              alle rispettive finalità, con accessi limitati. Le copie di sicurezza seguono
+              il ciclo di conservazione e rotazione dell’infrastruttura.
               Socra usa controlli di accesso, password protette, sessioni sicure e audit
               delle attività amministrative; nessun sistema è privo di rischi.
             </p>
@@ -152,16 +151,17 @@ export default function PrivacyPage() {
               Se l’invio è disattivato, Socra non spedisce queste email e i messaggi
               soppressi non vengono recuperati alla riattivazione. I contatti già
               autorizzati restano consultabili nel percorso. Non sono previsti invii
-              per proposte ricevute, feedback o promemoria. La conferma tecnica del
+              per proposte ricevute o feedback. I promemoria e aggiornamenti del pre-lancio
+              richiedono invece la scelta facoltativa dedicata. La conferma tecnica del
               provider non garantisce la consegna nella casella di posta.
             </p>
             <p>
               I link di verifica email e recupero password sono personali, monouso
               e soggetti a scadenza: rispettivamente 24 ore e 30 minuti. Il recupero
-              password chiude tutte le sessioni precedenti. I dettagli contrattuali
-              dei fornitori, le durate definitive e le condizioni privacy devono
-              essere completati nella versione validata del documento.
+              password chiude tutte le sessioni precedenti. Il link per completare la
+              registrazione durante il pre-lancio dura 48 ore e verifica già l’indirizzo.
             </p>
+            <p>Railway fornisce l’infrastruttura della piattaforma. I servizi tecnici possono comportare trattamenti fuori dallo Spazio economico europeo; i relativi accordi prevedono, per i trasferimenti a cui si applicano, clausole contrattuali standard. Consulta gli accordi di <a href="https://railway.com/legal/dpa" rel="noreferrer">Railway</a> e <a href="https://resend.com/legal/dpa" rel="noreferrer">Resend</a> o contattaci per le garanzie applicate.</p>
           </section>
 
           <section className={styles.section}>
@@ -172,8 +172,9 @@ export default function PrivacyPage() {
               senza modificare la liceità del trattamento già svolto.
             </p>
             <p>
-              Il canale privacy ufficiale e l’identità del gestore saranno indicati nella
-              versione validata. La community è riservata a persone maggiorenni.
+              Per esercitare questi diritti scrivi a <a href="mailto:info@socra.it">info@socra.it</a>.
+              Puoi proporre reclamo al <a href="https://www.garanteprivacy.it/" rel="noreferrer">Garante per la protezione dei dati personali</a>.
+              La community è riservata a persone maggiorenni.
             </p>
             <div className={styles.linkRow}>
               <Link className={publicStyles.actionDark} href="/termini">Leggi i Termini</Link>

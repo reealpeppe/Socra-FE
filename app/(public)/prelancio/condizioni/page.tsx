@@ -2,10 +2,10 @@ import Link from "next/link";
 import styles from "@/components/Prelaunch.module.css";
 export const metadata = {title:"Condizioni dei bonus pre-lancio — Socra"};
 export default function Page(){return <main className={styles.page} id="main-content"><article className={styles.terms}>
-  <p className="eyebrow">Pre-lancio Socra · versione 31 ottobre 2026</p>
+  <p className="eyebrow">Pre-lancio Socra</p>
   <h1>Un grazie a chi parte con noi.</h1>
   <p>I bonus pre-lancio sono crediti extra rispetto alla dotazione iniziale. Servono per i percorsi su Socra: non si acquistano, non si convertono in denaro e non sono trasferibili.</p>
-  <h2>Un solo ingresso, dalla tua email</h2><p>Lascia il tuo indirizzo per ricevere il link personale con cui completare il profilo. Inserisci gli altri dati, poi prepara survey e obiettivo. Alla creazione dell’account il link verifica già l’email: non serve una conferma separata. Ti terremo aggiornato via email sull’apertura della community. Se non crei l’account, potrai ricevere due promemoria; puoi annullare queste comunicazioni dal collegamento nelle email.</p>
+  <h2>Un solo ingresso, dalla tua email</h2><p>Lascia il tuo indirizzo per ricevere il link personale con cui completare il profilo. Inserisci gli altri dati, poi prepara survey e obiettivo. Alla creazione dell’account il link verifica già l’email: non serve una conferma separata.</p><p>Solo se lo scegli nella seconda casella, riceverai aggiornamenti e comunicazioni sul pre-lancio, compresi eventuali promemoria per completare il profilo e avvisi di apertura. Il consenso è facoltativo e revocabile dal link nelle email: non condiziona la registrazione o il bonus previsto per l’account.</p>
   <h2>1 credito extra per chi lascia l’email</h2>
   <p>Questa condizione conserva l’eventuale adesione confermata con il precedente flusso email: per riscattare il credito occorre creare e verificare un nuovo account con lo stesso indirizzo entro 30 giorni dall’apertura di Socra. Il nuovo ingresso passa direttamente dal link di completamento del profilo.</p>
   <h2>2 crediti extra per chi si registra prima del lancio</h2>

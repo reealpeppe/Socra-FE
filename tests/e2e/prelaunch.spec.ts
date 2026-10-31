@@ -28,12 +28,32 @@ test('single email entry leads to a dedicated thank you page', async ({page}) =>
   await page.route('**/api/prelaunch/join', route => route.fulfill({json:{status:'ok'}}));
   await page.goto('/prelancio');
   await page.getByLabel('La tua email', {exact:true}).fill('lead@example.com');
-  await page.getByLabel('Desidero ricevere').check();
+  await page.getByRole('checkbox',{name:'Richiedo il link',exact:false}).check();
   await page.getByRole('button', {name:'Inizia da qui',exact:true}).click();
   await expect(page).toHaveURL(/\/prelancio\/grazie$/);
   await expect(page.getByRole('heading',{name:'Grazie, ci sei anche tu.'})).toBeVisible();
   await expect(page.getByText('Controlla la tua posta.',{exact:true})).toBeVisible();
   expect(await page.locator('body').evaluate(el => el.scrollWidth <= window.innerWidth)).toBeTruthy();
+});
+
+test('registration link and optional launch updates are separate choices',async({page})=>{
+  await setup(page);
+  let submitted:Record<string,unknown>|undefined;
+  await page.route('**/api/prelaunch/join',route=>{submitted=route.request().postDataJSON();return route.fulfill({json:{status:'ok'}});});
+  await page.goto('/prelancio');
+  await expect(page.getByRole('complementary',{name:'Pre-lancio Socra'})).toHaveCount(0);
+  await page.getByLabel('La tua email',{exact:true}).fill('lead@example.test');
+  const link=page.getByRole('checkbox',{name:'Richiedo il link',exact:false});
+  const updates=page.getByRole('checkbox',{name:'Acconsento a ricevere',exact:false});
+  await expect(link).not.toBeChecked();await expect(updates).not.toBeChecked();
+  await expect(updates).not.toHaveAttribute('required');
+  await link.check();await page.getByRole('button',{name:'Inizia da qui',exact:true}).click();
+  await expect(page).toHaveURL(/\/prelancio\/grazie$/);
+  expect(submitted?.accepted).toBe(true);expect(submitted?.updates_opt_in).toBe(false);
+  await page.goto('/prelancio');await page.getByLabel('La tua email',{exact:true}).fill('other@example.test');
+  await link.check();await updates.check();await page.getByRole('button',{name:'Inizia da qui',exact:true}).click();
+  await expect(page).toHaveURL(/\/prelancio\/grazie$/);expect(submitted?.updates_opt_in).toBe(true);
+  await page.goto('/prelancio/condizioni');await expect(page.getByText(/versione/i)).toHaveCount(0);
 });
 
 test('prelaunch login and registration share a single email entry',async({page})=>{
@@ -55,7 +75,7 @@ test('returning account always sees the thank you screen after login',async({pag
   await page.getByRole('button',{name:'Accedi',exact:true}).click();
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByRole('heading',{name:'La community sta arrivando.'})).toBeVisible();
-  await expect(page.getByText('Ti terremo aggiornato via email',{exact:false})).toBeVisible();
+  await expect(page.getByText('Se hai scelto di ricevere gli aggiornamenti',{exact:false})).toBeVisible();
 });
 
 test('personal link completes an already verified account and starts the survey',async({page})=>{

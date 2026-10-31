@@ -74,7 +74,7 @@ test("registration form keeps legal documents available before acceptance", asyn
   const submit = page.getByRole("button", { name: "Crea account" });
 
   await expect(page.locator('input[type="checkbox"]')).toHaveCount(1);
-  await expect(page.getByText(/consensi facoltativi in anticipo/i)).toBeVisible();
+  await expect(page.getByText(/consensi facoltativi restano separati/i)).toBeVisible();
   await expect(essentialConsent).not.toBeChecked();
   await expect(form.getByRole("link", { name: "Termini", exact: true })).toHaveAttribute("href", "/termini");
   await expect(form.getByRole("link", { name: "informativa privacy", exact: true })).toHaveAttribute("href", "/privacy");
