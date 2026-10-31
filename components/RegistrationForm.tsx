@@ -1,0 +1,201 @@
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
+import { Brand } from "@/components/Brand";
+import { authPost, ClientApiError } from "@/lib/api";
+import { safeInvitationReturn } from "@/lib/invitations";
+import { invitationContextRequest } from "@/components/InvitationLanding";
+import styles from "@/app/(public)/login/auth.module.css";
+
+export function RegistrationForm({proof}:{proof?:{token:string;email:string}}) {
+  const router = useRouter();
+  const [form, setForm] = useState({
+    first_name: "",
+    last_name: "",
+    username: "",
+    email: proof?.email || "",
+    password: "",
+    password_confirmation: "",
+    consent_essential: false,
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [invitationNext, setInvitationNext] = useState<string | null>(null);
+  useEffect(() => { queueMicrotask(() => setInvitationNext(safeInvitationReturn(new URLSearchParams(window.location.search).get("next")))); }, []);
+
+  function update(name: string, value: string | boolean) {
+    setForm((current) => ({ ...current, [name]: value }));
+    if (error) setError(null);
+  }
+
+  async function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    if (form.password !== form.password_confirmation) {
+      setError("Le password non coincidono. Controlla la conferma password.");
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const invited = safeInvitationReturn(new URLSearchParams(window.location.search).get("next"));
+      await authPost(proof ? "prelaunch-register" : "register", proof ? {...form,token:proof.token} : invited ? {...form, invitation_context: true} : form);
+      router.push(safeInvitationReturn(new URLSearchParams(window.location.search).get("next")) || "/onboarding");
+      router.refresh();
+    } catch (err) {
+      const reason = err instanceof ClientApiError ? err.message : "Registrazione non riuscita.";
+      setError(`${reason} Controlla i dati indicati e riprova.`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className={styles.page}>
+      <main className={styles.main} id="main-content" tabIndex={-1}>
+        <section className={`${styles.card} ${styles.registerCard}`} aria-labelledby="register-title">
+          <div className={styles.brandRow}>
+            <Link className={styles.brandLink} href="/" aria-label="Torna alla pagina iniziale di Socra">
+              <Brand variant="dark" />
+            </Link>
+          </div>
+          <h1 className={styles.title} id="register-title">{proof ? "Completa il tuo profilo" : "Crea il tuo account"}</h1>
+          <p className={styles.subtitle}>
+            {proof ? "Il link conferma già la tua email. Aggiungi i tuoi dati: poi ti accompagniamo nella survey e nella scelta del tuo primo obiettivo." : invitationNext ? "Usa l’indirizzo che ha ricevuto l’invito: il link conferma già la tua email. Dopo la registrazione, ti guidiamo verso il percorso." : "Entra nella community, completa la survey e definisci il primo obiettivo su cui vuoi confrontarti."}
+          </p>
+
+          {error ? <><p className={styles.error} id="register-error" role="alert">{error}</p>{invitationNext?<button className="button secondary" type="button" disabled={loading} onClick={async()=>{setLoading(true);try{await invitationContextRequest('/api/invitations/context',undefined,'DELETE');router.replace('/register');setInvitationNext(null);setError(null);}catch{setError('Non riusciamo a chiudere l’invito. Riprova tra poco.');}finally{setLoading(false);}}}>Continua senza invito</button>:null}</> : null}
+
+          <form
+            aria-label="Crea il tuo account"
+            aria-describedby={error ? "register-error" : undefined}
+            className={styles.form}
+            method="post"
+            onSubmit={onSubmit}
+          >
+            <div className={styles.twoColumns}>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="first_name">Nome</label>
+                <input className={styles.input} id="first_name" name="first_name" autoComplete="given-name"
+                  required maxLength={80} value={form.first_name} onChange={event => update("first_name", event.target.value)} />
+              </div>
+              <div className={styles.field}>
+                <label className={styles.label} htmlFor="last_name">Cognome</label>
+                <input className={styles.input} id="last_name" name="last_name" autoComplete="family-name"
+                  required maxLength={80} value={form.last_name} onChange={event => update("last_name", event.target.value)} />
+              </div>
+            </div>
+            <p className={styles.hint}>Nome e cognome restano privati. Nella community sarà mostrato solo il tuo username.</p>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="username">Username</label>
+              <input className={styles.input} id="username" name="username" autoComplete="username"
+                autoCapitalize="none" spellCheck={false} required minLength={3} maxLength={80}
+                pattern="[A-Za-z0-9][A-Za-z0-9_.\-]{2,79}" aria-describedby="username-hint"
+                value={form.username} onChange={event => update("username", event.target.value)} />
+              <p className={styles.hint} id="username-hint">Da 3 a 80 caratteri: lettere, numeri, punto, trattino e underscore. Deve essere unico.</p>
+            </div>
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="email">Email</label>
+              <input
+                aria-invalid={error ? "true" : undefined}
+                autoComplete="email"
+                className={styles.input}
+                id="email"
+                name="email"
+                onChange={(event) => update("email", event.target.value)}
+                required
+                spellCheck={false}
+                type="email"
+                readOnly={!!proof}
+                value={form.email}
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="password">Password</label>
+              <div className={styles.passwordRow}>
+                <input
+                  aria-describedby="password-hint"
+                  aria-invalid={error ? "true" : undefined}
+                  autoComplete="new-password"
+                  className={styles.input}
+                  id="password"
+                  minLength={10}
+                  name="password"
+                  onChange={(event) => update("password", event.target.value)}
+                  pattern="(?=.*[A-Za-z])(?=.*[0-9]).{10,}"
+                  required
+                  title="Usa almeno 10 caratteri, con almeno una lettera e un numero."
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                />
+                <button
+                  aria-label={showPassword ? "Nascondi password" : "Mostra password"}
+                  className={styles.togglePassword}
+                  onClick={() => setShowPassword((current) => !current)}
+                  type="button"
+                >
+                  {showPassword ? <EyeOff aria-hidden="true" size={18} /> : <Eye aria-hidden="true" size={18} />}
+                </button>
+              </div>
+              <p className={styles.hint} id="password-hint">
+                Almeno 10 caratteri, con almeno una lettera e un numero.
+              </p>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label} htmlFor="password_confirmation">Conferma password</label>
+              <input className={styles.input} id="password_confirmation" name="password_confirmation"
+                autoComplete="new-password" type={showPassword ? "text" : "password"} required minLength={10}
+                value={form.password_confirmation} onChange={event => update("password_confirmation", event.target.value)} />
+            </div>
+            <div className={styles.consentBox}>
+              <input
+                checked={form.consent_essential}
+                id="consent_essential"
+                name="consent_essential"
+                onChange={(event) => update("consent_essential", event.target.checked)}
+                required
+                type="checkbox"
+              />
+              <div className={styles.consentCopy}>
+                <label htmlFor="consent_essential">
+                  Dichiaro di avere almeno 18 anni, accetto i Termini della community
+                  e dichiaro di aver letto l’informativa privacy (obbligatorio).
+                </label>
+                <p>
+                  Prima di accettare, consulta i{" "}
+                  <Link className={styles.legalLink} href="/termini">Termini</Link>
+                  {" "}e l’{" "}
+                  <Link className={styles.legalLink} href="/privacy">informativa privacy</Link>.
+                  I consensi facoltativi restano separati dall’accettazione dei Termini.
+                </p>
+              </div>
+            </div>
+
+            <button
+              aria-busy={loading}
+              className={styles.submit}
+              disabled={loading}
+              type="submit"
+            >
+              {loading ? "Creazione…" : proof ? "Completa il profilo" : "Crea account"}
+            </button>
+          </form>
+
+          <p className={styles.hint} style={{ marginTop: 18, textAlign: "center" }}>
+            {proof ? "Il tuo indirizzo è già verificato. Dopo questo passaggio potrai compilare survey e obiettivo, anche prima del lancio." : invitationNext ? "Dopo l’iscrizione vedrai la proposta. Preparerai il tuo profilo e sceglierai se iniziare il percorso." : "Dopo l’iscrizione potrai compilare subito la survey. Conferma la tua email per cercare persone e usare il matching."}
+          </p>
+
+          <p className={styles.footerText}>
+            Hai già un account?{" "}
+            <Link className={styles.footerLink} href={invitationNext ? `/login?next=${invitationNext}` : "/login?accesso=1"}>Accedi</Link>
+          </p>
+        </section>
+      </main>
+    </div>
+  );
+}

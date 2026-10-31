@@ -51,6 +51,7 @@ async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
   const timer = setTimeout(() => controller.abort(), init.method && init.method !== "GET" ? 25_000 : 15_000);
   try {
     const response = await fetch(url, { ...init, credentials: "include", cache: "no-store", signal: controller.signal });
+    if (response.status === 423 && typeof window !== "undefined") refreshClientSession();
     if (response.status === 504 && init.method && init.method !== "GET")
       throw new ClientApiError(504, "Non abbiamo ricevuto la conferma in tempo. Verifica lo stato prima di ripetere l’operazione.");
     if (response.status === 401 && !sessionInvalid) {
@@ -203,6 +204,7 @@ const ERROR_TRANSLATIONS: Record<string, string> = {
 };
 
 function friendlyErrorMessage(error: ApiError | null, status: number): string {
+  if (status === 423) return "Socra sta arrivando! Puoi preparare il tuo profilo; gli scambi saranno disponibili al lancio.";
   const detail = error?.detail as unknown;
   if (Array.isArray(detail)) return "Controlla i campi indicati e riprova.";
   const raw = typeof detail === "string"
@@ -315,7 +317,7 @@ async function mutate<T>(method: string, path: string, payload?: unknown): Promi
   }
 }
 
-export async function authPost<T>(path: "login" | "register" | "logout", payload?: unknown): Promise<T> {
+export async function authPost<T>(path: "login" | "register" | "logout" | "prelaunch-register", payload?: unknown): Promise<T> {
   invalidate(true);
   try {
     const value = await request<T>(`/api/auth/${path}`, { method: "POST", headers: jsonHeaders,

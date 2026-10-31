@@ -211,3 +211,6 @@ test("a newly received proposal appears after returning to the visible tab", asy
   await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
   await expect(banner).toBeVisible();
 });
+
+// These regressions exercise the ordinary flow after opening.
+test.beforeEach(async({page})=>{await page.route("**/api/prelaunch/status",route=>route.fulfill({json:{phase:"open",campaign_enabled:false,email_delivery_enabled:false,email_bonus:1,registration_bonus:2,redemption_days:30,redeem_until:null}}));});

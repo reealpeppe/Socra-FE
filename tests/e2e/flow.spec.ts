@@ -1260,3 +1260,6 @@ test("feedback note visibility is explicit and path success banners are restored
   await expect(page.getByText("Feedback inviato correttamente.", { exact: true })).toBeVisible();
   await expect(page).toHaveURL(/\/paths\/path-feedback$/);
 });
+
+// These regressions exercise the ordinary flow after opening.
+test.beforeEach(async({page})=>{await page.route("**/api/prelaunch/status",route=>route.fulfill({json:{phase:"open",campaign_enabled:false,email_delivery_enabled:false,email_bonus:1,registration_bonus:2,redemption_days:30,redeem_until:null}}));});

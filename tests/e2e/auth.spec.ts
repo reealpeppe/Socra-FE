@@ -74,7 +74,7 @@ test("registration form keeps legal documents available before acceptance", asyn
   const submit = page.getByRole("button", { name: "Crea account" });
 
   await expect(page.locator('input[type="checkbox"]')).toHaveCount(1);
-  await expect(page.getByText(/consensi facoltativi in anticipo/i)).toBeVisible();
+  await expect(page.getByText(/consensi facoltativi restano separati/i)).toBeVisible();
   await expect(essentialConsent).not.toBeChecked();
   await expect(form.getByRole("link", { name: "Termini", exact: true })).toHaveAttribute("href", "/termini");
   await expect(form.getByRole("link", { name: "informativa privacy", exact: true })).toHaveAttribute("href", "/privacy");
@@ -163,3 +163,6 @@ test("onboarding gate keeps pathname and search in the expired-session login lin
     return { pathname: url.pathname, next: url.searchParams.get("next") };
   }).toEqual({ pathname: "/login", next: "/requests?tab=sent" });
 });
+
+// These regressions exercise the ordinary flow after opening.
+test.beforeEach(async({page})=>{await page.route("**/api/prelaunch/status",route=>route.fulfill({json:{phase:"open",campaign_enabled:false,email_delivery_enabled:false,email_bonus:1,registration_bonus:2,redemption_days:30,redeem_until:null}}));});

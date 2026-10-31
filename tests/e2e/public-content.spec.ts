@@ -86,7 +86,9 @@ test("terms and privacy are public, linked and transparent about pending validat
 test("privacy explains optional profile data consented contacts and conditional operational email", async ({ page }) => {
   await page.goto("/privacy");
   const main = page.getByRole("main");
-  await expect(main.getByText("Documento in validazione")).toBeVisible();
+  await expect(main.getByRole('heading',{name:'Titolare del trattamento e contatti'})).toBeVisible();
+  await expect(main.getByRole('heading',{name:'Ingresso durante il pre-lancio'})).toBeVisible();
+  await expect(main).toContainText(/seconda casella.*facoltativa e revocabile/i);
   await expect(main.getByRole("heading", { name: "Condivisione dei contatti nel percorso" })).toBeVisible();
   await expect(main).toContainText(/presentazione breve.*foto facoltativa/i);
   await expect(main).toContainText(/nome e cognome privati, username pubblico/i);

@@ -186,3 +186,6 @@ test('changing account hides the private proposal and prevents acceptance',async
   await expect(page.getByRole('button',{name:'Accetta e inizia il percorso',exact:true})).toHaveCount(0);
   expect(state.accepts).toBe(0);
 });
+
+// These regressions exercise the ordinary flow after opening.
+test.beforeEach(async({page})=>{await page.route("**/api/prelaunch/status",route=>route.fulfill({json:{phase:"open",campaign_enabled:false,email_delivery_enabled:false,email_bonus:1,registration_bonus:2,redemption_days:30,redeem_until:null}}));});

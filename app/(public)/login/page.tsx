@@ -5,11 +5,15 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Brand } from "@/components/Brand";
-import { authPost, ClientApiError } from "@/lib/api";
+import { authPost, ClientApiError, clientGet } from "@/lib/api";
 import { safeInvitationReturn } from "@/lib/invitations";
 import styles from "./auth.module.css";
+import type {UserMe} from "@/lib/types";
+import {PrelaunchAuthBoundary} from "@/components/PrelaunchAuthBoundary";
 
-export default function LoginPage() {
+export default function LoginPage(){return <PrelaunchAuthBoundary mode="login"><LoginForm/></PrelaunchAuthBoundary>;}
+
+function LoginForm() {
   const router = useRouter();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
@@ -26,7 +30,8 @@ export default function LoginPage() {
     try {
       await authPost("login", { identifier, password });
       const next = safeNextPath(new URLSearchParams(window.location.search).get("next"));
-      router.push(next);
+      const user=await clientGet<UserMe>("/auth/me");
+      router.push(user.prelaunch_blocked ? "/dashboard" : next);
       router.refresh();
     } catch (err) {
       const reason = err instanceof ClientApiError ? err.message : "Accesso non riuscito.";
@@ -47,7 +52,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className={styles.page}>      <main className={styles.main} id="main-content" tabIndex={-1}>
+    <div className={styles.page}>
+      <main className={styles.main} id="main-content" tabIndex={-1}>
         <section className={styles.card} aria-labelledby="login-title">
           <div className={styles.brandRow}>
             <Link className={styles.brandLink} href="/" aria-label="Torna alla pagina iniziale di Socra">
@@ -124,7 +130,8 @@ export default function LoginPage() {
             <Link className={styles.footerLink} href={invitationNext ? `/register?next=${invitationNext}` : "/register"}>Crea il tuo profilo</Link>
           </p>
         </section>
-      </main>    </div>
+      </main>
+    </div>
   );
 }
 
