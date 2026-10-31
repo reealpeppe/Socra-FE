@@ -20,7 +20,7 @@ export function useLaunchStatus() {
   },[]);
   return {state,error};
 }
-export async function launchPost(action:"subscribe"|"confirm"|"unsubscribe", payload:unknown) {
+export async function launchPost(action:"subscribe"|"confirm"|"unsubscribe"|"join"|"profile-link", payload:unknown) {
   const response = await fetch("/api/prelaunch/"+action,{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify(payload),cache:"no-store"});
   const data = await response.json();

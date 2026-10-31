@@ -53,9 +53,9 @@ function WaitingScreen({user}:{user:UserMe}) {
     <main id="main-content">
       <div className={styles.preview} aria-hidden="true"><div/><div/></div>
       <section className={styles.waitCard} aria-labelledby="launch-title">
-        <p className="eyebrow">Il tuo account è pronto</p>
-        <h1 id="launch-title">Socra sta arrivando!</h1>
-        <p>Prima del lancio ti avviseremo via email. Nel frattempo, prepara il tuo profilo se non lo hai già fatto.</p>
+        <p className="eyebrow">Grazie di esserci</p>
+        <h1 id="launch-title">La community sta arrivando.</h1>
+        <p>Ti terremo aggiornato via email e ti avviseremo prima dell’apertura. Nel frattempo, prepara il tuo profilo se non lo hai già fatto.</p>
         <p className={styles.fine}>Survey, esperienza e obiettivi restano salvati e puoi aggiornarli quando vuoi.</p>
         {!user.email_verified ? <p>Conferma il tuo indirizzo dalle impostazioni per ricevere l’avviso e rendere valido il bonus.</p>:null}
         <div className={styles.actions}>

@@ -317,7 +317,7 @@ async function mutate<T>(method: string, path: string, payload?: unknown): Promi
   }
 }
 
-export async function authPost<T>(path: "login" | "register" | "logout", payload?: unknown): Promise<T> {
+export async function authPost<T>(path: "login" | "register" | "logout" | "prelaunch-register", payload?: unknown): Promise<T> {
   invalidate(true);
   try {
     const value = await request<T>(`/api/auth/${path}`, { method: "POST", headers: jsonHeaders,

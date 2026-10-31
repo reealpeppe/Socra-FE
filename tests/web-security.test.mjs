@@ -145,7 +145,7 @@ test('body limit counts bytes from a chunked stream without trusting Content-Len
   assert.equal(f.calls(), 0);
 });
 
-for (const path of [ ['auth','login'], ['auth','register'], ['auth','logout'], ['auth','me','extra'],
+for (const path of [ ['prelaunch','register'], ['prelaunch','profile-link'], ['auth','login'], ['auth','register'], ['auth','logout'], ['auth','me','extra'],
   ['profiles','..','auth','register'], ['auth/register'], ['auth%2fregister'], ['auth\\register'], ['%61uth','register'] ]) {
   test(`generic proxy cannot bypass auth cookie contract: ${path.join('/')}`, async () => {
     const f = fixture('proxy', undefined, 200, path);

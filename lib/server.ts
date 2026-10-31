@@ -46,6 +46,8 @@ async function proxyPrivateBackend(request: NextRequest, path: string[], verific
   // Route segments are decoded by Next. Deny alternate URL spellings before fetch
   // normalizes them, and keep all token-producing auth routes in dedicated handlers.
   if (path[0] === "monitoring") return privateJson({ detail: "Backend route unavailable" }, 403);
+  if (path[0] === "prelaunch" && path[1] !== "admin" && !(path.length===2 && path[1]==="me" && request.method==="GET"))
+    return privateJson({detail:"Backend route unavailable"},404);
   if (!path.length || path.some(segment => !/^[A-Za-z0-9_-]+$/.test(segment)) ||
       (path[0] === "auth" && !(path.length === 2 && path[1] === "me" && request.method === "GET") && !verificationRequest)) {
     return privateJson({ detail: "Backend route unavailable" }, 404);
@@ -106,16 +108,16 @@ export function correctUnverifiedEmail(request: NextRequest): Promise<NextRespon
   return proxyPrivateBackend(request, ["auth", "email"], true);
 }
 
-export async function authenticate(request: NextRequest, action: "login" | "register"): Promise<NextResponse> {
+export async function authenticate(request: NextRequest, action: "login" | "register" | "prelaunch-register"): Promise<NextResponse> {
   const rejected = guardMutation(request);
   if (rejected) return rejected;
   let payload: string | undefined;
   try { payload = await readJsonBody(request, 16 * 1024); }
   catch (error) { return bodyError(error); }
-  if (action === "register") {
+  if (action === "register" || action === "prelaunch-register") {
     const input = JSON.parse(payload || "{}");
     if (!input || typeof input !== "object" || Array.isArray(input)) return privateJson({ detail: "Dati di registrazione non validi." }, 400);
-    const useInvitation = input.invitation_context === true;
+    const useInvitation = action==='register' && input.invitation_context === true;
     delete input.invitation_context;
     delete input.invitation_token;
     const invitation = useInvitation ? request.cookies.get("socra_invitation")?.value : undefined;
@@ -126,7 +128,7 @@ export async function authenticate(request: NextRequest, action: "login" | "regi
     payload = JSON.stringify(input);
   }
   try {
-    const upstream = await fetch(getBackendUrl(`/auth/${action}`), {
+    const upstream = await fetch(getBackendUrl(action==='prelaunch-register'?'/prelaunch/register':`/auth/${action}`), {
       method: "POST", headers: { "Content-Type": "application/json" }, body: payload,
       cache: "no-store", signal: AbortSignal.timeout(12_000)
     });

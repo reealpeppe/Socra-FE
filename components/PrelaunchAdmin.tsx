@@ -2,10 +2,11 @@
 import {useEffect,useState} from "react";
 import {clientGet,clientPost,refreshClientSession} from "@/lib/api";
 import {Card,PageHeader} from "@/components/Ui";
+import {PrelaunchScheduleEditor,type LaunchSchedule} from './PrelaunchScheduleEditor';
 type Snapshot={phase:"prelaunch"|"open";campaign_enabled:boolean;email_delivery_enabled:boolean;subscribers:number;
   confirmed:number;registered:number;verified_registrations:number;redeem_until:string|null;
   readiness:{prepared_accounts:number;with_match:number;without_match:number;by_topic:Record<string,{goals:number;goals_with_match:number}>};
-  mail:Record<string,number>};
+  mail:Record<string,number>;schedule:LaunchSchedule};
 export function PrelaunchAdmin(){
   const [data,setData]=useState<Snapshot|null>(null),[error,setError]=useState<string|null>(null),[message,setMessage]=useState<string|null>(null);
   const [confirmation,setConfirmation]=useState(""),[busy,setBusy]=useState(false);
@@ -40,7 +41,8 @@ export function PrelaunchAdmin(){
         </tbody></table>:null}
       </Card>
       <Card><h2>Avvisi email</h2><p>In coda: {data.mail.pending+data.mail.retry} · Accettati dal servizio email: {data.mail.sent} · Da controllare: {data.mail.failed} · Invio disattivato: {data.mail.suppressed}</p>
-        <p className="muted">L’accettazione del servizio email non certifica la consegna nella casella.</p></Card>
+        <p className="muted">L’accettazione del servizio email non certifica la consegna nella casella. Secondo servizio a consumo e capacità d’invio da definire prima della raccolta reale.</p></Card>
+      {data.campaign_enabled&&data.phase==='prelaunch'&&data.schedule?<Card><PrelaunchScheduleEditor initial={data.schedule} onSaved={load}/></Card>:null}
       {data.campaign_enabled && data.phase==="prelaunch"?<Card><h2>Scegli il prossimo passo</h2>
         <p>Prima avvisa gli iscritti che il lancio si avvicina; quando decidi di partire, apri gli scambi. L’apertura di questa campagna è definitiva e assegna i bonus spettanti.</p>
         <label htmlFor="launch-confirm">Scrivi <strong>AVVISA GLI ISCRITTI</strong> oppure <strong>APRI SOCRA</strong></label>

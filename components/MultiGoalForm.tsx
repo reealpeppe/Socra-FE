@@ -11,7 +11,7 @@ import styles from './SkillLearning.module.css';
 function selections(goals:Goal[]) {return goals.filter(g=>g.skill_model).map(g=>({topic:g.topic_code!,objective_codes:g.objective_codes||[],discussion_mode:g.discussion_mode||''}));}
 const marker=()=>{try{return localStorage.getItem('socra-session-change');}catch{return null;}};
 const cachedGoals=()=>{const data=cachedClientValue<GoalsMe>('/goals/me');return data?.active_goals||data?.goals.filter(g=>g.is_active!==false)||[];};
-const canReadRequests=(user:UserMe)=>user.email_verified||!user.email_verification_required;
+const canReadRequests=(user:UserMe)=>!user.prelaunch_blocked&&(user.email_verified||!user.email_verification_required);
 const cachedPending=()=>{
   const user=cachedClientValue<UserMe>('/auth/me');
   return user&&canReadRequests(user)?cachedClientValue<MatchRequestItem[]>('/matching/requests/me?role=mentee')?.filter(r=>r.status==='pending')||[]:[];

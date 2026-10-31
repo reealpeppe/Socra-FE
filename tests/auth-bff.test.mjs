@@ -73,7 +73,7 @@ test('ordinary registration ignores a residual invitation context from another v
   }
 });
 
-for (const action of ["login", "register"]) {
+for (const action of ["login", "register", "prelaunch-register"]) {
   test(`${action} keeps bearer exclusively in an HttpOnly cookie`, async () => {
     const post = handler(action, { access_token: "fixture-session-bearer", token_type: "bearer", user_id: "user-1" });
     const response = await post(request({ email: "local@example.com", password: "Password123" }));
@@ -94,6 +94,17 @@ for (const action of ["login", "register"]) {
     assert.equal(response.headers.get("set-cookie"), null);
   });
 }
+
+test('prelaunch registration uses a fixed endpoint and ignores invitation context',async()=>{
+  let target,submitted;
+  const post=handler('prelaunch-register',{access_token:'private',user_id:'new'},200,(url,options)=>{target=url;submitted=JSON.parse(options.body);});
+  const response=await post(request({token:'personal-link-token',email:'lead@example.test',invitation_token:'forged',invitation_context:true}));
+  assert.equal(target,'https://backend.example/prelaunch/register');
+  assert.equal(submitted.token,'personal-link-token');
+  assert.equal(Object.hasOwn(submitted,'invitation_token'),false);
+  assert.equal(Object.hasOwn(submitted,'invitation_context'),false);
+  assert.deepEqual(await response.json(),{user_id:'new'});
+});
 
 
 test('login preserves server-authorized eight-hour session and caps oversized expiry',async()=>{

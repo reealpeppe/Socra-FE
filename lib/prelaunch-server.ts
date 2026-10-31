@@ -16,9 +16,9 @@ export async function prelaunchStatus() {
   } catch { return privateJson({detail:"Le informazioni sul lancio non sono disponibili. Riprova tra poco."},503); }
   finally { clearTimeout(timer); }
 }
-export async function prelaunchMutation(request:NextRequest, action:"subscribe"|"confirm"|"unsubscribe") {
+export async function prelaunchMutation(request:NextRequest, action:"subscribe"|"confirm"|"unsubscribe"|"join"|"profile-link") {
   const rejected = guardMutation(request); if (rejected) return rejected;
-  if (!["subscribe","confirm","unsubscribe"].includes(action)) return privateJson({detail:"Not found"},404);
+  if (!["subscribe","confirm","unsubscribe","join","profile-link"].includes(action)) return privateJson({detail:"Not found"},404);
   let body:string;
   try { body = (await readJsonBody(request,4096))!; } catch (error) { return bodyError(error); }
   const controller = new AbortController(), timer = setTimeout(() => controller.abort(),12000);
@@ -26,10 +26,11 @@ export async function prelaunchMutation(request:NextRequest, action:"subscribe"|
     const upstream = await fetch(getBackendUrl("/prelaunch/" + action), {
       method:"POST", headers:{"Content-Type":"application/json"}, body, cache:"no-store", signal:controller.signal
     });
-    await upstream.text();
-    const response = privateJson(upstream.ok ? {status:"ok"} : {
-      detail:action === "subscribe" ? "Non siamo riusciti a salvare la richiesta. Controlla l’indirizzo e riprova."
-        : "Il link non è valido o è scaduto. Puoi richiedere un nuovo avviso dal sito."
+    const result=await upstream.json();
+    if(upstream.ok && action==='profile-link' && (typeof result.email!=='string'||result.email.length>255))throw new Error();
+    const response = privateJson(upstream.ok ? action==='profile-link'?{email:result.email}:{status:"ok"} : {
+      detail:["subscribe","join"].includes(action) ? "Non siamo riusciti a salvare la richiesta. Controlla l’indirizzo e riprova."
+        : "Il link non è valido, è già stato utilizzato oppure è scaduto. Richiedine uno nuovo o accedi al tuo account."
     }, upstream.status);
     response.headers.set("Referrer-Policy","no-referrer");
     return response;

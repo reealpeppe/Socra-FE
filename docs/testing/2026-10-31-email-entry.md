@@ -1,0 +1,11 @@
+# Ingresso email pre-lancio — revisione31/10/2026
+
+Branch `feature/prelaunch-20261030`, base di revisione FE70cff95 / BE30577aa. Regole e contratti proprietari: wiki14 e07 nel backend dello stesso branch; piano `docs/plans/2026-10-31-email-entry.md`, consegna/evidenze backend `docs/testing/2026-10-31-email-entry.md`. Nessuna pubblicazione o email reale.
+
+CTA auth: form email durante il pre-lancio; grazie e completamento separati. Il form registrazione ordinario è conservato in RegistrationForm e riusato dal nuovo percorso con email non modificabile e token in memoria. BFF auth dedicato, stesso cookie HttpOnly e guard; proxy generico chiuso agli endpoint pubblici prelaunch. Dopo login bloccato sempre attesa anche con next; preparazione personale mantenuta. Calendario admin vuoto e disattivato, nessun intervallo presunto. Secondo provider da definire, non collegato.
+
+Verifica:142 test Node passati; build/typecheck validi; lint0 errori e due warning MonitoringMfa preesistenti. Suite browser completa530 passati/due saltati, seguita dal fix reale di MultiGoalForm e ricontrolli16 pre-lancio +62 obiettivi/multitema passati. Test red/green per ingresso unico, completamento con token, cookie/proxy e goal senza letture matching. Registrazione ordinaria dopo apertura coperta nelle regressioni auth/inviti, con stato pubblico open esplicito.
+
+API vere:20 schermate desktop/mobile più20 viewport, zero overflow/errori JS; `.local/capture-entry.mjs` esegue l'intero percorso con account sintetici, inclusi salvataggio survey/obiettivo e ritorno dopo login, senza mock o provider. Snapshot API persistiti dopo relogin in `.local/entry-api-snapshots.json` del backend. Review LLM indipendente di tutti40 artefatti: **PASS**, nessun difetto materiale. Ripetizione di login/goal/settings verificata; nessuna attestazione su accessibilità completa, validità legale o recapito email.
+
+Preview locale `http://localhost:3138/prelancio`. Per rientrare: collegamento “Accedi al tuo profilo”, account `anteprima`, password demo `SocraPreview123!`. Staff `staff-anteprima`, stessa password. Invii disattivati e DB soltanto locale; produzione invariata. Informative e condizioni restano da validare per l'attivazione reale.
