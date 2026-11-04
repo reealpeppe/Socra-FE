@@ -299,3 +299,9 @@
   }
 }
 
+.proofEmail {
+  field-sizing: content;
+  font-family: inherit;
+  resize: none;
+  overflow-wrap: anywhere;
+}

@@ -128,6 +128,11 @@ function SearchAwareAppShell({ children, primaryAction }: AppShellProps) {
 }
 
 const ShellActionContext = createContext<((action: AppShellProps["primaryAction"]) => void) | null>(null);
+const skipCommunityAction = () => {};
+
+export function PersonalAppContent({ children }: { children: React.ReactNode }) {
+  return <ShellActionContext.Provider value={skipCommunityAction}>{children}</ShellActionContext.Provider>;
+}
 
 export function PersistentAppShell({ children }: { children: React.ReactNode }) {
   const [action, setAction] = useState<AppShellProps["primaryAction"]>();

@@ -10,7 +10,9 @@ import { safeInvitationReturn } from "@/lib/invitations";
 import { invitationContextRequest } from "@/components/InvitationLanding";
 import styles from "@/app/(public)/login/auth.module.css";
 
-export function RegistrationForm({proof}:{proof?:{token:string;email:string}}) {
+export type PrelaunchProof = { kind: "email"; token: string; email: string } | { kind: "browser"; email: string };
+
+export function RegistrationForm({ proof, emailAction }: { proof?: PrelaunchProof; emailAction?: React.ReactNode }) {
   const router = useRouter();
   const [form, setForm] = useState({
     first_name: "",
@@ -42,8 +44,11 @@ export function RegistrationForm({proof}:{proof?:{token:string;email:string}}) {
     setError(null);
     try {
       const invited = safeInvitationReturn(new URLSearchParams(window.location.search).get("next"));
-      await authPost(proof ? "prelaunch-register" : "register", proof ? {...form,token:proof.token} : invited ? {...form, invitation_context: true} : form);
-      router.push(safeInvitationReturn(new URLSearchParams(window.location.search).get("next")) || "/onboarding");
+      const input = proof
+        ? { ...form, proof_kind: proof.kind, token: proof.kind === "email" ? proof.token : undefined }
+        : invited ? { ...form, invitation_context: true } : form;
+      await authPost(proof ? "prelaunch-register" : "register", input);
+      router.push(proof ? "/prelancio/prepara" : invited || "/onboarding");
       router.refresh();
     } catch (err) {
       const reason = err instanceof ClientApiError ? err.message : "Registrazione non riuscita.";
@@ -64,8 +69,11 @@ export function RegistrationForm({proof}:{proof?:{token:string;email:string}}) {
           </div>
           <h1 className={styles.title} id="register-title">{proof ? "Completa il tuo profilo" : "Crea il tuo account"}</h1>
           <p className={styles.subtitle}>
-            {proof ? "Il link conferma già la tua email. Aggiungi i tuoi dati: poi ti accompagniamo nella survey e nella scelta del tuo primo obiettivo." : invitationNext ? "Usa l’indirizzo che ha ricevuto l’invito: il link conferma già la tua email. Dopo la registrazione, ti guidiamo verso il percorso." : "Entra nella community, completa la survey e definisci il primo obiettivo su cui vuoi confrontarti."}
+            {proof?.kind === "browser" ? "Inserisci i tuoi dati e scegli una password per ritrovare il profilo. Alla fine ti chiederemo di confermare l’indirizzo."
+              : proof ? "Il link conferma già la tua email. Inserisci i tuoi dati per iniziare a preparare il profilo."
+              : invitationNext ? "Usa l’indirizzo che ha ricevuto l’invito: il link conferma già la tua email. Dopo la registrazione, ti guidiamo verso il percorso." : "Entra nella community, completa la survey e definisci il primo obiettivo su cui vuoi confrontarti."}
           </p>
+          {emailAction}
 
           {error ? <><p className={styles.error} id="register-error" role="alert">{error}</p>{invitationNext?<button className="button secondary" type="button" disabled={loading} onClick={async()=>{setLoading(true);try{await invitationContextRequest('/api/invitations/context',undefined,'DELETE');router.replace('/register');setInvitationNext(null);setError(null);}catch{setError('Non riusciamo a chiudere l’invito. Riprova tra poco.');}finally{setLoading(false);}}}>Continua senza invito</button>:null}</> : null}
 
@@ -99,7 +107,15 @@ export function RegistrationForm({proof}:{proof?:{token:string;email:string}}) {
             </div>
             <div className={styles.field}>
               <label className={styles.label} htmlFor="email">Email</label>
-              <input
+              {proof ? <textarea
+                className={`${styles.input} ${styles.proofEmail}`}
+                id="email"
+                name="email"
+                rows={2}
+                readOnly
+                spellCheck={false}
+                value={form.email}
+              /> : <input
                 aria-invalid={error ? "true" : undefined}
                 autoComplete="email"
                 className={styles.input}
@@ -109,9 +125,8 @@ export function RegistrationForm({proof}:{proof?:{token:string;email:string}}) {
                 required
                 spellCheck={false}
                 type="email"
-                readOnly={!!proof}
                 value={form.email}
-              />
+              />}
             </div>
 
             <div className={styles.field}>
@@ -182,12 +197,12 @@ export function RegistrationForm({proof}:{proof?:{token:string;email:string}}) {
               disabled={loading}
               type="submit"
             >
-              {loading ? "Creazione…" : proof ? "Completa il profilo" : "Crea account"}
+              {loading ? "Creazione…" : proof ? "Salva e continua" : "Crea account"}
             </button>
           </form>
 
           <p className={styles.hint} style={{ marginTop: 18, textAlign: "center" }}>
-            {proof ? "Il tuo indirizzo è già verificato. Dopo questo passaggio potrai compilare survey e obiettivo, anche prima del lancio." : invitationNext ? "Dopo l’iscrizione vedrai la proposta. Preparerai il tuo profilo e sceglierai se iniziare il percorso." : "Dopo l’iscrizione potrai compilare subito la survey. Conferma la tua email per cercare persone e usare il matching."}
+            {proof ? "Potrai riprendere la preparazione accedendo al tuo account." : invitationNext ? "Dopo l’iscrizione vedrai la proposta. Preparerai il tuo profilo e sceglierai se iniziare il percorso." : "Dopo l’iscrizione potrai compilare subito la survey. Conferma la tua email per cercare persone e usare il matching."}
           </p>
 
           <p className={styles.footerText}>

@@ -21,6 +21,7 @@ export function AccountAction({ action }: { action: Action }) {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [prelaunch, setPrelaunch] = useState(false);
   const [error, setError] = useState<string | null>(null);
   useEffect(() => {
     if (action === "forgot") return;
@@ -36,7 +37,10 @@ export function AccountAction({ action }: { action: Action }) {
     setBusy(true); setError(null);
     try {
       if (action === "forgot") await accountPost("password-reset/request", { email: email.trim() });
-      else if (action === "verify") await accountPost("email-verification/confirm", { token: token.current });
+      else if (action === "verify") {
+        const result = await accountPost<{ prelaunch?: boolean }>("email-verification/confirm", { token: token.current });
+        setPrelaunch(result.prelaunch === true);
+      }
       else await accountPost("password-reset/confirm", { token: token.current, password });
       token.current = null; setPassword(""); setSuccess(true);
     } catch (err) {
@@ -58,8 +62,9 @@ export function AccountAction({ action }: { action: Action }) {
             {action === "reset" ? <div className={styles.field}><label className={styles.label} htmlFor="new-password">Nuova password</label><input className={styles.input} id="new-password" type="password" autoComplete="new-password" required minLength={10} pattern="(?=.*[A-Za-z])(?=.*[0-9]).{10,}" aria-describedby="reset-password-hint" value={password} onChange={event => setPassword(event.target.value)} disabled={busy} /><p className={styles.hint} id="reset-password-hint">Almeno 10 caratteri, con almeno una lettera e un numero.</p></div> : null}
             <button className={styles.submit} type="submit" disabled={busy} aria-busy={busy}>{busy ? "Conferma in corso…" : copy[action].button}</button>
           </form>}
-        <p className={styles.footerText}><Link href={action === "verify" ? "/settings" : "/login"} className={styles.footerLink}>{action === "verify" ? "Vai al tuo account" : "Torna all’accesso"}</Link></p>
-        {action === "verify" && success ? <p className={styles.footerText}><Link href="/inviti" className={styles.footerLink}>Riprendi una proposta di invito</Link></p> : null}
+        <p className={styles.footerText}><Link href={prelaunch ? "/prelancio/profilo-pronto" : action === "verify" ? "/settings" : "/login?accesso=1"} className={styles.footerLink}>{prelaunch ? "Vai alla tua area" : action === "verify" ? "Vai al tuo account" : "Torna all’accesso"}</Link></p>
+        {action === "verify" && error ? <p className={styles.footerText}><Link href="/login?accesso=1" target="_blank" rel="noopener noreferrer">Accedi in una nuova scheda</Link> e torna qui, oppure <Link href="/forgot-password">recupera la password</Link>.</p> : null}
+        {action === "verify" && success && !prelaunch ? <p className={styles.footerText}><Link href="/inviti" className={styles.footerLink}>Riprendi una proposta di invito</Link></p> : null}
         {action === "reset" && !success ? <p className={styles.footerText}><Link href="/forgot-password" className={styles.footerLink}>Richiedi un nuovo link</Link></p> : null}
       </section>
     </main>  </div>;

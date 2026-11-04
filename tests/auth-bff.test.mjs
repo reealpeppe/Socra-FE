@@ -106,6 +106,22 @@ test('prelaunch registration uses a fixed endpoint and ignores invitation contex
   assert.deepEqual(await response.json(),{user_id:'new'});
 });
 
+test("browser continuation uses the HttpOnly receipt and ignores a forged body proof", async () => {
+  const receipt = "r".repeat(43);
+  let forwarded;
+  const post = handler("prelaunch-register", { access_token: "bearer", user_id: "draft" }, 200,
+    (_url, options) => { forwarded = JSON.parse(options.body); });
+  const missing = await post(request({ proof_kind: "browser", token: receipt }));
+  assert.equal(missing.status, 400);
+  assert.equal(forwarded, undefined);
+  const response = await post(request({ proof_kind: "browser", token: "forged" }, "socra_prelaunch_receipt=" + receipt));
+  assert.equal(response.status, 200);
+  assert.equal(forwarded.token, receipt);
+  assert.equal(forwarded.proof_kind, "browser");
+  assert.deepEqual(await response.json(), { user_id: "draft" });
+  assert.match(response.headers.get("set-cookie"), /socra_prelaunch_receipt=;[^,]*Max-Age=0/i);
+});
+
 
 test('login preserves server-authorized eight-hour session and caps oversized expiry',async()=>{
   for(const seconds of [28800,999999]){

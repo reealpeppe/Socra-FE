@@ -1,10 +1,11 @@
 "use client";
-import {useEffect,useRef,useState} from 'react';
+import {useContext,useEffect,useRef,useState} from 'react';
 import {useRouter} from 'next/navigation';
 import Link from 'next/link';
 import {clientGet,clientPut,cachedClientValue,hasCachedClientValues} from '@/lib/api';
 import {useConfirmation} from '@/components/ConfirmationDialog';
 import {useUnsavedChangesGuard} from '@/lib/use-unsaved-changes-guard';
+import {PrelaunchModeContext} from '@/lib/prelaunch';
 import type {Goal,GoalSelection,GoalsMe,MatchRequestItem,SkillCatalog,SkillProfile,UserMe} from '@/lib/types';
 import styles from './SkillLearning.module.css';
 
@@ -23,6 +24,7 @@ const goalsReady=()=>{
 
 export function MultiGoalForm({catalog}:{catalog:SkillCatalog}) {
   const router=useRouter();
+  const prelaunch=useContext(PrelaunchModeContext);
   const [chosen,setChosen]=useState<GoalSelection[]>(()=>selections(cachedGoals()));
   const [original,setOriginal]=useState<Goal[]>(cachedGoals);
   const [pending,setPending]=useState<MatchRequestItem[]>(cachedPending);
@@ -70,7 +72,9 @@ export function MultiGoalForm({catalog}:{catalog:SkillCatalog}) {
     if(request.current?.payload!==serialized)request.current={payload:serialized,key:crypto.randomUUID()};
     try{
       await clientPut<GoalsMe>('/goals/me/selection',{selections:payload,idempotency_key:request.current.key});
-      if(session!==marker())return;setDirty(false);router.push(payload.length?'/matching':'/dashboard');
+      if(session!==marker())return;
+      setDirty(false);
+      router.push(payload.length ? (prelaunch ? '/prelancio/profilo-pronto' : '/matching') : '/dashboard');
     }catch(err){if(session===marker())setError(err instanceof Error?err.message:'Obiettivi non salvati.');}
     finally{if(session===marker())setBusy(false);}
   }
@@ -79,7 +83,7 @@ export function MultiGoalForm({catalog}:{catalog:SkillCatalog}) {
   const themeCount=chosen.filter(s=>s.objective_codes.length).length;
   const activityCount=chosen.reduce((n,s)=>n+s.objective_codes.length,0);
   return <>{confirmationDialog}<form className={styles.page} onSubmit={save} aria-busy={busy}>
-    <header className={styles.intro}><p className={styles.eyebrow}>La tua direzione</p><h1>{original.length?'Aggiorna cosa vuoi imparare':'Cosa vuoi imparare?'}</h1><p>Scegli più temi, con da una a tre attività e una modalità per ciascuno. Vedrai insieme i mentor compatibili; ogni percorso partirà da un solo tema.</p></header>
+    <header className={styles.intro}><p className={styles.eyebrow}>La tua direzione</p><h1>{original.length?'Aggiorna cosa vuoi imparare':'Cosa vuoi imparare?'}</h1><p>{prelaunch ? "Scegli le attività e la modalità di confronto che preferisci. Gli obiettivi salvati saranno disponibili all’apertura." : "Scegli più temi, con da una a tre attività e una modalità per ciascuno. Vedrai insieme i mentor compatibili; ogni percorso partirà da un solo tema."}</p></header>
     <section className={styles.section}><h2>I tuoi obiettivi</h2><p role="status">{themeCount} {themeCount===1?'tema':'temi'} · {activityCount} attività {activityCount===1?'selezionata':'selezionate'}</p>
       {catalog.topics.map(topic=>{const selection=chosen.find(s=>s.topic===topic.code);return <details key={topic.code} className={styles.topic} open={!!selection?.objective_codes.length}>
         <summary><span>{topic.label}</span><small>{selection?.objective_codes.length||0} di {catalog.max_objectives} attività</small></summary>
@@ -90,6 +94,6 @@ export function MultiGoalForm({catalog}:{catalog:SkillCatalog}) {
       </details>;})}
     </section>
     {error?<div role="alert"><p className="error">{error}</p>{!dirty?<button type="button" className="button secondary" onClick={()=>{setLoaded(false);setError(null);setAttempt(v=>v+1);}}>Riprova</button>:null}</div>:null}
-    <div className={styles.actions}><button className="button dark" type="submit" disabled={busy}>{busy?'Salvataggio…':original.length?'Aggiorna e vedi i mentor':'Salva e continua'}</button></div>
+    <div className={styles.actions}><button className="button dark" type="submit" disabled={busy}>{busy?'Salvataggio…':original.length&&!prelaunch?'Aggiorna e vedi i mentor':'Salva e continua'}</button></div>
   </form></>;
 }

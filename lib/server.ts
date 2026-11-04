@@ -3,6 +3,12 @@ import { NextResponse, type NextRequest } from "next/server";
 import { guardMutation, privateJson, readJsonBody, bodyError } from "@/lib/web-security";
 
 const sessionCookie = "socra_session";
+export const prelaunchReceiptCookie = "socra_prelaunch_receipt";
+
+export function reservationReceipt(request: NextRequest) {
+  const value = request.cookies.get(prelaunchReceiptCookie)?.value;
+  return value && /^[A-Za-z0-9_-]{43}$/.test(value) ? value : undefined;
+}
 const backendBaseUrl = process.env.SOCRA_API_BASE_URL || "http://127.0.0.1:8000";
 
 export function getBackendUrl(path: string): string {
@@ -46,7 +52,13 @@ async function proxyPrivateBackend(request: NextRequest, path: string[], verific
   // Route segments are decoded by Next. Deny alternate URL spellings before fetch
   // normalizes them, and keep all token-producing auth routes in dedicated handlers.
   if (path[0] === "monitoring") return privateJson({ detail: "Backend route unavailable" }, 403);
-  if (path[0] === "prelaunch" && path[1] !== "admin" && !(path.length===2 && path[1]==="me" && request.method==="GET"))
+  const privatePrelaunch = path.length === 2 && (
+    (path[1] === "me" && request.method === "GET") ||
+    (path[1] === "intent" && request.method === "PUT") ||
+    (path[1] === "finish" && request.method === "POST") ||
+    (path[1] === "profile-confirm" && request.method === "POST" && verificationRequest)
+  );
+  if (path[0] === "prelaunch" && path[1] !== "admin" && !privatePrelaunch)
     return privateJson({detail:"Backend route unavailable"},404);
   if (!path.length || path.some(segment => !/^[A-Za-z0-9_-]+$/.test(segment)) ||
       (path[0] === "auth" && !(path.length === 2 && path[1] === "me" && request.method === "GET") && !verificationRequest)) {
@@ -108,6 +120,10 @@ export function correctUnverifiedEmail(request: NextRequest): Promise<NextRespon
   return proxyPrivateBackend(request, ["auth", "email"], true);
 }
 
+export function confirmPrelaunchProfile(request: NextRequest): Promise<NextResponse> {
+  return proxyPrivateBackend(request, ["prelaunch", "profile-confirm"], true);
+}
+
 export async function authenticate(request: NextRequest, action: "login" | "register" | "prelaunch-register"): Promise<NextResponse> {
   const rejected = guardMutation(request);
   if (rejected) return rejected;
@@ -120,6 +136,11 @@ export async function authenticate(request: NextRequest, action: "login" | "regi
     const useInvitation = action==='register' && input.invitation_context === true;
     delete input.invitation_context;
     delete input.invitation_token;
+    if (action === "prelaunch-register" && input.proof_kind === "browser") {
+      const receipt = reservationReceipt(request);
+      if (!receipt) return privateJson({ detail: "Riapri il link ricevuto via email per continuare." }, 400);
+      input.token = receipt;
+    }
     const invitation = useInvitation ? request.cookies.get("socra_invitation")?.value : undefined;
     if (invitation !== undefined) {
       if (!/^[a-zA-Z0-9_-]{32,128}$/.test(invitation)) return privateJson({ detail: "Il link di invito non è valido. Riapri l’email oppure continua senza invito." }, 400);
@@ -140,6 +161,9 @@ export async function authenticate(request: NextRequest, action: "login" | "regi
     const response = privateJson({ user_id: body.user_id });
     const seconds=typeof body.expires_in==="number" && Number.isFinite(body.expires_in) ? body.expires_in : 3600;
     setSessionCookie(response, body.access_token, seconds);
+    if (action === "prelaunch-register") response.cookies.set(prelaunchReceiptCookie, "", {
+      httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 0,
+    });
     return response;
   } catch { return privateJson({ detail: "Backend unavailable" }, 503); }
 }
