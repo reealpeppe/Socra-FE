@@ -40,8 +40,14 @@ export function PrelaunchGate({ children }: { children: React.ReactNode }) {
     };
   }, [pathname]);
 
+  // Personal forms own their loading/recovery states and can read personal data in parallel.
+  if (personal && !user && error === null) return <main className={styles.areaMain} id="main-content">
+    <PersonalAppContent>{children}</PersonalAppContent>
+  </main>;
+
   if (!user) return <main className={styles.page} id="main-content"><div className={styles.content}>
-    {error === 401 ? <><h1>Accedi per continuare</h1><Link className="button dark" href="/login?accesso=1">Vai all’accesso</Link></>
+    {error === 401 ? <><h1>Accedi per continuare</h1><Link className="button dark"
+      href={"/login?accesso=1&next=" + encodeURIComponent(pathname + window.location.search)}>Vai all&apos;accesso</Link></>
       : error ? <><p role="alert">Non riusciamo a verificare l’accesso.</p><button className="button secondary" onClick={refreshClientSession}>Riprova</button></>
       : <p role="status">Verifica dell’accesso…</p>}
   </div></main>;

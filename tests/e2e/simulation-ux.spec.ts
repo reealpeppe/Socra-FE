@@ -24,11 +24,10 @@ test('proposal banner includes the public person and topic supplied by the notif
   await expect(page.getByRole('status',{name:'Nuova proposta'})).toContainText('Bruno · ETF');
 });
 
-test('ETF help is available during the experience selection before choosing activities', async ({page,baseURL}) => {
+test('experience selection shows activities without the ETF explanation', async ({page,baseURL}) => {
   await fixture(page,baseURL!);
   await page.goto('/competenze');
-  const help=page.getByText('Cos’è un ETF?',{exact:true});
-  await expect(help).toBeVisible();
-  await help.click();
-  await expect(page.getByText('ETF significa Exchange Traded Fund: un fondo quotato in borsa.',{exact:true})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Rivedi ciò che sai fare',exact:true})).toBeVisible();
+  await expect(page.getByText('Cos’è un ETF?',{exact:true})).toHaveCount(0);
+  await expect(page.getByRole('button',{name:'Conferma le risposte',exact:true})).toBeVisible();
 });

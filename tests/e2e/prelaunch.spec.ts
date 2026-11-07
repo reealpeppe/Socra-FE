@@ -176,3 +176,30 @@ test('prelaunch goals can be prepared without reading matching requests',async({
   expect(state.selectionWrites).toBe(1);
   expect(operational).toEqual([]);
 });
+
+for (const suffix of ['', '?next=%2Finviti%2F00000000-0000-0000-0000-000000000001']) {
+  test('experience waits for account state before operational reads ' + suffix, async ({page,baseURL}) => {
+    await fixture(page,baseURL!);
+    await setup(page);
+    let release!: () => void;
+    const waiting = new Promise<void>(resolve => { release = resolve; });
+    await page.route('**/api/backend/auth/me', async route => {
+      await waiting;
+      return route.fulfill({json:{id:'u1',username:'reader',email:'reader@example.test',
+        role:'user',account_status:'active',email_verified:true,prelaunch_blocked:true}});
+    });
+    const operational: string[] = [];
+    page.on('request', request => {
+      if (/\/api\/backend\/(invitations|profiles\/u1|matching)/.test(request.url())) operational.push(request.url());
+    });
+    try {
+      const ownData = page.waitForRequest(request => request.url().endsWith('/api/backend/skills/me'));
+      await page.goto('/competenze' + suffix);
+      await ownData;
+      expect(operational).toEqual([]);
+      release();
+      await expect(page.getByRole('heading',{name:'Rivedi ciò che sai fare',exact:true})).toBeVisible();
+      expect(operational).toEqual([]);
+    } finally { release(); }
+  });
+}

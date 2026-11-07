@@ -14,7 +14,7 @@ import { safeInvitationReturn } from "@/lib/invitations";
 import { PrelaunchModeContext, preparationHref, type LaunchArea } from "@/lib/prelaunch";
 import { InvitationSteps } from "./InvitationFlowShell";
 import type { InvitationDetail } from "@/lib/types";
-import type { PublicProfile, SkillCatalog, SkillGroup, SkillProfile } from "@/lib/types";
+import type { PublicProfile, SkillCatalog, SkillGroup, SkillProfile, UserMe } from "@/lib/types";
 import styles from "./SkillLearning.module.css";
 
 type Draft = { answers: { skill_flow?: SkillAnswers }; updated_at?: string };
@@ -61,7 +61,10 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
     saveChain.current = Promise.resolve();
     finalizing.current = false;
     const next = prelaunch ? null : safeInvitationReturn(new URLSearchParams(window.location.search).get("next"));
-    const proposal = next && next !== "/inviti" ? clientGet<InvitationDetail>(`/invitations/${next.split("/")[2]}`).catch(()=>null) : Promise.resolve(null);
+    const proposal = next && next !== "/inviti" ? clientGet<UserMe>("/auth/me").then(account => {
+      if (!ownsSession(owner) || account.prelaunch_blocked) return null;
+      return clientGet<InvitationDetail>(`/invitations/${next.split("/")[2]}`);
+    }).catch(()=>null) : Promise.resolve(null);
     Promise.all([
       clientGet<{ user_id: string }>("/surveys/onboarding/me"),
       clientGet<SkillProfile | null>("/skills/me"),
@@ -95,8 +98,11 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
           const known = topic.skills.filter(skill => profile.known_skills.includes(skill.code)).length;
           return { topic: topic.code, label: topic.label, known_count: known, total_count: topic.skills.length, preparation_percent: 100 * known / topic.skills.length };
         }).filter(group => group.known_count > 0));
-        if (!prelaunch) clientGet<PublicProfile>(`/profiles/${user.user_id}`).then(publicProfile => {
-          if (ownsSession(owner) && publicProfile.skill_model) setPreparation(publicProfile.skill_groups || []);
+        if (!prelaunch) clientGet<UserMe>("/auth/me").then(account => {
+          if (!ownsSession(owner) || account.prelaunch_blocked || account.id !== user.user_id) return null;
+          return clientGet<PublicProfile>(`/profiles/${user.user_id}`);
+        }).then(publicProfile => {
+          if (ownsSession(owner) && publicProfile?.skill_model) setPreparation(publicProfile.skill_groups || []);
         }).catch(() => { /* Saved knowledge remains available without public evidence. */ });
       }
     }).catch(err => { if (ownsSession(owner)) setError(err instanceof Error ? err.message : "Impossibile caricare le risposte."); });

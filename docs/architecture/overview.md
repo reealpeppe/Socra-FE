@@ -1,5 +1,7 @@
 # Architettura frontend Socra
 
+La verifica del Gate consente la lettura parallela dei soli dati personali durante il caricamento iniziale. Un errore autenticazione riporta al recupero centralizzato con accesso alle credenziali e destinazione locale conservata. SkillSurvey attende l’account prima di leggere inviti o profili operativi e scarta risultati di sessioni precedenti. Nessuna funzione della community viene montata finché lo stato account non la autorizza.
+
 Audit pre-lancio 07/11. Il riferimento pubblico dell’invito resta in sessionStorage per la scheda e viene rimosso dopo prenotazione o rinuncia. La ricevuta di continuazione e i bearer rimangono nei cookie HttpOnly. `lib/prelaunch-source.ts` costruisce il bucket HMAC dall’IP X-Real-IP impostato dall’edge Railway e firma metodo, path e body con `SOCRA_PRELAUNCH_PROXY_SECRET`, condiviso soltanto fra server FE e BE. Senza deployment Railway o IP valido usa il limite aggregato backend. Il segreto non è una variabile NEXT_PUBLIC.
 
 Avvisi e inviti del17/10 pubblicati su BE `ee74e7d`/FE `5a3d825`. I dettagli delle sezioni progettuali locali seguenti sono ora attivi; nessun motore invio avvisi aggiunto. [rapporto canonico BE](https://github.com/reealpeppe/Socra-BE/blob/release/v3-20260919/docs/releases/2026-10-17-mentor-alerts-invitations.md).

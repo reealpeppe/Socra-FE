@@ -137,7 +137,7 @@ for(const [endpoint,status,flags] of [
     let fail=true;
     await page.route(`**/api/backend${endpoint}`,route=>fail?route.fulfill({status,json:{detail:status===401?'Authentication required':'Read temporarily unavailable'}}):route.fallback());
     await page.goto('/goal');
-    if(status===401)await expect(page.getByRole('button',{name:'Apri le opzioni di accesso',exact:true})).toBeVisible();
+    if(status===401)await expect(page.getByRole('link',{name:"Vai all'accesso",exact:true})).toHaveAttribute('href', /accesso=1/);
     else await expect(page.locator('main').getByRole('alert')).toBeVisible();
     await expect(page.getByRole('button',{name:/Salva e continua|Aggiorna e vedi i mentor/})).toHaveCount(0);
     expect(state.selectionWrites).toBe(0);

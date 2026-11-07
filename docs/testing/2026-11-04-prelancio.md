@@ -2,6 +2,8 @@
 
 Ricattura del 07/11 con codice candidato al rilascio, 30 immagini desktop/mobile in `.local/prelaunch-release-20261107/local-browser`. Controllati invito dopo refresh, conteggi, rimozione aiuto ETF dalla survey, prove email distinte e prima verifica unica. La prima ricattura ha riprodotto una doppia emissione nel runtime SQLite di sviluppo. Il fix di writer lock e riuso della promessa è incluso nella ricattura riuscita e nella regressione concorrente dei due database.
 
+La suite completa ha evidenziato un’attesa aggiunta alla lettura parallela del profilo e il recupero della sessione scaduta. Il Gate ora conserva i caricamenti personali paralleli, il landmark main e il link credenziali con destinazione locale. SkillSurvey attende l’account prima delle letture operative. Le regressioni con auth rallentata o scaduta passano insieme ai casi del pre-lancio, 68 prove mirate desktop/mobile. Il vecchio test dell’aiuto ETF è aggiornato alla rimozione richiesta.
+
 Candidata BE e FE sul branch `feature/prelancio-20261104`. Le verifiche si riferiscono all’anteprima locale.
 
 ## Percorsi osservati con API vere
