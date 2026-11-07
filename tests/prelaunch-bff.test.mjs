@@ -8,7 +8,7 @@ import { NextRequest } from 'next/server.js';
 const require = createRequire(import.meta.url);
 function fixture(upstreamStatus = 200) {
   const calls = [];
-  const globals = { process: { env: { NODE_ENV: 'production' } }, TextDecoder, Uint8Array, AbortController,
+  const globals = { process: { env: { NODE_ENV: 'production' } }, TextDecoder, Uint8Array, AbortController, AbortSignal,
     setTimeout, clearTimeout, Response,
     fetch: async (url, options) => { calls.push({url, options}); return Response.json({status:'ok'}, {status:upstreamStatus}); } };
   function compile(path, imports = {}) {
@@ -20,8 +20,10 @@ function fixture(upstreamStatus = 200) {
     return exports;
   }
   const security = compile('../lib/web-security.ts');
+  const source = compile('../lib/prelaunch-source.ts');
   const api = compile('../lib/prelaunch-server.ts', {
-    '@/lib/web-security': security, '@/lib/server': {getBackendUrl: path => 'https://backend.invalid' + path}
+    '@/lib/web-security': security, '@/lib/prelaunch-source': source,
+    '@/lib/server': {getBackendUrl: path => 'https://backend.invalid' + path, reservationReceipt: () => undefined}
   });
   const request = (body, headers={}) => new NextRequest('https://www.socra.it/api/prelaunch/subscribe', {
     method:'POST', headers: {'Origin':'https://www.socra.it','Content-Type':'application/json', ...headers}, body

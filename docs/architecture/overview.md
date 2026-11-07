@@ -1,5 +1,7 @@
 # Architettura frontend Socra
 
+Audit pre-lancio 07/11. Il riferimento pubblico dell’invito resta in sessionStorage per la scheda e viene rimosso dopo prenotazione o rinuncia. La ricevuta di continuazione e i bearer rimangono nei cookie HttpOnly. `lib/prelaunch-source.ts` costruisce il bucket HMAC dall’IP X-Real-IP impostato dall’edge Railway e firma metodo, path e body con `SOCRA_PRELAUNCH_PROXY_SECRET`, condiviso soltanto fra server FE e BE. Senza deployment Railway o IP valido usa il limite aggregato backend. Il segreto non è una variabile NEXT_PUBLIC.
+
 Avvisi e inviti del17/10 pubblicati su BE `ee74e7d`/FE `5a3d825`. I dettagli delle sezioni progettuali locali seguenti sono ora attivi; nessun motore invio avvisi aggiunto. [rapporto canonico BE](https://github.com/reealpeppe/Socra-BE/blob/release/v3-20260919/docs/releases/2026-10-17-mentor-alerts-invitations.md).
 
 ## Inviti: preparazione e conferma — aggiornamento 18/10/2026

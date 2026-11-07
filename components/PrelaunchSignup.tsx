@@ -6,6 +6,8 @@ import { useEffect, useRef, useState } from "react";
 import { launchDate, launchPost, useLaunchStatus } from "@/lib/prelaunch";
 import styles from "./Prelaunch.module.css";
 
+const invitationKey = "socra:prelaunch-invitation";
+
 export function PrelaunchSignup() {
   const router = useRouter();
   const { state, error: unavailable } = useLaunchStatus();
@@ -26,6 +28,12 @@ export function PrelaunchSignup() {
     if (referral.current === null) {
       const params = new URLSearchParams(window.location.hash.slice(1));
       referral.current = params.get("invito") || "";
+      try {
+        if (params.has("invito")) {
+          if (referral.current) sessionStorage.setItem(invitationKey, referral.current);
+          else sessionStorage.removeItem(invitationKey);
+        } else referral.current = sessionStorage.getItem(invitationKey) || "";
+      } catch { /* The original link remains usable without browser storage. */ }
       if (params.has("invito")) window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
     }
     if (referral.current) {
@@ -46,6 +54,7 @@ export function PrelaunchSignup() {
     try {
       const correction = new URLSearchParams(window.location.search).get("correggi") === "1";
       await launchPost("reserve", { email, accepted, website, updates_opt_in: updates, correction, referral: inviter ? referral.current : undefined });
+      try { sessionStorage.removeItem(invitationKey); } catch { /* Reservation is already saved. */ }
       router.push("/prelancio/grazie");
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : "Richiesta non riuscita. Riprova.");
@@ -80,7 +89,11 @@ export function PrelaunchSignup() {
         <button className="button dark" type="submit" disabled={busy || !state || unavailable || inviteState === "loading"} aria-busy={busy}>
           {busy ? "Invio…" : inviter ? "Accetta l’invito" : "Riservami un posto"}
         </button>
-        {inviter && <button type="button" className="button ghost" disabled={busy} onClick={() => { referral.current = ""; setInviter(null); setError(null); }}>Continua senza invito</button>}
+        {inviter && <button type="button" className="button ghost" disabled={busy} onClick={() => {
+          referral.current = "";
+          try { sessionStorage.removeItem(invitationKey); } catch { /* The in-memory choice still applies. */ }
+          setInviter(null); setError(null);
+        }}>Continua senza invito</button>}
         <p className={styles.fine}>Riceverai un link personale per confermare il tuo indirizzo. <Link href="/prelancio/condizioni">Condizioni del pre-lancio</Link>.</p>
         {state && !state.email_delivery_enabled && <p className={styles.fine}>Anteprima locale. L’invio delle email è disattivato.</p>}
       </form>}

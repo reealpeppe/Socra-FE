@@ -60,6 +60,31 @@ test('registration link and optional launch updates are separate choices',async(
   await page.goto('/prelancio/condizioni');await expect(page.getByText(/versione/i)).toHaveCount(0);
 });
 
+test('invitation survives reload and can be explicitly discarded', async ({page}) => {
+  await setup(page);
+  let submitted: Record<string, unknown> | undefined;
+  await page.route('**/api/prelaunch/referral', route => route.fulfill({json:{inviter:'marta'}}));
+  await page.route('**/api/prelaunch/reserve', route => {
+    submitted = route.request().postDataJSON();
+    return route.fulfill({json:{status:'ok'}});
+  });
+  await page.goto('/prelancio#invito=signed-public-invitation');
+  await expect(page.getByText('marta ti ha invitato su Socra.')).toBeVisible();
+  await page.reload();
+  await expect(page.getByText('marta ti ha invitato su Socra.')).toBeVisible();
+  await page.getByLabel('La tua email', {exact:true}).fill('invited@example.test');
+  await page.getByRole('checkbox', {name:'Richiedo il posto',exact:false}).check();
+  await page.getByRole('button', {name:'Accetta l’invito',exact:true}).click();
+  await expect(page).toHaveURL(/prelancio\/grazie$/);
+  expect(submitted?.referral).toBe('signed-public-invitation');
+  await page.goto('/prelancio#invito=another-public-invitation');
+  await expect(page.getByText('marta ti ha invitato su Socra.')).toBeVisible();
+  await page.getByRole('button', {name:'Continua senza invito',exact:true}).click();
+  await page.reload();
+  await expect(page.getByRole('button', {name:'Riservami un posto',exact:true})).toBeVisible();
+  await expect(page.getByText('marta ti ha invitato su Socra.')).toHaveCount(0);
+});
+
 test('prelaunch login and registration share a single email entry',async({page})=>{
   await setup(page);
   for(const path of ['/login','/register']){

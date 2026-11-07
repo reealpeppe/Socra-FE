@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { getBackendUrl, prelaunchReceiptCookie, reservationReceipt } from "@/lib/server";
 import { guardMutation, readJsonBody, bodyError, privateJson } from "@/lib/web-security";
+import { prelaunchSourceHeaders } from "@/lib/prelaunch-source";
 
 const receiptPattern = /^[A-Za-z0-9_-]{43}$/;
 
@@ -51,7 +52,10 @@ export async function prelaunchMutation(request: NextRequest, action: Action) {
 
   try {
     const upstream = await fetch(getBackendUrl("/prelaunch/" + action), {
-      method: "POST", headers: { "Content-Type": "application/json" }, body,
+      method: "POST", headers: {
+        "Content-Type": "application/json",
+        ...prelaunchSourceHeaders(request, "/prelaunch/" + action, body),
+      }, body,
       cache: "no-store", signal: AbortSignal.timeout(12_000),
     });
     const result = await upstream.json();
