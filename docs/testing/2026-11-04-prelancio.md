@@ -17,3 +17,7 @@ La review indipendente ha rilevato il troncamento dell’email su mobile, il sal
 - `npm run build`, `npm run lint`, `npm run test:security`, `npm run audit:security`.
 - Dalla build, `node scripts/run-e2e.mjs tests/e2e/prelaunch.spec.ts tests/e2e/account-contacts.spec.ts tests/e2e/public-content.spec.ts` con backend non raggiungibile e risposte simulate dai test. Copre 58 casi desktop/mobile.
 - L’anteprima di questa sessione usa frontend su loopback 3148, FastAPI su 8148, database SQLite dedicato e invio email disattivato. Il runner locale `.local/capture-prelaunch.mjs` legge solo l’outbox della fixture e apre i link prodotti dall’applicazione. Il recapito su una casella email e l’automazione E02–E11 restano fuori da questa verifica.
+
+## Ricevuta pubblicata del 07/11
+
+FE `98e9af1`, BE `fef813f`, Railway SUCCESS. CI frontend 540 browser passati e due skip, 141 verifiche sicurezza. Cattura locale finale di 30 immagini e cattura HTTPS di 22 immagini con API vere. Review indipendenti superate. Dodici rifiuti 423 da API operative, 401 anonimo e inviti funzionanti dopo reload. Quattro QA temporanei rimossi, dati originali identici. Invio reale email escluso dai controlli di questo rilascio.
