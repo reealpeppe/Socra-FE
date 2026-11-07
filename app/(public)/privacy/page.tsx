@@ -139,13 +139,20 @@ export default function PrivacyPage() {
             </p>
             <h3>Email operative e fornitori</h3>
             <p>
-              Quando l’invio è attivo, Socra usa Resend per le email di verifica
+              Quando l’invio è attivo, Socra usa Resend come servizio principale e
+              Scaleway Transactional Email come servizio di riserva per le email di verifica
               dell’indirizzo, recupero password richiesto dall’utente e comunicazione
-              di accettazione di un nuovo percorso. Resend riceve l’indirizzo del
+              di accettazione di un nuovo percorso. Il servizio utilizzato riceve l’indirizzo del
               destinatario e il contenuto necessario al messaggio. Per l’accettazione
               vengono preparati due messaggi individuali, senza destinatari in copia,
               con il contatto della controparte e il collegamento al percorso; il link
               Google Meet compare solo se disponibile. Questi invii non sono marketing.
+            </p>
+            <p>
+              Scaleway tratta contenuto e metadati degli invii nella regione di Parigi, in Francia.
+              Il contenuto viene eliminato al termine dell’elaborazione secondo i criteri del servizio;
+              i metadati sono conservati finché il dominio resta attivo. Consulta le
+              {" "}<a href="https://www.scaleway.com/en/docs/transactional-email/reference-content/data-privacy/" rel="noreferrer">informazioni sul trattamento di Scaleway Transactional Email</a>.
             </p>
             <p>
               Se l’invio è disattivato, Socra non spedisce queste email e i messaggi

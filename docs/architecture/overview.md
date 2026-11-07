@@ -1,5 +1,7 @@
 # Architettura frontend Socra
 
+Revisione provider07/11: informative generale/pre-lancio e termini dichiarano Resend primario e Scaleway TEM di riserva. Nessuna chiave provider o selezione nel FE; API/BFF/sessione invariati. Il proprietario di gateway, schema e diagramma è [Socra-BE wiki13](https://github.com/reealpeppe/Socra-BE/blob/feature/scaleway-fallback-20261107/docs/wiki/13-architettura-schemi.md#gateway-email--revisione-07112026), con regole in wiki09 e contratto wiki07 del medesimo ramo. Non sono attivati promemoria o campagne.
+
 La verifica del Gate consente la lettura parallela dei soli dati personali durante il caricamento iniziale. Un errore autenticazione riporta al recupero centralizzato con accesso alle credenziali e destinazione locale conservata. SkillSurvey attende l’account prima di leggere inviti o profili operativi e scarta risultati di sessioni precedenti. Nessuna funzione della community viene montata finché lo stato account non la autorizza.
 
 Audit pre-lancio 07/11. Il riferimento pubblico dell’invito resta in sessionStorage per la scheda e viene rimosso dopo prenotazione o rinuncia. La ricevuta di continuazione e i bearer rimangono nei cookie HttpOnly. `lib/prelaunch-source.ts` costruisce il bucket HMAC dall’IP X-Real-IP impostato dall’edge Railway e firma metodo, path e body con `SOCRA_PRELAUNCH_PROXY_SECRET`, condiviso soltanto fra server FE e BE. Senza deployment Railway o IP valido usa il limite aggregato backend. Il segreto non è una variabile NEXT_PUBLIC.
