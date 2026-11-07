@@ -97,6 +97,7 @@ test("privacy explains optional profile data consented contacts and conditional 
   await expect(main).toContainText(/entrambe le persone.*condivisione/i);
   await expect(main.getByRole("heading", { name: "Email operative e fornitori" })).toBeVisible();
   await expect(main).toContainText(/Resend/);
+  await expect(main).toContainText(/Scaleway Transactional Email come servizio di riserva/);
   await expect(main).toContainText(/quando l’invio è attivo/i);
   await expect(main).toContainText(/verifica.*recupero.*accettazione/i);
   await expect(main).toContainText(/non.*marketing/i);

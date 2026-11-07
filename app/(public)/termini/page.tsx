@@ -118,7 +118,8 @@ export default function TermsPage() {
             <p>
               Le email operative di verifica indirizzo, recupero password richiesto
               dall’utente e accettazione di un nuovo percorso vengono gestite tramite
-              Resend solo quando l’invio è attivo; non sono comunicazioni marketing.
+              Resend, con Scaleway Transactional Email come servizio di riserva,
+              solo quando l’invio è attivo; non sono comunicazioni marketing.
               L’invio può essere disattivato e non equivale a una garanzia di consegna.
               I contatti autorizzati rimangono disponibili nel percorso anche senza email.
             </p>
