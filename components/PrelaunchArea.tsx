@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, CheckCircle2, Copy, LockKeyhole, Mail, MessageCircle, UsersRound } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { accountPost, authPost, clientGet, clientPost, clientPut } from "@/lib/api";
@@ -204,11 +204,13 @@ function VerificationPanel({ email, delivery, emailEnabled, load, onVerified }: 
   const [status, setStatus] = useState(delivery);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const initialRequest = useRef<Promise<Preparation> | null>(null);
 
   useEffect(() => {
     let active = true;
     if (delivery) return;
-    clientPost<Preparation>("/prelaunch/finish").then(value => {
+    initialRequest.current ??= clientPost<Preparation>("/prelaunch/finish");
+    initialRequest.current.then(value => {
       if (active) setStatus(value.verification_delivery);
     }).catch(() => {
       if (active) setError("La richiesta di conferma non è riuscita. Riprova.");

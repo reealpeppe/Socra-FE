@@ -1,5 +1,7 @@
 # Collaudo locale del pre-lancio del 4 novembre
 
+Ricattura del 07/11 con codice candidato al rilascio, 30 immagini desktop/mobile in `.local/prelaunch-release-20261107/local-browser`. Controllati invito dopo refresh, conteggi, rimozione aiuto ETF dalla survey, prove email distinte e prima verifica unica. La prima ricattura ha riprodotto una doppia emissione nel runtime SQLite di sviluppo. Il fix di writer lock e riuso della promessa è incluso nella ricattura riuscita e nella regressione concorrente dei due database.
+
 Candidata BE e FE sul branch `feature/prelancio-20261104`. Le verifiche si riferiscono all’anteprima locale.
 
 ## Percorsi osservati con API vere
