@@ -1,5 +1,9 @@
 # Architettura frontend Socra
 
+La verifica del Gate consente la lettura parallela dei soli dati personali durante il caricamento iniziale. Un errore autenticazione riporta al recupero centralizzato con accesso alle credenziali e destinazione locale conservata. SkillSurvey attende l’account prima di leggere inviti o profili operativi e scarta risultati di sessioni precedenti. Nessuna funzione della community viene montata finché lo stato account non la autorizza.
+
+Audit pre-lancio 07/11. Il riferimento pubblico dell’invito resta in sessionStorage per la scheda e viene rimosso dopo prenotazione o rinuncia. La ricevuta di continuazione e i bearer rimangono nei cookie HttpOnly. `lib/prelaunch-source.ts` costruisce il bucket HMAC dall’IP X-Real-IP impostato dall’edge Railway e firma metodo, path e body con `SOCRA_PRELAUNCH_PROXY_SECRET`, condiviso soltanto fra server FE e BE. Senza deployment Railway o IP valido usa il limite aggregato backend. Il segreto non è una variabile NEXT_PUBLIC.
+
 Avvisi e inviti del17/10 pubblicati su BE `ee74e7d`/FE `5a3d825`. I dettagli delle sezioni progettuali locali seguenti sono ora attivi; nessun motore invio avvisi aggiunto. [rapporto canonico BE](https://github.com/reealpeppe/Socra-BE/blob/release/v3-20260919/docs/releases/2026-10-17-mentor-alerts-invitations.md).
 
 ## Inviti: preparazione e conferma — aggiornamento 18/10/2026
@@ -35,7 +39,7 @@ La V4 è pubblicata dal 03/10 su `release/v3-20260919`: BE `f53226aab35c93722c0f
 
 Correzione del 14/10: la shell pubblica l'evento interno `socra:requests-updated` con `{userId, requests}` dal completo snapshot già letto per le notifiche. Richieste sottoscrive con cleanup, verifica proprietario e versione, e preserva lo snapshot recente durante l'inizializzazione; l'identificazione dell'account non attende il wallet. Nessun nuovo polling/GET o persistenza del contenuto. Lo smontaggio invalida i risultati della shell. Il profilo conserva origine/tab/ruolo e riusa `AlignmentDialog` e le API esistenti; il ramo mentor pagina fino al candidato, interrompendo su smontaggio o cursore ripetuto. Latenza proporzionale alla posizione, nessun ranking client.
 
-Wallet e scadenze riusano [lib/date.ts](../../lib/date.ts). [EtfExplanation](../../components/EtfExplanation.tsx) condivide il contenuto approvato tra dashboard e survey. Contratti/regole restano in wiki07/05/12 backend; nessun nuovo provider, componente cloud o autorità frontend. Stato di pubblicazione separato dalla presenza del codice.
+Wallet e scadenze riusano [lib/date.ts](../../lib/date.ts). [EtfExplanation](../../components/EtfExplanation.tsx) contiene l’aiuto della dashboard. Nella candidata locale del 07/11 l’aiuto è rimosso dalla survey su richiesta GR. Contratti/regole restano in wiki07/05/12 backend; nessun nuovo provider, componente cloud o autorità frontend. Stato di pubblicazione separato dalla presenza del codice.
 
 | Parte | Implementazione e responsabilità |
 |---|---|

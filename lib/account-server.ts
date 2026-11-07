@@ -9,8 +9,11 @@ export async function proxyAccountAction(request: NextRequest, path: "email-veri
   let payload: string | undefined;
   try { payload = await readJsonBody(request, 16 * 1024); }
   catch (error) { return bodyError(error); }
+  const session = path === "email-verification/confirm" ? request.cookies.get("socra_session")?.value : undefined;
+  const headers = new Headers({ "Content-Type": "application/json" });
+  if (session) headers.set("Authorization", `Bearer ${session}`);
   const upstream = await fetch(getBackendUrl(`/auth/${path}`), {
-    method: "POST", headers: { "Content-Type": "application/json" }, body: payload,
+    method: "POST", headers, body: payload,
     cache: "no-store", signal: AbortSignal.timeout(12_000),
   }).catch(() => null);
   if (!upstream) return privateJson({ detail: "Backend unavailable" }, 503);

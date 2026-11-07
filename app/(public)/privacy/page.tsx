@@ -70,7 +70,7 @@ export default function PrivacyPage() {
               una scelta separata quando vengono proposte.
             </p>
             <p>La creazione dell’account e le funzioni richieste si fondano sull’esecuzione del servizio e sulle attività precontrattuali richieste dall’utente, ai sensi dell’articolo 6, paragrafo 1, lettera b) del GDPR. I trattamenti necessari per obblighi di legge seguono la lettera c); sicurezza e prevenzione degli abusi si fondano sul legittimo interesse a proteggere utenti e servizio, lettera f). Per le comunicazioni facoltative usiamo il consenso, lettera a), separato dalla registrazione.</p>
-            <h3>Ingresso durante il pre-lancio</h3><p>Il modulo iniziale raccoglie l’email per inviarti il link di registrazione che richiedi. Solo se selezioni una seconda casella riceverai aggiornamenti, eventuali promemoria e comunicazioni sul pre-lancio: la scelta è facoltativa e revocabile. Il link personale completa la verifica dell’email quando crei l’account; poi puoi preparare survey e obiettivo. L’inserimento dell’email da solo non crea un account. Finalità, conservazione e revoca sono descritte nell’<Link href="/prelancio/privacy">informativa del pre-lancio</Link>.</p>
+            <h3>Ingresso durante il pre-lancio</h3><p>Il modulo iniziale raccoglie l’email per inviarti il link di registrazione che richiedi. Solo se selezioni una seconda casella riceverai aggiornamenti, eventuali promemoria e comunicazioni sul pre-lancio. La scelta è facoltativa e revocabile. Puoi iniziare il profilo dal browser e confermare l’indirizzo via email alla fine, oppure partire dal link personale e verificarlo durante la registrazione. Puoi poi preparare esperienza e obiettivi in base al ruolo che scegli. L’inserimento dell’email da solo non crea un account. Finalità, conservazione e revoca sono descritte nell’<Link href="/prelancio/privacy">informativa del pre-lancio</Link>.</p>
             <h3>Sezione di contesto personale</h3>
             <p>
               Il contesto personale include professione, fascia di reddito, risparmio mensile,
@@ -159,7 +159,7 @@ export default function PrivacyPage() {
               I link di verifica email e recupero password sono personali, monouso
               e soggetti a scadenza: rispettivamente 24 ore e 30 minuti. Il recupero
               password chiude tutte le sessioni precedenti. Il link per completare la
-              registrazione durante il pre-lancio dura 48 ore e verifica già l’indirizzo.
+              prenotazione durante il pre-lancio dura 48 ore e consente di verificare l’indirizzo.
             </p>
             <p>Railway fornisce l’infrastruttura della piattaforma. I servizi tecnici possono comportare trattamenti fuori dallo Spazio economico europeo; i relativi accordi prevedono, per i trasferimenti a cui si applicano, clausole contrattuali standard. Consulta gli accordi di <a href="https://railway.com/legal/dpa" rel="noreferrer">Railway</a> e <a href="https://resend.com/legal/dpa" rel="noreferrer">Resend</a> o contattaci per le garanzie applicate.</p>
           </section>

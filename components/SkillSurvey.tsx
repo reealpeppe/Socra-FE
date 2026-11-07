@@ -1,20 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
 import { useConfirmation } from "@/components/ConfirmationDialog";
 import { PersonalContext } from "./PersonalContext";
 import { MentorOfferHelp } from "./MentorOfferHelp";
-import { EtfExplanation } from "./EtfExplanation";
 import { SkillPreparation } from "@/components/SkillPreparation";
 import { clientGet, clientPost, clientPut } from "@/lib/api";
 import { emptySkillAnswers, restoreSkillAnswers, type SkillAnswers } from "@/lib/skills";
 import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes-guard";
 import { safeInvitationReturn } from "@/lib/invitations";
+import { PrelaunchModeContext, preparationHref, type LaunchArea } from "@/lib/prelaunch";
 import { InvitationSteps } from "./InvitationFlowShell";
 import type { InvitationDetail } from "@/lib/types";
-import type { PublicProfile, SkillCatalog, SkillGroup, SkillProfile } from "@/lib/types";
+import type { PublicProfile, SkillCatalog, SkillGroup, SkillProfile, UserMe } from "@/lib/types";
 import styles from "./SkillLearning.module.css";
 
 type Draft = { answers: { skill_flow?: SkillAnswers }; updated_at?: string };
@@ -27,6 +27,7 @@ function sessionMarker(): string | null {
 
 export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillCatalog; reassessment?: boolean }) {
   const router = useRouter();
+  const prelaunch = useContext(PrelaunchModeContext);
   const [preparation, setPreparation] = useState<Array<Omit<SkillGroup, "skills" | "offered_count" | "coverage_percent" | "confirmed_count"> & { confirmed_count?: number }>>([]);
   const userId = useRef("");
   const [contextOwner, setContextOwner] = useState("");
@@ -59,8 +60,11 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
     ownerRef.current = owner;
     saveChain.current = Promise.resolve();
     finalizing.current = false;
-    const next = safeInvitationReturn(new URLSearchParams(window.location.search).get("next"));
-    const proposal = next && next !== "/inviti" ? clientGet<InvitationDetail>(`/invitations/${next.split("/")[2]}`).catch(()=>null) : Promise.resolve(null);
+    const next = prelaunch ? null : safeInvitationReturn(new URLSearchParams(window.location.search).get("next"));
+    const proposal = next && next !== "/inviti" ? clientGet<UserMe>("/auth/me").then(account => {
+      if (!ownsSession(owner) || account.prelaunch_blocked) return null;
+      return clientGet<InvitationDetail>(`/invitations/${next.split("/")[2]}`);
+    }).catch(()=>null) : Promise.resolve(null);
     Promise.all([
       clientGet<{ user_id: string }>("/surveys/onboarding/me"),
       clientGet<SkillProfile | null>("/skills/me"),
@@ -94,13 +98,16 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
           const known = topic.skills.filter(skill => profile.known_skills.includes(skill.code)).length;
           return { topic: topic.code, label: topic.label, known_count: known, total_count: topic.skills.length, preparation_percent: 100 * known / topic.skills.length };
         }).filter(group => group.known_count > 0));
-        clientGet<PublicProfile>(`/profiles/${user.user_id}`).then(publicProfile => {
-          if (ownsSession(owner) && publicProfile.skill_model) setPreparation(publicProfile.skill_groups || []);
+        if (!prelaunch) clientGet<UserMe>("/auth/me").then(account => {
+          if (!ownsSession(owner) || account.prelaunch_blocked || account.id !== user.user_id) return null;
+          return clientGet<PublicProfile>(`/profiles/${user.user_id}`);
+        }).then(publicProfile => {
+          if (ownsSession(owner) && publicProfile?.skill_model) setPreparation(publicProfile.skill_groups || []);
         }).catch(() => { /* Saved knowledge remains available without public evidence. */ });
       }
     }).catch(err => { if (ownsSession(owner)) setError(err instanceof Error ? err.message : "Impossibile caricare le risposte."); });
     return () => { if (ownerRef.current === owner) ownerRef.current = null; };
-  }, [catalog, reassessment, attempt, ownsSession]);
+  }, [catalog, reassessment, attempt, ownsSession, prelaunch]);
   const baseVersion = useRef<number | undefined>(undefined);
   useEffect(() => {
     const refresh = () => {
@@ -160,14 +167,15 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
       try { sessionStorage.removeItem(draftKey.current); } catch { /* Saved on the server. */ }
       setInitial(JSON.stringify(answers));
       setSavedProfile(profile);
-      if (safeInvitationReturn(new URLSearchParams(window.location.search).get("next"))) {
+      if (!prelaunch && safeInvitationReturn(new URLSearchParams(window.location.search).get("next"))) {
         setContextStep(true);
         await continueAfterContext();
         return;
       }
       if (reassessment) {
         try { sessionStorage.setItem(`socra_experience_saved:${userId.current}`, "1"); } catch { /* The saved profile remains available. */ }
-        router.push("/dashboard");
+        if (prelaunch) await continueAfterContext();
+        else router.push("/dashboard");
         return;
       }
       setContextStep(true);
@@ -178,6 +186,18 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
   async function continueAfterContext() {
     const owner = ownerRef.current;
     if (!ownsSession(owner)) return;
+    if (prelaunch) {
+      try {
+        const state = await clientGet<LaunchArea>("/prelaunch/me");
+        if (!ownsSession(owner)) return;
+        const step = state.preparation?.next_step;
+        router.push(state.phase === "prelaunch" && step && step !== "experience"
+          ? preparationHref(state.preparation) : "/dashboard");
+      } catch {
+        if (ownsSession(owner)) setError("L’esperienza è salvata. Riprova a continuare dalla tua area.");
+      }
+      return;
+    }
     const next = safeInvitationReturn(new URLSearchParams(window.location.search).get("next"));
     if (next) {
       try {
@@ -195,7 +215,6 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
   function topicFields(topic:SkillCatalog['topics'][number],index:number){
     return <details className={styles.topic} key={topic.code} open={index===0||answers.known_skills.some(code=>topic.skills.some(skill=>skill.code===code))}>
       <summary>{topic.label}<small>{topic.skills.filter(skill=>answers.known_skills.includes(skill.code)).length} conosciute · {topic.skills.filter(skill=>answers.mentor_skills.includes(skill.code)).length} offerte</small></summary>
-      {topic.code==='etf_funds'?<EtfExplanation className={styles.offerHelp}/>:null}
       {topic.skills.map(skill=><div className={styles.skill} key={skill.code}>
         <label className={styles.check}><input type="checkbox" aria-label={`So: ${skill.label}`} checked={answers.known_skills.includes(skill.code)} disabled={busy} onChange={event=>toggleKnown(skill.code,event.target.checked)}/><span>{skill.label}</span></label>
         <label className={styles.check}><input type="checkbox" aria-label={`Posso aiutare: ${skill.label}`} checked={answers.mentor_skills.includes(skill.code)} disabled={busy||!answers.known_skills.includes(skill.code)} onChange={event=>update({...answers,mentor_skills:event.target.checked?[...answers.mentor_skills,skill.code]:answers.mentor_skills.filter(code=>code!==skill.code)})}/><span>Posso aiutare</span></label>
