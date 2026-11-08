@@ -1,5 +1,7 @@
 # Pre-lancio: percorsi e mockup — 08/11/2026
 
+**Pubblicato e verificato:** applicazione FE `5e15ba9a6bba08ef4cb7dcdaf517d5c059b78ef6`, BE `e624cd49ce1a6cd15b0d35cd5b7d3a062132a6c1`, Railway SUCCESS. CI finale846 SQLite/890 PostgreSQL e590 browser passati;10 scenari runtime sotto rollback e13 controlli pubblici desktop/mobile, zero errori browser o invii di prova. [Rapporto canonico](https://github.com/reealpeppe/Socra-BE/blob/release/v3-20260919/docs/releases/2026-11-08-prelaunch-flow.md). Il seguito conserva il collaudo locale precedente alla pubblicazione.
+
 Revisione richiesta da GR sui quattro mockup Davide, sugli errori di verifica da un altro browser e sulla commistione con la community ordinaria. Base FE di produzione `ba0051f`; fonte funzionale backend nella slice `fix/prelaunch-flow-20261108`. Lavoro locale, senza pubblicazione o modifica dei dati di produzione.
 
 ## Percorsi verificati
