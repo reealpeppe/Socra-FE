@@ -134,3 +134,13 @@ Il montaggio differito del gate ha reso visibile un caso nelle richieste: il pri
 ## Tooling del rilascio pre-lancio31/10
 
 Minimatch11.0.1 e zod4.6.6 sono fissati tramite override di sviluppo dopo le nuove advisory. `scripts/lint-minimatch-compat.mjs`, importato prima dei plugin in eslint.config, adatta soltanto l’export CommonJS callable alla versione corretta; nessun algoritmo duplicato o dipendenza vulnerabile ripristinata. Una regressione esegue il matching della regola react/no-danger. Next/React, BFF, componenti di produzione e topologia cloud invariati. Audit completo/runtime ancora obbligatorio a zero, senza deroghe.
+
+## Pre-lancio: ingresso, ripresa e area personale — candidata locale08/11/2026
+
+`PrelaunchPublicBoundary` controlla la sessione prima di mostrare le pagine di ingresso: un iscritto già autenticato e bloccato va alla propria area. `PrelaunchAuthBoundary` conserva il login reale su `/login`; solo la registrazione presenta la prenotazione. La ricevuta HttpOnly consente il bivio immediato; senza ricevuta la pagina propone un accesso uniforme, senza interrogare pubblicamente lo stato dell'indirizzo.
+
+`EmailVerificationFlow` conserva il token solo in memoria dopo aver rimosso il frammento. Il BFF dedicato `/api/auth/email-verification/context` legge il contesto della prova senza consumarla e inoltra l'eventuale sessione solo dal cookie. Per un profilo preparato prima della verifica, `LoginForm` autentica il proprietario nello stesso schermo e riprende la conferma. Sessione scaduta e conferma completata in un'altra scheda hanno recuperi espliciti; revoche, cambio email e scadenza restano autorevoli nel backend. Nessun login automatico tramite il solo token di verifica.
+
+`PrelaunchGate` attende l'account prima di montare qualsiasi form personale. Le pagine operative diventano `/dashboard` senza montare contenuti community; i form ammessi usano il contesto pre-lancio e la preparazione restituita dal backend per scegliere il ritorno. Un catalogo assente non seleziona i flussi legacy durante questa fase. Le impostazioni espongono dati personali, esperienza, contesto facoltativo e correzione/verifica dell'email; gli strumenti operativi rimangono nel flusso ordinario dopo apertura.
+
+Le composizioni di prenotazione, bivio, conferma finale e area seguono i mockup Davide, compresi conferma verde, «Il primo passo è fatto» e badge membro fondatore nello stato pronto e verificato. Data, conteggi e crediti arrivano dal backend; nessun valore segnaposto viene mostrato. [Collaudo locale e limiti](../testing/2026-11-08-prelaunch-flow.md). Regole e contratti restano nelle wiki14/09/07/12/13 della slice backend `fix/prelaunch-flow-20261108`; nessun nuovo provider, componente cloud o attivazione.

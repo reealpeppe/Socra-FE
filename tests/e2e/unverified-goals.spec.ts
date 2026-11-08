@@ -40,7 +40,7 @@ test('unverified account chooses and saves goals without protected matching read
   expect(matchingReads).toEqual([]);
 });
 
-test('goal and skill reads start while account verification is still loading',async({page,baseURL})=>{
+test('goal and skill reads wait for account and prelaunch policy before mounting forms',async({page,baseURL})=>{
   await fixture(page,baseURL!,{empty:true});
   let release!:()=>void;
   const waiting=new Promise<void>(resolve=>release=resolve);
@@ -51,7 +51,8 @@ test('goal and skill reads start while account verification is still loading',as
   await page.route('**/api/backend/matching/**',route=>route.fulfill({status:403,json:{detail:'Verify your email before searching profiles or using matching'}}));
   try{
     await page.goto('/goal');
-    await expect.poll(()=>goalsRead&&skillsRead).toBe(true);
+    await expect(page.getByText('Verifica dell’accesso…',{exact:true})).toBeVisible();
+    expect(goalsRead || skillsRead).toBe(false);
   }finally{release();}
   await expect(page.getByRole('heading',{name:'Cosa vuoi imparare?',exact:true})).toBeVisible();
 });
@@ -70,7 +71,7 @@ test('a previous account verification response cannot start protected matching r
   try{
     await page.goto('/goal');
     await expect.poll(()=>authReads).toBe(1);
-    await expect(page.locator('main').getByRole('status').filter({hasText:'Caricamento obiettivi…'})).toBeVisible();
+    await expect(page.getByText('Verifica dell’accesso…',{exact:true})).toBeVisible();
     await page.evaluate(()=>{localStorage.setItem('socra-session-change','another-account');document.dispatchEvent(new Event('visibilitychange'));});
     await expect(page.getByRole('heading',{name:'Cosa vuoi imparare?',exact:true})).toBeVisible();
     const previousResponse=page.waitForResponse(async response=>response.url().endsWith('/api/backend/auth/me')&&(await response.json()).email_verified===true);

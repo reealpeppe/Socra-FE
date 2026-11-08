@@ -80,6 +80,8 @@ test("verification in another tab unlocks the page without losing the survey", a
   await page.goto("/matching");
   await expect(page.getByRole("heading", { name: "Conferma la tua email", exact: true })).toBeVisible();
   const confirmation = await page.context().newPage();
+  await confirmation.route("**/api/backend/auth/me", r => r.fulfill({json:state}));
+  await confirmation.route("**/api/auth/email-verification/context", r => r.fulfill({json:{email:'corrected@example.com',requires_login:false,verified:false,prelaunch:false}}));
   await confirmation.route("**/api/auth/email-verification/confirm", r => {
     state.email_verified = true;
     return r.fulfill({ json: { status: "ok" } });

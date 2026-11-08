@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { LogOut, Mail } from "lucide-react";
 import Link from "next/link";
@@ -17,6 +17,9 @@ import { ProfileCompletionBanner, incompleteProfileCompletion } from "@/componen
 import { PersonalContext } from "@/components/PersonalContext";
 import { MentorAlerts } from "@/components/MentorAlerts";
 import { ONBOARDING_POLICY } from "@/lib/onboarding";
+import { PrelaunchModeContext, preparationHref, type LaunchArea } from "@/lib/prelaunch";
+import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes-guard";
+import { EmailVerificationNotice } from "@/components/EmailVerificationNotice";
 
 const GENERAL_MENTOR_GUARDRAIL_FLAGS = new Set([
   "advanced_topic_claim_with_weak_knowledge_guardrail",
@@ -26,6 +29,8 @@ const GENERAL_MENTOR_GUARDRAIL_FLAGS = new Set([
 
 export default function SettingsPage() {
   const router = useRouter();
+  const prelaunch = useContext(PrelaunchModeContext);
+  const [initiallyReady, setInitiallyReady] = useState(false);
   const [me, setMe] = useState<UserMe | null>(() => cachedClientValue<UserMe>("/auth/me") ?? null);
   const [profile, setProfile] = useState<OwnProfile | null>(() => cachedClientValue<OwnProfile>("/profiles/me") ?? null);
   const [error, setError] = useState<string | null>(null);
@@ -51,10 +56,12 @@ export default function SettingsPage() {
       clientGet<UserMe>("/auth/me"),
       clientGet<SkillProfile | null>("/skills/me").catch(err => { if (err instanceof ClientApiError && err.status === 404) return undefined; throw err; }),
       clientGet<OwnProfile>("/profiles/me").catch(() => null),
+      prelaunch ? clientGet<LaunchArea>("/prelaunch/me") : Promise.resolve(null),
     ])
-      .then(async ([user, skillProfile, ownProfile]) => {
-        const topicSnapshot = skillProfile === undefined ? await clientGet<TopicCompetenceSnapshot | null>("/surveys/competences-v2/me") : null;
+      .then(async ([user, skillProfile, ownProfile, area]) => {
+        const topicSnapshot = skillProfile === undefined && !prelaunch ? await clientGet<TopicCompetenceSnapshot | null>("/surveys/competences-v2/me") : null;
         if (active) {
+          setInitiallyReady(area?.preparation.next_step === "ready");
           setMe(user);
           setCompetences(topicSnapshot);
           setSkills(skillProfile);
@@ -73,7 +80,7 @@ export default function SettingsPage() {
     return () => {
       active = false;
     };
-  }, [retryVersion]);
+  }, [retryVersion, prelaunch]);
 
   async function logout() {
     setLoggingOut(true);
@@ -191,7 +198,8 @@ export default function SettingsPage() {
   return (
     <AppShell>
       <div className="settings-page">
-        <h1 className="settings-heading">Impostazioni</h1>
+        <h1 className="settings-heading">{prelaunch ? "I tuoi dati" : "Impostazioni"}</h1>
+        {prelaunch ? <Link href="/dashboard">Torna alla tua area</Link> : null}
 
         {error && (
           <div className="settings-error" role="alert">
@@ -204,7 +212,7 @@ export default function SettingsPage() {
         {loading ? <div className="card" role="status">Caricamento impostazioni…</div> : null}
         {me ? (
         <>
-        {profile ? <ProfileEditor key={profile.user_id} initialProfile={profile} user={me} onUpdated={setProfile} /> : !loading ? <div className="card"><p role="alert">Non riusciamo a caricare il profilo modificabile.</p><button className="button secondary" onClick={() => setRetryVersion(value => value + 1)}>Ricarica profilo</button></div> : null}
+        {profile ? prelaunch ? <PrelaunchPersonalDetails key={profile.user_id} initialProfile={profile} initiallyReady={initiallyReady} navigationReady={!loading} onUpdated={setProfile} /> : <ProfileEditor key={profile.user_id} initialProfile={profile} user={me} onUpdated={setProfile} /> : !loading ? <div className="card"><p role="alert">Non riusciamo a caricare il profilo modificabile.</p><button className="button secondary" onClick={() => setRetryVersion(value => value + 1)}>Ricarica profilo</button></div> : null}
         <div className="card settings-card">
           <h2 className="settings-section-title">Il tuo account</h2>
           <div className="settings-profile-top">
@@ -219,6 +227,7 @@ export default function SettingsPage() {
                 <Mail size={15} aria-hidden /> Email
               </span>
               <span className="settings-field-value">{me?.email || "-"}</span>
+              {prelaunch && me.email_verified ? <span className="settings-account-note">Email confermata</span> : null}
             </div>
             {profile?.nickname !== undefined && (
               <div className="settings-field">
@@ -233,21 +242,23 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {prelaunch && !me.email_verified ? <EmailVerificationNotice key={me.email} user={me} onEmailChanged={() => setRetryVersion(version => version + 1)} /> : null}
+
         <div className="card settings-card">
           <h2 className="settings-section-title">La tua esperienza</h2>
           <div className="settings-level-row">
             <p className="settings-level-text">
-              Le attività che conosci e i percorsi svolti raccontano la tua preparazione per ogni argomento.
-              {me?.is_coach && " Sei attivo come mentor."}
+              {prelaunch ? "Aggiorna le attività che conosci e quelle su cui vuoi aiutare all’apertura di Socra." : "Le attività che conosci e i percorsi svolti raccontano la tua preparazione per ogni argomento."}
+              {!prelaunch && me?.is_coach && " Sei attivo come mentor."}
             </p>
           </div>
           <div style={{ marginTop: 16 }}>
             <Link href="/competenze" className="button secondary">Aggiorna la tua esperienza</Link>
-            {me ? <Link href={`/profiles/${me.id}`} className="button secondary">Vedi il tuo profilo pubblico</Link> : null}
+            {me && !prelaunch ? <Link href={`/profiles/${me.id}`} className="button secondary">Vedi il tuo profilo pubblico</Link> : null}
           </div>
         </div>
 
-        <div className="card settings-card">
+        {!prelaunch ? <div className="card settings-card">
           <h2 className="settings-section-title">Disponibilità come mentor</h2>
           <div className="settings-switch-row">
             <label htmlFor="mentor-availability">
@@ -348,10 +359,10 @@ export default function SettingsPage() {
               {savingTopic ? <p className="settings-account-note" role="status">Salvataggio disponibilità…</p> : null}
             </div>
           ) : null}
-        </div>
+        </div> : null}
 
-        {skills !== undefined && (skills === null || skills.profile_completion) ? <ProfileCompletionBanner completion={skills?.profile_completion ?? incompleteProfileCompletion} /> : null}
-        {!me.prelaunch_blocked ? <MentorAlerts key={me.id} ownerId={me.id} settings /> : null}
+        {!prelaunch && skills !== undefined && (skills === null || skills.profile_completion) ? <ProfileCompletionBanner completion={skills?.profile_completion ?? incompleteProfileCompletion} /> : null}
+        {!prelaunch && !me.prelaunch_blocked ? <MentorAlerts key={me.id} ownerId={me.id} settings /> : null}
         {skills !== undefined ? <PersonalContext key={me?.id} profile={skills} onSaved={setSkills} navigationReady={!loading} /> : null}
 
         <div className="card settings-card">
@@ -620,4 +631,48 @@ export default function SettingsPage() {
       `}</style>
     </AppShell>
   );
+}
+
+function PrelaunchPersonalDetails({ initialProfile, initiallyReady, navigationReady, onUpdated }: {
+  initialProfile: OwnProfile; initiallyReady: boolean; navigationReady: boolean; onUpdated: (profile: OwnProfile) => void;
+}) {
+  const router = useRouter();
+  const [form, setForm] = useState({ first_name: initialProfile.first_name || "", last_name: initialProfile.last_name || "", username: initialProfile.username || initialProfile.nickname || "" });
+  const [busy, setBusy] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const marker = () => { try { return localStorage.getItem("socra-session-change"); } catch { return null; } };
+  const owner = useRef(marker());
+  useUnsavedChangesGuard(dirty && !busy);
+
+  async function save(event: React.FormEvent) {
+    event.preventDefault();
+    if (busy || !navigationReady || owner.current !== marker()) return;
+    setBusy(true); setError(null);
+    try {
+      const profile = await clientPatch<OwnProfile>("/profiles/me", {
+        first_name: form.first_name.trim(), last_name: form.last_name.trim(), username: form.username.trim(),
+      });
+      if (owner.current !== marker()) return;
+      onUpdated(profile); setDirty(false);
+      const area = await clientGet<LaunchArea>("/prelaunch/me");
+      if (owner.current !== marker()) return;
+      router.push(area.phase === "open" || (initiallyReady && area.preparation.next_step === "ready")
+        ? "/dashboard" : preparationHref(area.preparation));
+    } catch (err) {
+      if (owner.current === marker()) setError(err instanceof Error ? err.message : "Dati non salvati. Riprova.");
+    } finally { if (owner.current === marker()) setBusy(false); }
+  }
+
+  return <section className="card settings-card">
+    <h2 className="settings-section-title">Dati personali</h2>
+    <p className="settings-account-note">Nome e cognome restano privati. Lo username identifica il tuo profilo e il tuo link di invito.</p>
+    <form className="stack" onSubmit={save} aria-busy={busy}>
+      <label className="stack" htmlFor="prelaunch-first-name">Nome<input id="prelaunch-first-name" className="input" autoComplete="given-name" required maxLength={80} value={form.first_name} disabled={busy} onChange={event => { setDirty(true); setForm(current => ({ ...current, first_name: event.target.value })); }} /></label>
+      <label className="stack" htmlFor="prelaunch-last-name">Cognome<input id="prelaunch-last-name" className="input" autoComplete="family-name" required maxLength={80} value={form.last_name} disabled={busy} onChange={event => { setDirty(true); setForm(current => ({ ...current, last_name: event.target.value })); }} /></label>
+      <label className="stack" htmlFor="prelaunch-username">Username<input id="prelaunch-username" className="input" autoComplete="username" required minLength={3} maxLength={80} pattern="[A-Za-z0-9][A-Za-z0-9_.\-]{2,79}" value={form.username} disabled={busy} onChange={event => { setDirty(true); setForm(current => ({ ...current, username: event.target.value })); }} /></label>
+      {error ? <p className="error" role="alert">{error}</p> : null}
+      <button className="button dark" type="submit" disabled={busy || !navigationReady}>{busy ? "Salvataggio…" : "Salva dati"}</button>
+    </form>
+  </section>;
 }

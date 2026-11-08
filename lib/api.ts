@@ -282,7 +282,7 @@ export async function clientDelete<T>(path: string): Promise<T> {
   return mutate<T>("DELETE", path);
 }
 
-export async function accountPost<T>(path: "email-verification/request" | "email-verification/confirm" | "password-reset/request" | "password-reset/confirm", payload?: unknown): Promise<T> {
+export async function accountPost<T>(path: "email-verification/request" | "email-verification/context" | "email-verification/confirm" | "password-reset/request" | "password-reset/confirm", payload?: unknown): Promise<T> {
   const value = await request<T>(`/api/auth/${path}`, { method: "POST", headers: jsonHeaders,
     body: payload === undefined ? undefined : JSON.stringify(payload) });
   if (path.endsWith("/confirm")) {

@@ -71,7 +71,10 @@ export async function prelaunchMutation(request: NextRequest, action: Action) {
     }
     let resultForBrowser: Record<string, string | boolean> = { status: "ok" };
     if (action === "profile-link" && result.mode === "confirm") {
-      resultForBrowser = { mode: "confirm" };
+      if (typeof result.email !== "string" || result.email.length > 255) throw new Error();
+      resultForBrowser = { mode: "confirm", email: result.email };
+    } else if (action === "profile-link" && result.mode === "access") {
+      resultForBrowser = { mode: "access" };
     } else if (action === "profile-link" || action === "reservation") {
       if (typeof result.email !== "string" || result.email.length > 255) throw new Error();
       resultForBrowser = { email: result.email };

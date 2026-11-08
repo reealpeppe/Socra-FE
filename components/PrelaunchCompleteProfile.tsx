@@ -2,18 +2,18 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { launchPost } from "@/lib/prelaunch";
-import { refreshClientSession } from "@/lib/api";
 import { RegistrationForm, type PrelaunchProof } from "./RegistrationForm";
+import { EmailVerificationFlow } from "./EmailVerificationFlow";
+import { LoginForm } from "./LoginForm";
 import styles from "./Prelaunch.module.css";
 
-type LinkResult = { email: string; confirm_only?: boolean; confirmed?: boolean } | { mode: "confirm" };
+type LinkResult = { email: string; confirm_only?: boolean; confirmed?: boolean } | { mode: "confirm"; email: string } | { mode: "access" };
 
 export function PrelaunchCompleteProfile({ browser = false }: { browser?: boolean }) {
-  const router = useRouter();
   const [proof, setProof] = useState<PrelaunchProof | null>(null);
-  const [confirm, setConfirm] = useState(false);
+  const [confirm, setConfirm] = useState<{ email: string; token: string } | null>(null);
+  const [access, setAccess] = useState(false);
   const [confirmOnly, setConfirmOnly] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +34,10 @@ export function PrelaunchCompleteProfile({ browser = false }: { browser?: boolea
     launchPost<LinkResult>(browser ? "reservation" : "profile-link", browser ? {} : { token })
       .then(value => {
         if (!active) return;
-        if ("mode" in value) setConfirm(true);
+        if ("mode" in value) {
+          if (value.mode === "confirm") setConfirm({ email: value.email, token: token! });
+          else setAccess(true);
+        }
         else {
           setProof(browser ? { kind: "browser", email: value.email } : { kind: "email", token: token!, email: value.email });
           setConfirmOnly(value.confirm_only === true);
@@ -45,18 +48,13 @@ export function PrelaunchCompleteProfile({ browser = false }: { browser?: boolea
     return () => { active = false; };
   }, [browser]);
 
-  async function confirmEmail() {
-    if (busy || !personalToken.current) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await launchPost("profile-confirm", { token: personalToken.current });
-      refreshClientSession();
-      router.replace("/prelancio/profilo-pronto");
-    } catch (reason) {
-      setError(reason instanceof Error ? reason.message : "Verifica non riuscita.");
-    } finally { setBusy(false); }
-  }
+  if (confirm) return <EmailVerificationFlow kind="prelaunch" token={confirm.token} email={confirm.email} />;
+  if (access) return <main className={styles.page} id="main-content"><div className={styles.content}>
+    <h1>Il tuo indirizzo è già confermato.</h1>
+    <p>Il profilo è salvato. Accedi per ritrovarlo nella tua area.</p>
+    <LoginForm compact />
+    <p><Link href="/dashboard">Se hai già effettuato l’accesso, vai alla tua area</Link></p>
+  </div></main>;
 
   if (proof) return <RegistrationForm proof={proof} emailAction={confirmOnly && (
     <div className={styles.confirmOnly}>
@@ -76,13 +74,7 @@ export function PrelaunchCompleteProfile({ browser = false }: { browser?: boolea
     </div>
   )} />;
   return <main className={styles.page} id="main-content"><div className={styles.content}>
-    {confirm ? <>
-      <h1>Conferma la tua email</h1>
-      <p>Apri questo link mentre sei nell’account con cui hai iniziato a preparare il profilo.</p>
-      {error && <p className={styles.error} role="alert">{error}</p>}
-      <button className="button dark" disabled={busy} onClick={() => void confirmEmail()}>{busy ? "Conferma…" : "Conferma email"}</button>
-      <p><Link href="/login?accesso=1" target="_blank" rel="noopener noreferrer">Accedi in una nuova scheda</Link> e torna qui. Se hai perso la password, <Link href="/forgot-password">recuperala</Link>.</p>
-    </> : error ? <>
+    {error ? <>
       <h1>Riprendiamo da qui.</h1>
       <p role="alert">{error}</p>
       <Link className="button dark" href="/prelancio">Richiedi un nuovo link</Link>

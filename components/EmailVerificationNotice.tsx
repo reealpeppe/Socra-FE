@@ -7,7 +7,7 @@ import styles from "./EmailVerificationNotice.module.css";
 
 type DeliveryResult = { status: string; email_delivery_enabled: boolean };
 
-export function EmailVerificationNotice({ user }: { user: UserMe }) {
+export function EmailVerificationNotice({ user, onEmailChanged }: { user: UserMe; onEmailChanged?: () => void }) {
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
   const [email, setEmail] = useState(user.email);
@@ -41,13 +41,16 @@ export function EmailVerificationNotice({ user }: { user: UserMe }) {
         ? "Email aggiornata. Richiesta di verifica registrata per il nuovo indirizzo."
         : "Email aggiornata. L’invio email è disattivato in questo ambiente.");
       setEditing(false);
+      onEmailChanged?.();
     } catch (err) { fail(err); }
     finally { setBusy(false); }
   }
 
   return <section className={`card stack ${styles.notice}`} aria-label="Verifica email" style={{ marginBottom: 20 }}>
     <strong>Email da confermare</strong>
-    <p className="muted">Conferma {user.email} per cercare profili e usare il matching. Puoi già compilare la survey, scegliere gli obiettivi e completare il tuo profilo.</p>
+    <p className="muted">{user.prelaunch_blocked
+      ? `Conferma ${user.email}. Puoi continuare a preparare i tuoi dati, l’esperienza e gli obiettivi in attesa dell’apertura.`
+      : `Conferma ${user.email} per cercare profili e usare il matching. Puoi già compilare la survey, scegliere gli obiettivi e completare il tuo profilo.`}</p>
     {error ? <p className="error" role="alert">{error}</p> : null}
     {message ? <p className="success" role="status">{message}</p> : null}
     {!user.email_delivery_enabled ? <p className="muted">L’invio email è disattivato in questo ambiente.</p> : null}

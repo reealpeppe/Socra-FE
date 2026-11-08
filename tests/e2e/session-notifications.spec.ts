@@ -102,7 +102,7 @@ test("successful login and logout broadcast a real session change", async ({ pag
   await page.getByLabel("Username o email").fill("recipient");
   await page.getByLabel("Password", { exact: true }).fill("password123");
   await page.getByRole("main").getByRole("button", { name: "Accedi" }).click();
-  await expect(page.locator("#login-error")).toContainText("Username, email o password non corretti");
+  await expect(page.getByRole("main").getByRole("alert")).toContainText("Username, email o password non corretti");
   expect(await page.evaluate(() => localStorage.getItem("socra-session-change"))).toBeNull();
   await page.getByRole("main").getByRole("button", { name: "Accedi" }).click();
   await expect(page).toHaveURL(/\/dashboard/);

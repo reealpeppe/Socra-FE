@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Brand } from "@/components/Brand";
 import { accountPost, ClientApiError } from "@/lib/api";
 import styles from "@/app/(public)/login/auth.module.css";
+import { EmailVerificationFlow } from "@/components/EmailVerificationFlow";
 
 type Action = "verify" | "forgot" | "reset";
 const copy = {
@@ -14,6 +15,10 @@ const copy = {
 };
 
 export function AccountAction({ action }: { action: Action }) {
+  return action === "verify" ? <EmailVerificationFlow /> : <RecoveryAction action={action} />;
+}
+
+function RecoveryAction({ action }: { action: Action }) {
   const token = useRef<string | null>(null);
   const [ready, setReady] = useState(action === "forgot");
   const [hasToken, setHasToken] = useState(false);

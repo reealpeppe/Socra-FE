@@ -2,6 +2,7 @@
 
 import { useCallback, useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { AppShell } from "@/components/AppShell";
 import { useConfirmation } from "@/components/ConfirmationDialog";
 import { PersonalContext } from "./PersonalContext";
@@ -49,6 +50,7 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
   const requestKey = useRef("");
   const ownerRef = useRef<SurveyOwner | null>(null);
   const initialOffers = useRef<string[]>([]);
+  const initiallyReady = useRef(false);
   const { confirm, confirmationDialog } = useConfirmation();
   const ownsSession = useCallback((owner: SurveyOwner | null) =>
     owner !== null && ownerRef.current === owner && owner.sessionMarker === sessionMarker(), []);
@@ -70,9 +72,11 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
       clientGet<SkillProfile | null>("/skills/me"),
       reassessment ? Promise.resolve(null) : clientGet<Draft | null>("/surveys/onboarding/me/draft").catch(() => null),
       proposal,
-    ]).then(([user, profile, draft, proposal]) => {
+      prelaunch ? clientGet<LaunchArea>("/prelaunch/me") : Promise.resolve(null),
+    ]).then(([user, profile, draft, proposal, area]) => {
       if (!ownsSession(owner)) return;
       setInvitationReturn(next);setInvitation(proposal?.role==='recipient'?proposal:null);
+      initiallyReady.current = area?.preparation.next_step === "ready";
       draftKey.current = `socra_skills_draft:${user.user_id}:${reassessment ? "edit" : "onboarding"}`;
       userId.current = user.user_id;
       setContextOwner(user.user_id);
@@ -90,7 +94,7 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
       setInitial(JSON.stringify(saved));
       setExisting(!!profile);
       setSavedProfile(profile);
-      setContextStep(!!profile && !reassessment);
+      setContextStep(!!profile && !reassessment && !prelaunch);
       setLoaded(true);
       baseVersion.current = profile?.version;
       if (reassessment && profile) {
@@ -153,7 +157,7 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
     if (!ownsSession(owner)) return;
     if (busy) return;
     setBusy(true); setError(null);
-    if (initialOffers.current.length && !answers.mentor_skills.length && !await confirm("Stai rimuovendo tutte le attività su cui offri aiuto. La tua disponibilità come mentor verrà disattivata e non riceverai nuove richieste. I percorsi già aperti continueranno. Vuoi salvare questa modifica?")) {
+    if (initialOffers.current.length && !answers.mentor_skills.length && !await confirm(prelaunch ? "Stai rimuovendo tutte le attività su cui vuoi aiutare. Se hai scelto di insegnare, dovrai indicarne almeno una per completare la preparazione. Vuoi salvare questa modifica?" : "Stai rimuovendo tutte le attività su cui offri aiuto. La tua disponibilità come mentor verrà disattivata e non riceverai nuove richieste. I percorsi già aperti continueranno. Vuoi salvare questa modifica?")) {
       if (ownsSession(owner)) setBusy(false);
       return;
     }
@@ -167,6 +171,7 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
       try { sessionStorage.removeItem(draftKey.current); } catch { /* Saved on the server. */ }
       setInitial(JSON.stringify(answers));
       setSavedProfile(profile);
+      if (prelaunch) { await continueAfterContext(); return; }
       if (!prelaunch && safeInvitationReturn(new URLSearchParams(window.location.search).get("next"))) {
         setContextStep(true);
         await continueAfterContext();
@@ -174,8 +179,7 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
       }
       if (reassessment) {
         try { sessionStorage.setItem(`socra_experience_saved:${userId.current}`, "1"); } catch { /* The saved profile remains available. */ }
-        if (prelaunch) await continueAfterContext();
-        else router.push("/dashboard");
+        router.push("/dashboard");
         return;
       }
       setContextStep(true);
@@ -190,9 +194,8 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
       try {
         const state = await clientGet<LaunchArea>("/prelaunch/me");
         if (!ownsSession(owner)) return;
-        const step = state.preparation?.next_step;
-        router.push(state.phase === "prelaunch" && step && step !== "experience"
-          ? preparationHref(state.preparation) : "/dashboard");
+        router.push(state.phase === "open" || (initiallyReady.current && state.preparation.next_step === "ready")
+          ? "/dashboard" : preparationHref(state.preparation));
       } catch {
         if (ownsSession(owner)) setError("L’esperienza è salvata. Riprova a continuare dalla tua area.");
       }
@@ -226,16 +229,16 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
     {!loaded ? <div className="card" role={error ? "alert" : "status"}>{error || "Caricamento delle tue risposte…"}{error ? <button className="button secondary" onClick={() => { setError(null); setAttempt(value => value + 1); }}>Riprova</button> : null}</div>
       : contextStep ? <section className={`${styles.section} stack`}><h1>{invitationReturn?'Il tuo profilo è pronto':'Aggiungi il tuo contesto personale'}</h1><p>La tua esperienza è salvata.</p>{invitationReturn?<><p>Puoi tornare alla proposta e confermare il percorso. Il contesto personale è facoltativo e potrai aggiungerlo in seguito.</p><button className="button primary" onClick={()=>void continueAfterContext()}>Torna all’invito</button></>:<PersonalContext key={contextOwner} profile={savedProfile} expanded onSaved={setSavedProfile} onContinue={()=>void continueAfterContext()}/>} {error ? <p className="error" role="alert">{error}</p> : null}</section>
       : <form className={styles.page} onSubmit={submit} aria-busy={busy}>
-        <header className={styles.intro}><h1>{invitationReturn?'Prepara il tuo profilo':reassessment ? "Rivedi ciò che sai fare" : "Cosa sai fare, cosa vuoi condividere?"}</h1><p>{invitationReturn?'Indica cosa sai fare e scegli su quali attività vuoi aiutare la persona che ti ha invitato. Nessuna capacità viene selezionata al posto tuo.':'Indica le attività che sai svolgere. Tra queste, scegli quelle su cui ti fa piacere aiutare un’altra persona. Puoi partire senza selezionarne nessuna.'}</p></header>
-        {reassessment && existing ? <section className={styles.section} aria-label="Preparazione per argomento"><h2>Preparazione per argomento</h2><p className="muted">Il tuo punto di partenza attuale, dalle attività dichiarate e confermate nei percorsi.</p>{preparation.length ? <div className={styles.preparationGrid}>{preparation.map(group => <SkillPreparation key={group.topic} group={group} />)}</div> : <p className="muted">Non hai ancora indicato attività conosciute.</p>}</section> : null}
-        <section className={styles.section} aria-label="Capacità per tema"><h2>Le tue capacità</h2><p className="muted">Sul profilo sarà visibile la preparazione per argomento. Scegli separatamente le attività su cui vuoi aiutare.</p>
-          <MentorOfferHelp />
+        <header className={styles.intro}><h1>{invitationReturn?'Prepara il tuo profilo':reassessment ? "Rivedi ciò che sai fare" : "Cosa sai fare, cosa vuoi condividere?"}</h1><p>{prelaunch ? 'Indica le attività che sai svolgere e quelle su cui vuoi aiutare. Puoi salvare anche senza selezionarne nessuna. Se vuoi insegnare, scegli almeno un’attività da offrire per completare la preparazione.' : invitationReturn?'Indica cosa sai fare e scegli su quali attività vuoi aiutare la persona che ti ha invitato. Nessuna capacità viene selezionata al posto tuo.':'Indica le attività che sai svolgere. Tra queste, scegli quelle su cui ti fa piacere aiutare un’altra persona. Puoi partire senza selezionarne nessuna.'}</p></header>
+        {reassessment && existing ? <section className={styles.section} aria-label="Preparazione per argomento"><h2>Preparazione per argomento</h2><p className="muted">{prelaunch ? 'Il tuo punto di partenza attuale, dalle attività che hai indicato.' : 'Il tuo punto di partenza attuale, dalle attività dichiarate e confermate nei percorsi.'}</p>{preparation.length ? <div className={styles.preparationGrid}>{preparation.map(group => <SkillPreparation key={group.topic} group={group} />)}</div> : <p className="muted">Non hai ancora indicato attività conosciute.</p>}</section> : null}
+        <section className={styles.section} aria-label="Capacità per tema"><h2>Le tue capacità</h2><p className="muted">{prelaunch ? 'Queste scelte preparano il tuo profilo per l’apertura. Scegli separatamente le attività su cui vuoi aiutare.' : 'Sul profilo sarà visibile la preparazione per argomento. Scegli separatamente le attività su cui vuoi aiutare.'}</p>
+          {!prelaunch ? <MentorOfferHelp /> : null}
           {(invitationTopics.length?invitationTopics:catalog.topics).map(topicFields)}
           {invitationTopics.length&&otherTopics.length?<details className={styles.topic}><summary>Altre esperienze, facoltativo</summary>{otherTopics.map(topicFields)}</details>:null}
         </section>
-        {existing ? <p className={styles.notice}>Le modifiche non riattivano una disponibilità mentor messa in pausa. I percorsi già svolti restano nel tuo storico.</p> : null}
+        {existing && !prelaunch ? <p className={styles.notice}>Le modifiche non riattivano una disponibilità mentor messa in pausa. I percorsi già svolti restano nel tuo storico.</p> : null}
         {error ? <p className="error" role="alert">{error}</p> : null}
-        <div className={styles.actions}><small className="muted" role="status">{saveMessage}</small><button className="button dark" disabled={busy} type="submit">{busy ? "Salvataggio…" : invitationReturn?'Salva e torna all’invito':"Conferma le risposte"}</button></div>
+        <div className={styles.actions}>{prelaunch ? <Link href="/dashboard">Torna alla tua area</Link> : null}<small className="muted" role="status">{saveMessage}</small><button className="button dark" disabled={busy} type="submit">{busy ? "Salvataggio…" : invitationReturn?'Salva e torna all’invito':"Conferma le risposte"}</button></div>
       </form>}
   </div></AppShell>;
 }

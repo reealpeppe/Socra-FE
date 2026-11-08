@@ -218,6 +218,7 @@ test("global navigation exposes the requests area", async ({ page }) => {
 });
 
 test("settings updates mentor topics and requires the Forex safety scenario", async ({ page }) => {
+  await page.route("**/api/backend/mentor-alerts/me", route => route.fulfill({ json: { enabled: false, subscribed_at: null, updated_at: null } }));
   const topicCodes = ["savings_first_steps", "mutual_funds", "etf_funds", "stocks", "bonds", "crypto", "forex", "derivatives"];
   let currentItems: Array<{
     topic: string;
@@ -286,6 +287,7 @@ test("settings updates mentor topics and requires the Forex safety scenario", as
 });
 
 test("settings keeps saved topic preferences neutral when the global mentor switch is off", async ({ page }) => {
+  await page.route("**/api/backend/mentor-alerts/me", route => route.fulfill({ json: { enabled: false, subscribed_at: null, updated_at: null } }));
   const instruments = ["savings_first_steps", "mutual_funds", "etf_funds", "stocks", "bonds", "crypto", "forex", "derivatives"]
     .map((topic) => ({
       topic,
