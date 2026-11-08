@@ -19,14 +19,15 @@ export function PublicNavbar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sessionState, setSessionState] = useState<"loading" | "authenticated" | "anonymous" | "error">("loading");
+  const [prelaunch, setPrelaunch] = useState(false);
   const toggleRef = useRef<HTMLButtonElement>(null);
   const requestIdRef = useRef(0);
 
   const refreshSession = useCallback(async () => {
     const requestId = ++requestIdRef.current;
     try {
-      await clientGet<UserMe>("/auth/me");
-      if (requestId === requestIdRef.current) setSessionState("authenticated");
+      const user = await clientGet<UserMe>("/auth/me");
+      if (requestId === requestIdRef.current) { setSessionState("authenticated"); setPrelaunch(user.prelaunch_blocked === true); }
     } catch (error) {
       if (requestId !== requestIdRef.current) return;
       if (error instanceof ClientApiError && error.status === 401) {
@@ -94,9 +95,9 @@ export function PublicNavbar() {
         </div>
         <div className={styles.navActions}>
           {sessionState === "authenticated" ? (
-            <Link prefetch={true} href="/dashboard" aria-label="Torna alla community" className={styles.navCta} onClick={closeMobileMenu}>
-              <span className={styles.fullCta}>Torna alla community</span>
-              <span className={styles.shortCta}>Community</span>
+            <Link prefetch={true} href="/dashboard" aria-label={prelaunch ? "Vai alla tua area" : "Torna alla community"} className={styles.navCta} onClick={closeMobileMenu}>
+              <span className={styles.fullCta}>{prelaunch ? "Vai alla tua area" : "Torna alla community"}</span>
+              <span className={styles.shortCta}>{prelaunch ? "La tua area" : "Community"}</span>
             </Link>
           ) : sessionState === "anonymous" ? (
             <>
@@ -138,7 +139,7 @@ export function PublicNavbar() {
             ))}
             <div aria-hidden="true" className={styles.mobileDivider} />
             {sessionState === "authenticated" ? (
-              <Link prefetch={true} className={styles.navLink} href="/dashboard" onClick={closeMobileMenu}>Torna alla community</Link>
+              <Link prefetch={true} className={styles.navLink} href="/dashboard" onClick={closeMobileMenu}>{prelaunch ? "Vai alla tua area" : "Torna alla community"}</Link>
             ) : sessionState === "anonymous" ? (
               <>
                 <Link prefetch={true} aria-current={pathname === "/login" ? "page" : undefined} className={styles.loginLink} href="/login" onClick={closeMobileMenu}>Accedi al tuo account</Link>

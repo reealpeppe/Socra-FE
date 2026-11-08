@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {clientGet,clientPut,cachedClientValue,hasCachedClientValues} from '@/lib/api';
 import {useConfirmation} from '@/components/ConfirmationDialog';
 import {useUnsavedChangesGuard} from '@/lib/use-unsaved-changes-guard';
-import {PrelaunchModeContext} from '@/lib/prelaunch';
+import {PrelaunchModeContext,preparationHref,type LaunchArea} from '@/lib/prelaunch';
 import type {Goal,GoalSelection,GoalsMe,MatchRequestItem,SkillCatalog,SkillProfile,UserMe} from '@/lib/types';
 import styles from './SkillLearning.module.css';
 
@@ -31,23 +31,25 @@ export function MultiGoalForm({catalog}:{catalog:SkillCatalog}) {
   const [loaded,setLoaded]=useState(goalsReady),[missing,setMissing]=useState(()=>cachedClientValue<SkillProfile|null>('/skills/me')===null),[busy,setBusy]=useState(false),[dirty,setDirty]=useState(false);
   const [error,setError]=useState<string|null>(null),[limit,setLimit]=useState<string|null>(null),[attempt,setAttempt]=useState(0);
   const owner=useRef<string|null>(null), request=useRef<{payload:string;key:string}|null>(null);
+  const initiallyReady=useRef(false);
   const {confirm,confirmationDialog}=useConfirmation();
   useUnsavedChangesGuard(dirty&&!busy);
   useEffect(()=>{
     let active=true;const session=marker();owner.current=session;
     const requests=clientGet<UserMe>('/auth/me').then(user=>{
-      if(!active||session!==marker()||!canReadRequests(user))return [];
+      if(!active||session!==marker()||prelaunch||!canReadRequests(user))return [];
       return clientGet<MatchRequestItem[]>('/matching/requests/me?role=mentee');
     });
-    Promise.all([clientGet<GoalsMe>('/goals/me'),clientGet<SkillProfile|null>('/skills/me'),requests]).then(([goals,profile,requests])=>{
+    Promise.all([clientGet<GoalsMe>('/goals/me'),clientGet<SkillProfile|null>('/skills/me'),requests,prelaunch?clientGet<LaunchArea>('/prelaunch/me'):Promise.resolve(null)]).then(([goals,profile,requests,area])=>{
       if(!active||session!==marker())return;
       const activeGoals=goals.active_goals||goals.goals.filter(g=>g.is_active!==false);
+      initiallyReady.current=area?.preparation.next_step==='ready';
       setOriginal(activeGoals);setChosen(selections(activeGoals));setPending(requests.filter(r=>r.status==='pending'));setMissing(!profile);setLoaded(true);setDirty(false);
     }).catch(err=>{if(active&&session===marker()){setError(err.message);setLoaded(false);}});
     const reset=()=>{if(session!==marker()){setLoaded(false);setError(null);setBusy(false);setChosen([]);setOriginal([]);setPending([]);setDirty(false);request.current=null;setAttempt(v=>v+1);}};
     window.addEventListener('socra:session-refresh',reset);
     return()=>{active=false;window.removeEventListener('socra:session-refresh',reset);};
-  },[attempt]);
+  },[attempt,prelaunch]);
   function change(topic:string,update:(selection:GoalSelection)=>GoalSelection){
     setDirty(true);setError(null);request.current=null;
     setChosen(current=>{
@@ -66,7 +68,7 @@ export function MultiGoalForm({catalog}:{catalog:SkillCatalog}) {
     if(payload.some(s=>!s.discussion_mode)){setError('Scegli una modalità per ogni tema selezionato.');return;}
     const changedIds=original.filter(g=>{const next=payload.find(s=>s.topic===g.topic_code);return !next||JSON.stringify([...next.objective_codes].sort())!==JSON.stringify([...(g.objective_codes||[])].sort())||next.discussion_mode!==g.discussion_mode;}).map(g=>g.id);
     const session=owner.current;setBusy(true);
-    if(pending.some(r=>changedIds.includes(r.goal_id))&&!await confirm('Questa modifica annullerà la proposta in attesa sull’obiettivo modificato. Gli altri obiettivi e i percorsi già aperti restano disponibili. Vuoi salvare?')){setBusy(false);return;}
+    if(!prelaunch&&pending.some(r=>changedIds.includes(r.goal_id))&&!await confirm('Questa modifica annullerà la proposta in attesa sull’obiettivo modificato. Gli altri obiettivi e i percorsi già aperti restano disponibili. Vuoi salvare?')){setBusy(false);return;}
     if(session!==marker())return;
     const serialized=JSON.stringify(payload);
     if(request.current?.payload!==serialized)request.current={payload:serialized,key:crypto.randomUUID()};
@@ -74,7 +76,11 @@ export function MultiGoalForm({catalog}:{catalog:SkillCatalog}) {
       await clientPut<GoalsMe>('/goals/me/selection',{selections:payload,idempotency_key:request.current.key});
       if(session!==marker())return;
       setDirty(false);
-      router.push(payload.length ? (prelaunch ? '/prelancio/profilo-pronto' : '/matching') : '/dashboard');
+      if(prelaunch){
+        const area=await clientGet<LaunchArea>('/prelaunch/me');
+        if(session!==marker())return;
+        router.push(area.phase==='open'||(initiallyReady.current&&area.preparation.next_step==='ready')?'/dashboard':preparationHref(area.preparation));
+      }else router.push(payload.length?'/matching':'/dashboard');
     }catch(err){if(session===marker())setError(err instanceof Error?err.message:'Obiettivi non salvati.');}
     finally{if(session===marker())setBusy(false);}
   }
@@ -94,6 +100,6 @@ export function MultiGoalForm({catalog}:{catalog:SkillCatalog}) {
       </details>;})}
     </section>
     {error?<div role="alert"><p className="error">{error}</p>{!dirty?<button type="button" className="button secondary" onClick={()=>{setLoaded(false);setError(null);setAttempt(v=>v+1);}}>Riprova</button>:null}</div>:null}
-    <div className={styles.actions}><button className="button dark" type="submit" disabled={busy}>{busy?'Salvataggio…':original.length&&!prelaunch?'Aggiorna e vedi i mentor':'Salva e continua'}</button></div>
+    <div className={styles.actions}>{prelaunch?<Link href="/dashboard">Torna alla tua area</Link>:null}<button className="button dark" type="submit" disabled={busy}>{busy?'Salvataggio…':original.length&&!prelaunch?'Aggiorna e vedi i mentor':'Salva e continua'}</button></div>
   </form></>;
 }

@@ -5,13 +5,15 @@ const launch = {phase:'prelaunch', campaign_enabled:true, email_bonus:1, registr
   redeem_until:null, expected_launch_at:null, email_delivery_enabled:true};
 const preparation = {next_step:'ready',first_name:'Reader',intent:'learn',email_verified:true,
   experience_saved:true,goal:'Confrontare due ETF',verification_delivery:null};
-async function setup(page:Page, blocked=true) {
-  await page.context().addCookies([{name:'socra_session',value:'test-session',domain:'127.0.0.1',path:'/'}]);
+async function setup(page:Page, blocked=true, authenticated=true) {
+  if (authenticated) await page.context().addCookies([{name:'socra_session',value:'test-session',domain:'127.0.0.1',path:'/'}]);
   await page.route('**/api/prelaunch/status', route => route.fulfill({json:launch}));
-  await page.route('**/api/backend/auth/me', route => route.fulfill({json:{id:'u1',username:'reader',email:'reader@example.com',
-    nickname:'Reader', role:'user', account_status:'active',email_verified:true,email_verification_required:true,prelaunch_blocked:blocked}}));
+  await page.route('**/api/backend/auth/me', route => authenticated ? route.fulfill({json:{id:'u1',username:'reader',email:'reader@example.com',
+    nickname:'Reader', role:'user', account_status:'active',email_verified:true,email_verification_required:true,prelaunch_blocked:blocked}})
+    : route.fulfill({status:401,json:{detail:'Authentication required'}}));
   await page.route('**/api/backend/prelaunch/me', route => route.fulfill({json:{...launch,blocked,reserved_bonus:2,awarded_bonus:0,
     preparation,credits:3,referrals:{code:null,accepted:0,ready:0}}}));
+  return () => { authenticated=true; };
 }
 test('waiting screen blocks direct community URLs without requesting community data', async ({page}) => {
   await setup(page);
@@ -41,7 +43,7 @@ test('single email entry leads to a dedicated thank you page', async ({page}) =>
 });
 
 test('registration link and optional launch updates are separate choices',async({page})=>{
-  await setup(page);
+  await setup(page,true,false);
   let submitted:Record<string,unknown>|undefined;
   await page.route('**/api/prelaunch/reserve',route=>{submitted=route.request().postDataJSON();return route.fulfill({json:{status:'ok'}});});
   await page.goto('/prelancio');
@@ -61,7 +63,7 @@ test('registration link and optional launch updates are separate choices',async(
 });
 
 test('invitation survives reload and can be explicitly discarded', async ({page}) => {
-  await setup(page);
+  await setup(page,true,false);
   let submitted: Record<string, unknown> | undefined;
   await page.route('**/api/prelaunch/referral', route => route.fulfill({json:{inviter:'marta'}}));
   await page.route('**/api/prelaunch/reserve', route => {
@@ -85,19 +87,20 @@ test('invitation survives reload and can be explicitly discarded', async ({page}
   await expect(page.getByText('marta ti ha invitato su Socra.')).toHaveCount(0);
 });
 
-test('prelaunch login and registration share a single email entry',async({page})=>{
-  await setup(page);
-  for(const path of ['/login','/register']){
-    await page.goto(path);
-    await expect(page.getByLabel('La tua email',{exact:true})).toBeVisible();
-    await expect(page.getByRole('button',{name:'Riservami un posto',exact:true})).toBeVisible();
-    await expect(page.getByRole('button',{name:'Crea account',exact:true})).toHaveCount(0);
-  }
+test('prelaunch login is distinct from registration email entry',async({page})=>{
+  await setup(page,true,false);
+  await page.goto('/login');
+  await expect(page.getByLabel('Username o email')).toBeVisible();
+  await expect(page.getByRole('button',{name:'Accedi',exact:true})).toBeVisible();
+  await page.goto('/register');
+  await expect(page.getByLabel('La tua email',{exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Riservami un posto',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Crea account',exact:true})).toHaveCount(0);
 });
 
 test('returning account always sees its prelaunch area after login',async({page})=>{
-  await setup(page);
-  await page.route('**/api/auth/login',route=>route.fulfill({json:{user_id:'u1'}}));
+  const loggedIn=await setup(page,true,false);
+  await page.route('**/api/auth/login',route=>{loggedIn();return route.fulfill({json:{user_id:'u1'},headers:{'set-cookie':'socra_session=test-session; Path=/; SameSite=Lax'}});});
   await page.goto('/login?accesso=1&next=%2Fsettings');
   await page.getByLabel('Username o email').fill('reader');
   await page.getByLabel('Password',{exact:true}).fill('StrongPass123');
@@ -154,10 +157,10 @@ test('prelaunch settings loads and saves the profile without operational alerts'
   await page.route('**/api/backend/mentor-alerts/**', route => route.fulfill({json:[]}));
   await page.goto('/settings');
   await expect(page.getByLabel('Username',{exact:true})).toHaveValue('reader');
-  await page.getByLabel('Presentazione breve').fill('Profilo pronto per il lancio');
-  await page.getByRole('button',{name:'Salva profilo',exact:true}).click();
-  await expect(page.getByRole('status').filter({hasText:'Profilo aggiornato.'})).toBeVisible();
-  expect(profile.bio).toBe('Profilo pronto per il lancio');
+  await page.getByLabel('Nome',{exact:true}).fill('Ada');
+  await page.getByRole('button',{name:'Salva dati',exact:true}).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  expect(profile.first_name).toBe('Ada');
   expect(operational).toEqual([]);
 });
 
@@ -172,7 +175,8 @@ test('prelaunch goals can be prepared without reading matching requests',async({
   await page.getByRole('checkbox',{name:'Confrontare due ETF',exact:true}).check();
   await page.getByRole('radio',{name:'Guidami passo passo',exact:true}).check();
   await page.getByRole('button',{name:'Salva e continua',exact:true}).click();
-  await expect(page.getByRole('heading',{name:'Profilo pronto.'})).toBeVisible();
+  await expect(page).toHaveURL(/\/dashboard$/);
+  await expect(page.getByText('La preparazione è completa e la tua email è confermata.')).toBeVisible();
   expect(state.selectionWrites).toBe(1);
   expect(operational).toEqual([]);
 });
@@ -195,9 +199,10 @@ for (const suffix of ['', '?next=%2Finviti%2F00000000-0000-0000-0000-00000000000
     try {
       const ownData = page.waitForRequest(request => request.url().endsWith('/api/backend/skills/me'));
       await page.goto('/competenze' + suffix);
-      await ownData;
+      await expect(page.getByText('Verifica dell’accesso…',{exact:true})).toBeVisible();
       expect(operational).toEqual([]);
       release();
+      await ownData;
       await expect(page.getByRole('heading',{name:'Rivedi ciò che sai fare',exact:true})).toBeVisible();
       expect(operational).toEqual([]);
     } finally { release(); }

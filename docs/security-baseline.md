@@ -44,3 +44,9 @@ Il responsabile prodotto ha chiesto di risolvere la dipendenza invece di proroga
 La sostituzione è verificata per la configurazione Socra con `settings.next.rootDir` assente: il plugin conserva il cwd e i controlli Next/React hooks/TypeScript. Tinyglobby ha default diversi su espansione directory e percorsi assoluti; non si dichiara sostituto universale di fast-glob. Il gate blocca nuove configurazioni rootDir finché non sono riesaminate. Test di risoluzione reale dell’alias, assenza braces/micromatch nel lockfile e regole Next effettivamente eseguite sono inclusi in `test:security`.
 
 Ritirata la deroga dal gate: completo e runtime devono entrambi riportare zero; restano i rifiuti su errori processo/rete/schema/metadati e su ogni severità. La vecchia advisory viene respinta anche con una data antecedente alla scadenza storica. Audit reale dopo installazione del lockfile: **full 0, runtime 0, eccezioni 0**. Nessuna proroga né advisory nascosta. Verifiche finali e pubblicazione nel rapporto canonico.
+
+## Contesto della verifica email — candidata locale08/11/2026
+
+Il POST dedicato `/api/auth/email-verification/context` espone soltanto l'ispezione di una prova email valida. Origin/Fetch Metadata, JSON,16 KiB, timeout e risposte private/no-store/no-referrer seguono gli handler account esistenti. L'eventuale bearer arriva esclusivamente dal cookie HttpOnly; il contesto non crea sessioni o invii e non consuma il token. Non è esposto dal proxy generico.
+
+I profili preparati prima della verifica mantengono la prova delle credenziali del proprietario: l'accesso si completa nello stesso schermo e riprende il POST di conferma con il token in memoria. Riapertura da un altro browser, scadenza della sessione e conferma concorrente non aggiungono token a URL query/storage né attribuiscono la prova alla sessione di un altro account. Regola proprietaria e scadenze nella wiki14/09 backend della slice corrente.

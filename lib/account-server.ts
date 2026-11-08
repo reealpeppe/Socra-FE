@@ -3,13 +3,13 @@ import { clearSessionCookie, getBackendUrl } from "@/lib/server";
 import { guardMutation, readJsonBody, privateJson, bodyError } from "@/lib/web-security";
 
 /** Only fixed public account actions are exposed; the session bearer never enters the response. */
-export async function proxyAccountAction(request: NextRequest, path: "email-verification/confirm" | "password-reset/request" | "password-reset/confirm") {
+export async function proxyAccountAction(request: NextRequest, path: "email-verification/context" | "email-verification/confirm" | "password-reset/request" | "password-reset/confirm") {
   const rejected = guardMutation(request);
   if (rejected) return rejected;
   let payload: string | undefined;
   try { payload = await readJsonBody(request, 16 * 1024); }
   catch (error) { return bodyError(error); }
-  const session = path === "email-verification/confirm" ? request.cookies.get("socra_session")?.value : undefined;
+  const session = path.startsWith("email-verification/") ? request.cookies.get("socra_session")?.value : undefined;
   const headers = new Headers({ "Content-Type": "application/json" });
   if (session) headers.set("Authorization", `Bearer ${session}`);
   const upstream = await fetch(getBackendUrl(`/auth/${path}`), {

@@ -50,6 +50,8 @@ test("registration collects identity and essential consent", async ({ page, cont
 });
 
 test("verification uses fragment in memory and removes it before confirming", async ({ page }) => {
+  await page.route("**/api/backend/auth/me", route => route.fulfill({status:401,json:{detail:'Authentication required'}}));
+  await page.route("**/api/auth/email-verification/context", route => route.fulfill({ json: {email:user.email,requires_login:false,verified:false,prelaunch:false} }));
   let posted: unknown;
   await page.route("**/api/auth/email-verification/confirm", route => {
     posted = route.request().postDataJSON();
@@ -64,11 +66,12 @@ test("verification uses fragment in memory and removes it before confirming", as
 });
 
 test("expired verification link explains how to recover without revealing the token", async ({ page }) => {
+  await page.route("**/api/backend/auth/me", route => route.fulfill({status:401,json:{detail:'Authentication required'}}));
+  await page.route("**/api/auth/email-verification/context", route => route.fulfill({ status:400,json:{detail:"Invalid or expired token"} }));
   await page.route("**/api/auth/email-verification/confirm", route => route.fulfill({ status: 400, json: { detail: "Invalid or expired token" } }));
   await page.goto("/verify-email#token=expired-local-token");
-  await page.getByRole("button", { name: "Conferma email" }).click();
   await expect(page.getByRole("main").getByRole("alert")).toContainText(/link.*scaduto/i);
-  await expect(page.getByRole("link", { name: "Vai al tuo account" })).toHaveAttribute("href", "/settings");
+  await expect(page.getByRole("link", { name: "Accedi per richiedere un nuovo link" })).toHaveAttribute("href", "/login");
   await expect(page.locator("body")).not.toContainText("expired-local-token");
 });
 
@@ -94,6 +97,8 @@ test("password recovery is nonenumerating and reset consumes only fragment token
 
 test("profile edits name bio and optional photo without claiming a disabled email was sent", async ({ page, context, baseURL }) => {
   await session(page, context, baseURL!);
+  await page.route("**/api/backend/mentor-alerts/me", route => route.fulfill({ json: { enabled: false, subscribed_at: null, updated_at: null } }));
+  await page.route("**/api/backend/profiles/u1/avatar", route => route.fulfill({ status: 404, json: { detail: "Fixture avatar unavailable" } }));
   let profile = { user_id: "u1", nickname: "Giulia", bio: "", avatar_url: null as string | null };
   let patch: unknown;
   let avatar: unknown;

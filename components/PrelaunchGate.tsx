@@ -1,18 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { EmailVerificationGate } from "@/components/EmailVerificationGate";
 import { PersonalAppContent, PersistentAppShell } from "@/components/AppShell";
 import { PrelaunchArea, PrelaunchFrame } from "@/components/PrelaunchArea";
 import { cachedClientValue, clientGet, refreshClientSession, ClientApiError } from "@/lib/api";
 import { PrelaunchModeContext } from "@/lib/prelaunch";
+import { prelaunchPrivateDestination } from "@/lib/prelaunch-navigation";
 import type { UserMe } from "@/lib/types";
 import styles from "./Prelaunch.module.css";
 
 export function PrelaunchGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const personal = ["/onboarding", "/competenze", "/goal", "/settings"].includes(pathname);
   const [user, setUser] = useState<UserMe | null>(() => cachedClientValue<UserMe>("/auth/me") ?? null);
   const [error, setError] = useState<number | null>(null);
@@ -40,10 +42,10 @@ export function PrelaunchGate({ children }: { children: React.ReactNode }) {
     };
   }, [pathname]);
 
-  // Personal forms own their loading/recovery states and can read personal data in parallel.
-  if (personal && !user && error === null) return <main className={styles.areaMain} id="main-content">
-    <PersonalAppContent>{children}</PersonalAppContent>
-  </main>;
+  const destination = user?.prelaunch_blocked ? prelaunchPrivateDestination(pathname) : pathname;
+  useEffect(() => {
+    if (destination !== pathname) router.replace(destination);
+  }, [destination, pathname, router]);
 
   if (!user) return <main className={styles.page} id="main-content"><div className={styles.content}>
     {error === 401 ? <><h1>Accedi per continuare</h1><Link className="button dark"
@@ -53,6 +55,7 @@ export function PrelaunchGate({ children }: { children: React.ReactNode }) {
   </div></main>;
 
   if (!user.prelaunch_blocked) return <PersistentAppShell><EmailVerificationGate>{children}</EmailVerificationGate></PersistentAppShell>;
+  if (destination !== pathname) return <main className={styles.areaMain} id="main-content"><p role="status">Ti accompagniamo alla tua area…</p></main>;
   return <PrelaunchModeContext.Provider value={true}><PrelaunchFrame user={user}>
     {personal ? <PersonalAppContent>{children}</PersonalAppContent>
       : <PrelaunchArea key={user.id} user={user} roleEditor={pathname === "/prelancio/prepara"} completion={pathname === "/prelancio/profilo-pronto"} />}

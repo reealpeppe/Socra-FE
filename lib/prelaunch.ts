@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useEffect, useState } from "react";
+import { ClientApiError } from "@/lib/api";
 
 export const PrelaunchModeContext = createContext(false);
 
@@ -80,9 +81,9 @@ export async function launchPost<T = { status: string }>(action: Action, payload
   const data = await response.json();
   if (!response.ok) {
     if (action === "profile-confirm" && response.status === 401) {
-      throw new Error("Accedi all’account con cui hai preparato il profilo, poi riapri questa email.");
+      throw new ClientApiError(response.status, "Accedi all’account con cui hai preparato il profilo per completare la conferma.");
     }
-    throw new Error(typeof data.detail === "string" ? data.detail : "Operazione non riuscita. Riprova.");
+    throw new ClientApiError(response.status, typeof data.detail === "string" ? data.detail : "Operazione non riuscita. Riprova.");
   }
   return data;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { clientGet, clientPost } from "@/lib/api";
@@ -8,10 +8,12 @@ import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes-guard";
 import type { Goal, GoalsMe, SkillCatalog, SkillProfile, PathItem } from "@/lib/types";
 import { MultiGoalForm } from "./MultiGoalForm";
 import styles from "./SkillLearning.module.css";
+import { PrelaunchModeContext } from "@/lib/prelaunch";
 
 export function SkillGoalForm({ catalog }: { catalog: SkillCatalog }) {
   const pathId = useSearchParams().get("pathId");
-  return pathId ? <SingleGoalForm catalog={catalog} /> : <MultiGoalForm catalog={catalog} />;
+  const prelaunch = useContext(PrelaunchModeContext);
+  return pathId && !prelaunch ? <SingleGoalForm catalog={catalog} /> : <MultiGoalForm catalog={catalog} />;
 }
 
 function SingleGoalForm({ catalog }: { catalog: SkillCatalog }) {

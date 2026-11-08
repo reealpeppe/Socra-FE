@@ -61,7 +61,7 @@ function request({ origin = 'https://www.socra.it', type = 'application/json', b
   return new NextRequest('https://www.socra.it/api/test', { method, headers, body: method === 'GET' ? undefined : body });
 }
 
-for (const action of ['email', 'login', 'register', 'logout', 'proxy', 'password-reset/request', 'password-reset/confirm', 'email-verification/confirm', 'email-verification/request']) {
+for (const action of ['email', 'login', 'register', 'logout', 'proxy', 'password-reset/request', 'password-reset/confirm', 'email-verification/context', 'email-verification/confirm', 'email-verification/request']) {
   for (const origin of ['https://evil.invalid', 'https://www.socra.it.evil.invalid', null, 'null']) {
     test(`${action} rejects untrusted or missing Origin before touching upstream`, async () => {
       const f = fixture(action);
@@ -73,7 +73,7 @@ for (const action of ['email', 'login', 'register', 'logout', 'proxy', 'password
   }
 }
 
-for (const action of ['email', 'login', 'register', 'proxy', 'password-reset/request', 'password-reset/confirm', 'email-verification/confirm', 'email-verification/request']) {
+for (const action of ['email', 'login', 'register', 'proxy', 'password-reset/request', 'password-reset/confirm', 'email-verification/context', 'email-verification/confirm', 'email-verification/request']) {
   test(`${action} rejects text/plain forms, invalid JSON and oversized bodies`, async () => {
     for (const [params, wanted] of [
       [{ type: 'text/plain' }, 415], [{ body: '{' }, 400],
@@ -147,7 +147,7 @@ test('body limit counts bytes from a chunked stream without trusting Content-Len
 
 for (const path of [ ['prelaunch','register'], ['prelaunch','profile-link'], ['prelaunch','reserve'],
   ['prelaunch','reservation'], ['prelaunch','reservation-confirm'], ['prelaunch','profile-confirm'], ['prelaunch','referral'],
-  ['auth','login'], ['auth','register'], ['auth','logout'], ['auth','me','extra'],
+  ['auth','login'], ['auth','register'], ['auth','logout'], ['auth','email-verification','context'], ['auth','me','extra'],
   ['profiles','..','auth','register'], ['auth/register'], ['auth%2fregister'], ['auth\\register'], ['%61uth','register'] ]) {
   test(`generic proxy cannot bypass auth cookie contract: ${path.join('/')}`, async () => {
     const f = fixture('proxy', undefined, 200, path);

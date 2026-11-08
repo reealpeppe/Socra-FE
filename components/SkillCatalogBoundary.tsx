@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useContext, useEffect, useState, type ReactNode } from "react";
 import { ClientApiError, clientGet, cachedClientValue } from "@/lib/api";
 import type { SkillCatalog } from "@/lib/types";
+import { PrelaunchModeContext } from "@/lib/prelaunch";
 
 /** Only an explicit 404 selects the legacy UI; outages never change the model. */
 export function SkillCatalogBoundary({ children, legacy }: { children: (catalog: SkillCatalog) => ReactNode; legacy: ReactNode }) {
+  const prelaunch = useContext(PrelaunchModeContext);
   const [catalog, setCatalog] = useState<SkillCatalog | null>(() => {
     const value = cachedClientValue<SkillCatalog>("/skills/catalog");
     return value?.topics?.length && value.discussion_modes?.length ? value : null;
@@ -25,7 +27,8 @@ export function SkillCatalogBoundary({ children, legacy }: { children: (catalog:
     });
     return () => { active = false; };
   }, [attempt]);
-  if (missing) return legacy;
+  if (missing && !prelaunch) return legacy;
+  if (missing) return <div className="card stack" role="alert"><p>La preparazione del profilo non è momentaneamente disponibile.</p><button className="button secondary" onClick={() => { setMissing(false); setAttempt(value => value + 1); }}>Riprova</button></div>;
   if (error) return <div className="card stack" role="alert"><p>{error}</p><button className="button secondary" onClick={() => { setError(null); setAttempt(value => value + 1); }}>Riprova</button></div>;
   if (!catalog) return <div className="card" role="status">Caricamento attività…</div>;
   return children(catalog);

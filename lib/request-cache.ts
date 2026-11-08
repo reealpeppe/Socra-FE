@@ -4,6 +4,9 @@ type Entry = { value?: unknown; expires: number; promise?: Promise<unknown> };
 const entries = new Map<string, Entry>();
 let version = 0;
 let sessionVersion = 0;
+export class SessionChangedError extends Error {
+  constructor() { super("La sessione è cambiata. Ricarica la pagina."); this.name = "SessionChangedError"; }
+}
 export function clearRequestCache(sessionChanged = false) {
   entries.clear();
   version += 1;
@@ -30,7 +33,7 @@ export async function cachedRequest<T>(
   entry.promise = load()
     .then((value) => {
       if (requestSession !== sessionVersion)
-        throw new Error("La sessione è cambiata. Ricarica la pagina.");
+        throw new SessionChangedError();
       if (version === requestVersion && entries.get(key) === entry) {
         entry.value = value;
         entry.expires = Date.now() + ttl;

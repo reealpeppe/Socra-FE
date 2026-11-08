@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useId, useMemo, useState } from "react";
+import { Suspense, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Target } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -12,6 +12,7 @@ import type { Goal, GoalsMe } from "@/lib/types";
 import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes-guard";
 import { SkillCatalogBoundary } from "@/components/SkillCatalogBoundary";
 import { SkillGoalForm } from "@/components/SkillGoalForm";
+import { PrelaunchModeContext, preparationHref, type LaunchArea } from "@/lib/prelaunch";
 
 type GoalCatalog = {
   topics: Array<{ code: string; label: string; goals: Array<{ code: string; label: string; recommended?: boolean }> }>;
@@ -34,7 +35,9 @@ export default function GoalPage() {
 function GoalForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const pathId = searchParams.get("pathId");
+  const prelaunch = useContext(PrelaunchModeContext);
+  const pathId = prelaunch ? null : searchParams.get("pathId");
+  const initiallyReady = useRef(false);
   const [catalog, setCatalog] = useState<GoalCatalog | null>(null);
   const [hasCurrentGoal, setHasCurrentGoal] = useState(false);
   const [form, setForm] = useState({ topic: "", goal_tag: "", capital_goal: null as string | null, amount_range: null as string | null, risk: null as string | null, discussion_types: [] as string[] });
@@ -76,9 +79,11 @@ function GoalForm() {
   useEffect(() => {
     Promise.all([
       clientGet<GoalCatalog>("/surveys/goal/catalog"),
-      clientGet<GoalsMe>("/goals/me")
+      clientGet<GoalsMe>("/goals/me"),
+      prelaunch ? clientGet<LaunchArea>("/prelaunch/me") : Promise.resolve(null),
     ])
-      .then(([nextCatalog, goals]) => {
+      .then(([nextCatalog, goals, area]) => {
+        initiallyReady.current = area?.preparation.next_step === "ready";
         setCatalog(nextCatalog);
         const current = goals.current || goals.active_goal || null;
         if (current) {
@@ -95,7 +100,7 @@ function GoalForm() {
       })
       .catch((err: { message?: string }) => setLoadError(err.message || "Impossibile caricare il tuo obiettivo"))
       .finally(() => setLoading(false));
-  }, [loadAttempt]);
+  }, [loadAttempt, prelaunch]);
 
   function retryLoad() {
     setLoadError(null);
@@ -144,6 +149,12 @@ function GoalForm() {
       const endpoint = pathId ? `/paths/${pathId}/update-goal` : "/surveys/goal/me";
       const goal = await clientPost<Goal>(endpoint, form);
       setDirty(false);
+      if (prelaunch) {
+        const area = await clientGet<LaunchArea>("/prelaunch/me");
+        router.push(area.phase === "open" || (initiallyReady.current && area.preparation.next_step === "ready")
+          ? "/dashboard" : preparationHref(area.preparation));
+        return;
+      }
       router.push(pathId
         ? `/paths/${pathId}?goalReviewed=1`
         : editMode
@@ -194,7 +205,7 @@ function GoalForm() {
               {pathId ? "Cosa vuoi approfondire adesso?" : editMode ? "Aggiorna cosa vuoi imparare" : "Cosa vuoi imparare?"}
             </h1>
             <p style={{ color: "var(--muted)", margin: 0 }}>
-              {pathId
+              {prelaunch ? "Scegli cosa vuoi imparare quando aprirà Socra." : pathId
                 ? "Conferma il tema o scegline uno nuovo prima del prossimo percorso."
                 : editMode
                   ? "Le nuove scelte sostituiranno l’obiettivo attivo e ci aiuteranno a proporti persone più pertinenti."
@@ -229,7 +240,7 @@ function GoalForm() {
               <div>
                 <p style={{ color: "var(--navy-950)", fontWeight: 650, margin: "0 0 4px" }}>Scegli il tema del confronto</p>
                 <p style={{ color: "var(--muted)", fontSize: "0.88rem", margin: 0 }}>
-                  Chi valuta un percorso con te vede il tema, il risultato di apprendimento e i tipi di confronto.
+                  {prelaunch ? "Le tue scelte restano salvate per l’apertura." : "Chi valuta un percorso con te vede il tema, il risultato di apprendimento e i tipi di confronto."}
                 </p>
               </div>
 
@@ -263,8 +274,7 @@ function GoalForm() {
               <fieldset className="discussion-fieldset" aria-describedby="discussion-help discussion-count" disabled={submitting}>
                 <legend>Che tipo di confronto cerchi?</legend>
                 <p id="discussion-help" className="muted">
-                  Scegli da uno a tre modi in cui vorresti affrontare l’argomento. Aiutano il mentor a capire cosa cerchi;
-                  il risultato di apprendimento scelto sopra definisce cosa approfondirete.
+                  {prelaunch ? "Scegli da uno a tre modi in cui vorresti affrontare l’argomento." : "Scegli da uno a tre modi in cui vorresti affrontare l’argomento. Aiutano il mentor a capire cosa cerchi; il risultato di apprendimento scelto sopra definisce cosa approfondirete."}
                 </p>
                 <div className="discussion-options">
                   {catalog.discussion_types.map((option) => {
@@ -304,7 +314,7 @@ function GoalForm() {
               disabled={loading || submitting || !catalog}
               style={{ minWidth: "220px" }}
             >
-              {submitting ? "Salvataggio…" : pathId ? "Conferma la scelta" : editMode ? "Aggiorna e vedi i mentor" : "Salva e continua"}
+              {submitting ? "Salvataggio…" : prelaunch ? "Salva e continua" : pathId ? "Conferma la scelta" : editMode ? "Aggiorna e vedi i mentor" : "Salva e continua"}
             </button>
           </div>
           <style jsx>{`

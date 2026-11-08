@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowRight, CheckCircle2, Copy, LockKeyhole, Mail, MessageCircle, UsersRound } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2, Copy, LockKeyhole, Mail, MessageCircle, Star, UsersRound } from "lucide-react";
 import { Brand } from "@/components/Brand";
 import { accountPost, authPost, clientGet, clientPost, clientPut } from "@/lib/api";
 import { launchDate, preparationHref, type Intent, type LaunchArea, type Preparation } from "@/lib/prelaunch";
@@ -100,17 +100,23 @@ export function PrelaunchArea({ user, roleEditor, completion }: { user: UserMe; 
   return <>
     <header className={completion && ready ? styles.completionIntro : styles.areaIntro}>
       {completion && ready ? <>
-        <CheckCircle2 size={32} aria-hidden="true" />
-        <h1>Profilo pronto.</h1>
-        <p>{verified ? "Hai completato la preparazione e confermato il tuo indirizzo." : "Come ultimo passo, conferma la tua email."}</p>
+        {verified ? <FounderBadge /> : <span className={styles.confirmMark}><Check size={30} aria-hidden="true" /></span>}
+        <h1>{verified ? "Profilo pronto. Ci vediamo su Socra." : "Profilo pronto. Come ultimo passo, conferma la tua email"}</h1>
+        <p>{verified ? "Hai fatto tutto quello che serviva. Il tuo profilo è pronto per l’apertura della community." : "I tuoi dati, l’esperienza e gli obiettivi sono salvati. Conferma l’indirizzo per completare la preparazione."}</p>
       </> : <>
         <div>
           <h1>Ciao {preparation.first_name}, ci sei.</h1>
-          <p>Qui puoi preparare il profilo e invitare le persone con cui vuoi condividere l’apertura di Socra.</p>
+          <p>Qui puoi sistemare il profilo e invitare le persone con cui vuoi condividere l’apertura di Socra. Il resto si sblocca al lancio.</p>
         </div>
-        <div className={styles.launchInfo}><strong>{date || "Apertura in preparazione"}</strong><span>{date ? "Data prevista" : "Fase di pre-lancio"}</span></div>
+        {date && <div className={styles.launchInfo}><strong>{date}</strong><span>Apertura prevista</span></div>}
       </>}
     </header>
+
+    {completion && ready && verified ? <div className={styles.completionBenefits}>
+      <section><CheckCircle2 size={22} aria-hidden="true" /><h2>Il tuo profilo è pronto</h2><p>I tuoi dati e le tue scelte sono salvati nella tua area.</p></section>
+      <section><Star size={22} aria-hidden="true" /><h2>Badge membro fondatore</h2><p>Hai preparato il profilo e confermato il tuo indirizzo prima dell’apertura.</p></section>
+      <section><UsersRound size={22} aria-hidden="true" /><h2>La community cresce con te</h2><p>Invita le persone con cui vuoi imparare e condividere ciò che sai.</p></section>
+    </div> : null}
 
     {ready && !verified ? <VerificationPanel
       key={user.email + ":" + (preparation.verification_delivery ?? "")}
@@ -121,13 +127,16 @@ export function PrelaunchArea({ user, roleEditor, completion }: { user: UserMe; 
       onVerified={setState}
     /> : null}
 
+    <div className={completion && ready ? styles.completionBody : styles.areaGrid}>
     {!completion || !ready ? <section className={styles.panel} aria-labelledby="preparation-heading">
-      <h2 id="preparation-heading">Il tuo profilo</h2>
+      <div className={styles.panelHeading}><h2 id="preparation-heading">Il tuo profilo</h2><span className={styles.profileStatus}>{ready ? <><CheckCircle2 size={16} aria-hidden="true" /> Preparazione completa</> : "Da completare"}</span></div>
+      {ready && verified && <progress className={styles.profileProgress} aria-label="Completamento profilo" max={1} value={1}>100%</progress>}
       {ready ? <p>{verified ? "La preparazione è completa e la tua email è confermata." : "La preparazione è completa. Manca la conferma dell’indirizzo."}</p>
         : <><p>{stepCopy[preparation.next_step as keyof typeof stepCopy].detail}</p>
           <Link className="button dark" href={preparationHref(preparation)}>
             {stepCopy[preparation.next_step as keyof typeof stepCopy].label} <ArrowRight size={17} aria-hidden="true" />
           </Link></>}
+      {ready && verified ? <FounderBadge /> : null}
       {preparation.goal && <p><strong>Obiettivo:</strong> {preparation.goal}</p>}
       <div className={styles.textLinks}>
         <Link href="/prelancio/prepara">Modifica ruolo</Link>
@@ -137,24 +146,29 @@ export function PrelaunchArea({ user, roleEditor, completion }: { user: UserMe; 
       </div>
     </section> : null}
 
-    {referrals.code ? <SharePanel code={referrals.code} accepted={referrals.accepted} ready={referrals.ready} />
+    {referrals.code ? <SharePanel code={referrals.code} accepted={referrals.accepted} ready={referrals.ready} featured={completion && ready} />
       : !completion && <section className={styles.panel}><h2>I tuoi inviti</h2>
         <p>Il link personale sarà disponibile quando avrai completato il profilo e confermato l’email.</p>
       </section>}
+    </div>
 
-    {completion && ready ? <p><Link className="button secondary" href="/dashboard">Vai alla tua area</Link></p>
-      : <section className={styles.panel} aria-labelledby="opening-heading">
+    {completion && ready ? <p className={styles.center}><Link className="button secondary" href="/dashboard">Vai alla tua area</Link></p>
+      : <section className={styles.opening} aria-labelledby="opening-heading">
         <h2 id="opening-heading">All’apertura di Socra</h2>
         <p>Saldo attuale: <strong>{state.credits} crediti</strong>.
           {state.reserved_bonus > 0 && <> Bonus previsto all’apertura: <strong>+{state.reserved_bonus}</strong>.</>}</p>
         <ul className={styles.locked}>
-          <li><LockKeyhole size={17} aria-hidden="true" /> Abbinamenti con mentor e apprendisti</li>
-          <li><LockKeyhole size={17} aria-hidden="true" /> Richieste e percorsi di apprendimento</li>
-          <li><LockKeyhole size={17} aria-hidden="true" /> Utilizzo dei crediti</li>
+          <li><LockKeyhole size={18} aria-hidden="true" /><div><strong>Trova mentor e apprendisti</strong><span>Le persone con cui imparare e condividere.</span></div></li>
+          <li><LockKeyhole size={18} aria-hidden="true" /><div><strong>I tuoi percorsi</strong><span>Richieste e obiettivi da seguire insieme.</span></div></li>
+          <li><LockKeyhole size={18} aria-hidden="true" /><div><strong>Utilizza i crediti</strong><span>Per i tuoi percorsi di apprendimento.</span></div></li>
         </ul>
         <Link href="/prelancio/condizioni">Condizioni del pre-lancio</Link>
       </section>}
   </>;
+}
+
+function FounderBadge() {
+  return <span className={styles.founderBadge}><Star size={16} aria-hidden="true" /> Membro fondatore</span>;
 }
 
 function RoleForm({ intent, load }: { intent: Intent | null; load: () => Promise<LaunchArea> }) {
@@ -263,23 +277,24 @@ function VerificationPanel({ email, delivery, emailEnabled, load, onVerified }: 
   </section>;
 }
 
-function SharePanel({ code, accepted, ready }: { code: string; accepted: number; ready: number }) {
+function SharePanel({ code, accepted, ready, featured }: { code: string; accepted: number; ready: number; featured: boolean }) {
   const [url, setUrl] = useState("");
   const [copy, setCopy] = useState<"idle" | "ok" | "manual">("idle");
   useEffect(() => {
     queueMicrotask(() => setUrl(window.location.origin + "/prelancio#invito=" + encodeURIComponent(code)));
   }, [code]);
-  return <section className={styles.panel} aria-labelledby="invites-heading">
-    <h2 id="invites-heading">Invita chi vuoi su Socra</h2>
+  return <section className={styles.panel + (featured ? " " + styles.shareFeatured : "")} aria-labelledby="invites-heading">
+    <h2 id="invites-heading">{featured ? "Invita chi vuoi su Socra" : "I tuoi inviti"}</h2>
     <p>Condividi il tuo link. Chi lo apre vedrà il tuo username e potrà accettare l’invito riservando un posto.</p>
-    <dl className={styles.inviteStats}>
-      <div><dt>Inviti accettati e verificati</dt><dd>{accepted}</dd></div>
-      <div><dt>Profili pronti</dt><dd>{ready}</dd></div>
-    </dl>
+    {featured ? <ol className={styles.inviteSteps}>
+      <li><strong>Condividi il link</strong><span>Su WhatsApp, email o social.</span></li>
+      <li><strong>Riservano il posto</strong><span>Accettano il tuo invito e confermano l’email.</span></li>
+      <li><strong>Preparano il profilo</strong><span>La community cresce insieme a te.</span></li>
+    </ol> : null}
     <label className={styles.field} htmlFor="share-link">Il tuo link di invito</label>
     <div className={styles.shareRow}>
       <input id="share-link" className="input" type="text" readOnly value={url} onFocus={e => e.currentTarget.select()} />
-      <button type="button" className="button dark" disabled={!url} onClick={async () => {
+      <button type="button" className={featured ? "button secondary" : "button dark"} disabled={!url} onClick={async () => {
         try { await navigator.clipboard.writeText(url); setCopy("ok"); }
         catch { setCopy("manual"); }
       }}><Copy size={16} aria-hidden="true" /> Copia link</button>
@@ -290,5 +305,9 @@ function SharePanel({ code, accepted, ready }: { code: string; accepted: number;
       <a href={"mailto:?subject=" + encodeURIComponent("Ti invito su Socra") + "&body=" + encodeURIComponent(url)}><Mail size={16} aria-hidden="true" /> Email</a>
       <a href={"https://www.linkedin.com/sharing/share-offsite/?url=" + encodeURIComponent(url)} target="_blank" rel="noopener noreferrer"><UsersRound size={16} aria-hidden="true" /> LinkedIn</a>
     </div>}
+    <dl className={styles.inviteStats}>
+      <div><dt>Inviti accettati e verificati</dt><dd>{accepted}</dd></div>
+      <div><dt>Profili pronti</dt><dd>{ready}</dd></div>
+    </dl>
   </section>;
 }

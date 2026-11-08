@@ -80,6 +80,7 @@ test('uncertain_committed_context_is_read_before_continuing',async({page,baseURL
 });
 
 test('verified_email_offers_account_access_without_reopening_the_survey',async({page,baseURL})=>{
+  await page.route('**/api/auth/email-verification/context',route=>route.fulfill({json:{email:'reader@example.com',requires_login:false,verified:false,prelaunch:false}}));
   await fixture(page,baseURL!,{context:undisclosed});
   await page.route('**/api/auth/email-verification/confirm',route=>route.fulfill({json:{status:'ok'}}));
   await page.goto('/verify-email#token=owned-local-test-token');
