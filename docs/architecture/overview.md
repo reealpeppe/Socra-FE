@@ -135,7 +135,9 @@ Il montaggio differito del gate ha reso visibile un caso nelle richieste: il pri
 
 Minimatch11.0.1 e zod4.6.6 sono fissati tramite override di sviluppo dopo le nuove advisory. `scripts/lint-minimatch-compat.mjs`, importato prima dei plugin in eslint.config, adatta soltanto l’export CommonJS callable alla versione corretta; nessun algoritmo duplicato o dipendenza vulnerabile ripristinata. Una regressione esegue il matching della regola react/no-danger. Next/React, BFF, componenti di produzione e topologia cloud invariati. Audit completo/runtime ancora obbligatorio a zero, senza deroghe.
 
-## Pre-lancio: ingresso, ripresa e area personale — candidata locale08/11/2026
+## Pre-lancio: ingresso, ripresa e area personale — revisione08/11/2026
+
+**Pubblicata e verificata** in FE `5e15ba9` / BE `e624cd4`, Railway SUCCESS. Componenti e confini sotto attivi; cloud, gateway, schema e calendario invariati. [Evidenze canoniche](https://github.com/reealpeppe/Socra-BE/blob/release/v3-20260919/docs/releases/2026-11-08-prelaunch-flow.md).
 
 `PrelaunchPublicBoundary` controlla la sessione prima di mostrare le pagine di ingresso: un iscritto già autenticato e bloccato va alla propria area. `PrelaunchAuthBoundary` conserva il login reale su `/login`; solo la registrazione presenta la prenotazione. La ricevuta HttpOnly consente il bivio immediato; senza ricevuta la pagina propone un accesso uniforme, senza interrogare pubblicamente lo stato dell'indirizzo.
 
