@@ -27,7 +27,7 @@ export type Preparation = {
 };
 export type LaunchArea = LaunchStatus & {
   preparation: Preparation;
-  referrals: { code: string | null; accepted: number; ready: number };
+  referrals: { code: string | null; accepted: number; ready: number; bonus_per_person?: number; earned_bonus?: number };
   credits: number;
   reserved_bonus: number;
 };

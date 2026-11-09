@@ -107,7 +107,7 @@ test('returning account always sees its prelaunch area after login',async({page}
   await page.getByRole('button',{name:'Accedi',exact:true}).click();
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByRole('heading',{name:'Ciao Reader, ci sei.'})).toBeVisible();
-  await expect(page.getByText('La preparazione è completa e la tua email è confermata.')).toBeVisible();
+  await expect(page.getByText('Profilo completo, email confermata.')).toBeVisible();
 });
 
 test('personal link completes an already verified account and starts preparation',async({page})=>{
@@ -176,7 +176,7 @@ test('prelaunch goals can be prepared without reading matching requests',async({
   await page.getByRole('radio',{name:'Guidami passo passo',exact:true}).check();
   await page.getByRole('button',{name:'Salva e continua',exact:true}).click();
   await expect(page).toHaveURL(/\/dashboard$/);
-  await expect(page.getByText('La preparazione è completa e la tua email è confermata.')).toBeVisible();
+  await expect(page.getByText('Profilo completo, email confermata.')).toBeVisible();
   expect(state.selectionWrites).toBe(1);
   expect(operational).toEqual([]);
 });

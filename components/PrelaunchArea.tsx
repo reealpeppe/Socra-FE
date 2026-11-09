@@ -129,15 +129,17 @@ export function PrelaunchArea({ user, roleEditor, completion }: { user: UserMe; 
 
     <div className={completion && ready ? styles.completionBody : styles.areaGrid}>
     {!completion || !ready ? <section className={styles.panel} aria-labelledby="preparation-heading">
-      <div className={styles.panelHeading}><h2 id="preparation-heading">Il tuo profilo</h2><span className={styles.profileStatus}>{ready ? <><CheckCircle2 size={16} aria-hidden="true" /> Preparazione completa</> : "Da completare"}</span></div>
+      <div className={styles.panelHeading}>
+        <h2 id="preparation-heading">Il tuo profilo</h2>
+        {ready && verified ? <FounderBadge /> : <span className={styles.profileStatus}>{ready ? "Email da confermare" : "Da completare"}</span>}
+      </div>
       {ready && verified && <progress className={styles.profileProgress} aria-label="Completamento profilo" max={1} value={1}>100%</progress>}
-      {ready ? <p>{verified ? "La preparazione è completa e la tua email è confermata." : "La preparazione è completa. Manca la conferma dell’indirizzo."}</p>
+      {ready ? <p className={styles.profileSummary}><CheckCircle2 size={18} aria-hidden="true" /><span>{verified ? "Profilo completo, email confermata." : "La preparazione è completa. Manca la conferma dell’indirizzo."}</span></p>
         : <><p>{stepCopy[preparation.next_step as keyof typeof stepCopy].detail}</p>
           <Link className="button dark" href={preparationHref(preparation)}>
             {stepCopy[preparation.next_step as keyof typeof stepCopy].label} <ArrowRight size={17} aria-hidden="true" />
           </Link></>}
-      {ready && verified ? <FounderBadge /> : null}
-      {preparation.goal && <p><strong>Obiettivo:</strong> {preparation.goal}</p>}
+      {preparation.goal && <p className={styles.profileGoal}><span>Il tuo obiettivo</span><strong>{preparation.goal}</strong></p>}
       <div className={styles.textLinks}>
         <Link href="/prelancio/prepara">Modifica ruolo</Link>
         <Link href="/settings">Modifica dati</Link>
@@ -146,7 +148,7 @@ export function PrelaunchArea({ user, roleEditor, completion }: { user: UserMe; 
       </div>
     </section> : null}
 
-    {referrals.code ? <SharePanel code={referrals.code} accepted={referrals.accepted} ready={referrals.ready} featured={completion && ready} />
+    {referrals.code ? <SharePanel code={referrals.code} accepted={referrals.accepted} bonusPerPerson={referrals.bonus_per_person} earnedBonus={referrals.earned_bonus} featured={completion && ready} />
       : !completion && <section className={styles.panel}><h2>I tuoi inviti</h2>
         <p>Il link personale sarà disponibile quando avrai completato il profilo e confermato l’email.</p>
       </section>}
@@ -277,7 +279,7 @@ function VerificationPanel({ email, delivery, emailEnabled, load, onVerified }: 
   </section>;
 }
 
-function SharePanel({ code, accepted, ready, featured }: { code: string; accepted: number; ready: number; featured: boolean }) {
+function SharePanel({ code, accepted, bonusPerPerson, earnedBonus, featured }: { code: string; accepted: number; bonusPerPerson?: number; earnedBonus?: number; featured: boolean }) {
   const [url, setUrl] = useState("");
   const [copy, setCopy] = useState<"idle" | "ok" | "manual">("idle");
   useEffect(() => {
@@ -285,11 +287,12 @@ function SharePanel({ code, accepted, ready, featured }: { code: string; accepte
   }, [code]);
   return <section className={styles.panel + (featured ? " " + styles.shareFeatured : "")} aria-labelledby="invites-heading">
     <h2 id="invites-heading">{featured ? "Invita chi vuoi su Socra" : "I tuoi inviti"}</h2>
-    <p>Condividi il tuo link. Chi lo apre vedrà il tuo username e potrà accettare l’invito riservando un posto.</p>
+    {bonusPerPerson ? <p>Invita una persona su Socra: quando si iscrive dal tuo link, verifica l’email e completa il profilo, ricevete <strong>{bonusPerPerson} coin a testa</strong>.</p>
+      : <p>Condividi il tuo link. Chi lo apre vedrà il tuo username e potrà accettare l’invito riservando un posto.</p>}
     {featured ? <ol className={styles.inviteSteps}>
       <li><strong>Condividi il link</strong><span>Su WhatsApp, email o social.</span></li>
       <li><strong>Riservano il posto</strong><span>Accettano il tuo invito e confermano l’email.</span></li>
-      <li><strong>Preparano il profilo</strong><span>La community cresce insieme a te.</span></li>
+      <li><strong>Completano il profilo</strong><span>{bonusPerPerson ? `${bonusPerPerson} coin a testa, da usare al lancio.` : "La community cresce insieme a te."}</span></li>
     </ol> : null}
     <label className={styles.field} htmlFor="share-link">Il tuo link di invito</label>
     <div className={styles.shareRow}>
@@ -307,7 +310,8 @@ function SharePanel({ code, accepted, ready, featured }: { code: string; accepte
     </div>}
     <dl className={styles.inviteStats}>
       <div><dt>Inviti accettati e verificati</dt><dd>{accepted}</dd></div>
-      <div><dt>Profili pronti</dt><dd>{ready}</dd></div>
+      {earnedBonus !== undefined && <div><dt>Coin dai tuoi inviti</dt><dd>{earnedBonus > 0 ? "+" : ""}{earnedBonus}</dd></div>}
     </dl>
+    {bonusPerPerson ? <p className={styles.invitePolicy}>Una volta per ogni nuova persona invitata, prima dell’apertura. Coin utilizzabili al lancio. <Link href="/prelancio/condizioni#bonus-inviti">Come funziona il bonus</Link></p> : null}
   </section>;
 }

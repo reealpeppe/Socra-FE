@@ -54,3 +54,32 @@ for (const verified of [false, true]) {
     await expect(page.getByText(/Apertura in preparazione|Fase di pre-lancio/i)).toHaveCount(0);
   });
 }
+
+for (const earnedBonus of [0, 2]) {
+  test(`referrals explain the bilateral bonus and show awarded coins (${earnedBonus})`, async ({ page }) => {
+    await page.context().addCookies([{ name: 'socra_session', value: 'mockup-test', domain: '127.0.0.1', path: '/' }]);
+    await page.route('**/api/prelaunch/status', route => route.fulfill({ json: launch }));
+    await page.route('**/api/backend/auth/me', route => route.fulfill({ json: { id: 'u1', username: 'reader', email: 'reader@example.test', role: 'user',
+      account_status: 'active', email_verified: true, email_verification_required: true, prelaunch_blocked: true } }));
+    await page.route('**/api/backend/prelaunch/me', route => route.fulfill({ json: { ...launch, credits: 3, reserved_bonus: 2,
+      preparation: { next_step: 'ready', first_name: 'Reader', intent: 'learn', email_verified: true,
+        experience_saved: true, goal: 'Confrontare due ETF', verification_delivery: null },
+      referrals: { code: 'invitation-code', accepted: 7, ready: 4, bonus_per_person: 1, earned_bonus: earnedBonus } } }));
+    await page.goto('/dashboard');
+    await expect(page.getByText('1 coin a testa', { exact: true })).toBeVisible();
+    await expect(page.getByText(/si iscrive dal tuo link, verifica l’email e completa il profilo/)).toBeVisible();
+    await expect(page.getByText('Profili pronti', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('Inviti accettati e verificati', { exact: true }).locator('..')).toContainText('7');
+    await expect(page.getByText('Coin dai tuoi inviti', { exact: true }).locator('..')).toContainText(String(earnedBonus));
+    await expect(page.getByRole('link', { name: 'Come funziona il bonus' })).toHaveAttribute('href', '/prelancio/condizioni#bonus-inviti');
+    expect(await page.locator('body').evaluate(el => el.scrollWidth <= innerWidth)).toBe(true);
+  });
+}
+
+test('prelaunch conditions describe the invitation bonus separately from signup bonuses', async ({ page }) => {
+  await publicPage(page);
+  await page.goto('/prelancio/condizioni');
+  await expect(page.getByRole('heading', { name: '1 coin a testa per ogni nuovo invito completato' })).toBeVisible();
+  await expect(page.getByText(/si aggiunge al bonus di registrazione/)).toBeVisible();
+  await expect(page.getByText(/Condividere il link non dà diritto a crediti aggiuntivi/)).toHaveCount(0);
+});
