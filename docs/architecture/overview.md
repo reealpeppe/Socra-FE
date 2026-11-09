@@ -1,5 +1,7 @@
 # Architettura frontend Socra
 
+Revisione inviti10/11: la scheda personale integra il badge nella testata e legge importo e coin effettivamente ottenuti dai nuovi campi privati `referrals.bonus_per_person`/`earned_bonus`. Senza quei campi conserva la variante neutra, per aggiornamenti progressivi. Le condizioni pubbliche e la policy breve seguono la wiki14 della slice BE `fix/prelaunch-referrals-20261110`; nessun nuovo BFF, permesso o collegamento cloud/provider nel FE. [Prove e stato](../testing/2026-11-10-prelaunch-referrals.md); schemi condivisi proprietari in wiki13 backend.
+
 Revisione provider07/11: informative generale/pre-lancio e termini dichiarano Resend primario e Scaleway TEM di riserva. Nessuna chiave provider o selezione nel FE; API/BFF/sessione invariati. Il proprietario di gateway, schema e diagramma è [Socra-BE wiki13](https://github.com/reealpeppe/Socra-BE/blob/feature/scaleway-fallback-20261107/docs/wiki/13-architettura-schemi.md#gateway-email--revisione-07112026), con regole in wiki09 e contratto wiki07 del medesimo ramo. Non sono attivati promemoria o campagne.
 
 La verifica del Gate consente la lettura parallela dei soli dati personali durante il caricamento iniziale. Un errore autenticazione riporta al recupero centralizzato con accesso alle credenziali e destinazione locale conservata. SkillSurvey attende l’account prima di leggere inviti o profili operativi e scarta risultati di sessioni precedenti. Nessuna funzione della community viene montata finché lo stato account non la autorizza.
