@@ -1,5 +1,7 @@
 # Dashboard e bonus inviti — 10/11/2026
 
+**Pubblicata e verificata:** applicazione BE `e3768b200fb0fb10d64e7a18a256a8adc0337eaf` / FE `7be58529e9e4fc4d2a78214e32a8a2f35eb27e3e`, entrambi Railway SUCCESS. CI873 SQLite/934 PostgreSQL e596 browser passati;11 prove runtime sotto rollback e15 HTTPS, senza invii di prova. [Rapporto canonico](https://github.com/reealpeppe/Socra-BE/blob/release/v3-20260919/docs/releases/2026-11-10-prelaunch-referrals.md). Il seguito conserva il collaudo locale precedente alla pubblicazione.
+
 Revisione richiesta da GR: badge fondatore integrato nella testata del profilo, rimozione del contatore «Profili pronti», policy breve e premio di1 coin a invitante e invitato quando una nuova persona si iscrive con il link, verifica l’email e completa la preparazione. Davide prevedeva il premio all’invitante con importo `[N]`: bilateralità e importo1 sono la nuova indicazione esplicita GR.
 
 FE `fix/prelaunch-referrals-20261110`, base produzione `26f8cb099bc9bd24268f435f81922992d4a24b58`; fonte BE dello stesso branch, base `297aeb73740cc4d53ec1a84e2b54aac0fbb129b9`. [Regola proprietaria](https://github.com/reealpeppe/Socra-BE/blob/fix/prelaunch-referrals-20261110/docs/wiki/14-prelancio.md), [piano e verifiche BE](https://github.com/reealpeppe/Socra-BE/blob/fix/prelaunch-referrals-20261110/docs/plans/2026-11-10-prelaunch-referrals.md).
@@ -27,4 +29,4 @@ Evidenze riservate in `.local/prelaunch-referrals-20261110/`: script/configurazi
 
 ## Stato della consegna
 
-GR ha successivamente autorizzato test, pubblicazione e pulizia dei soli due indirizzi di prova esplicitamente indicati. Pubblicazione e manutenzione dati restano operazioni distinte, da registrare nel rapporto canonico BE dopo il loro esito. La review del codice ha individuato un confine concorrente tra salvataggio della preparazione e apertura; la correzione e il suo ricontrollo precedono il rilascio. Nessun deploy attestato da questo rapporto di collaudo locale.
+GR ha successivamente autorizzato test, pubblicazione e pulizia dei soli due indirizzi di prova esplicitamente indicati. Pubblicazione e manutenzione dati restano operazioni distinte, da registrare nel rapporto canonico BE dopo il loro esito. La review ha fatto correggere il confine concorrente fra salvataggio e apertura;14 regressioni PostgreSQL e il ricontrollo indipendente sono passati prima del rilascio. La pubblicazione e la pulizia sono attestate dal rapporto canonico, distinto dalle prove locali.
