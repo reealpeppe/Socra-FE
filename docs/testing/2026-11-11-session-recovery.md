@@ -1,5 +1,7 @@
 # Recupero sessione Socra — 11/11/2026
 
+Pubblicazione autorizzata da GR l’11/11/2026. Questo rapporto conserva le prove locali precedenti al rilascio; [stato di pubblicazione e verifiche online](https://github.com/reealpeppe/Socra-BE/blob/release/v3-20260919/docs/releases/2026-11-11-session-recovery.md) sono registrati nel rapporto canonico backend dopo il rollout.
+
 Stato: implementazione locale sul branch BE/FE `fix/session-recovery-20261111`, senza deploy. Basi FE `2b6acee60d24b41f70ae9874dfa160a790e7484b`, BE `4b32add69328b04cb83e5603f7ee7dc5cadee49f`; produzione invariata rispetto al rilascio del 10/11.
 
 Fonte wiki aggiornata nel commit BE `9f5760f05ae83f81efc71d7af06aa3d6f97816bb`.
