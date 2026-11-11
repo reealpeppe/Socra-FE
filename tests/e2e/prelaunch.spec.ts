@@ -199,7 +199,7 @@ for (const suffix of ['', '?next=%2Finviti%2F00000000-0000-0000-0000-00000000000
     try {
       const ownData = page.waitForRequest(request => request.url().endsWith('/api/backend/skills/me'));
       await page.goto('/competenze' + suffix);
-      await expect(page.getByText('Verifica dell’accesso…',{exact:true})).toBeVisible();
+      await expect(page.getByRole('heading',{name:'Verifica dell’accesso',exact:true})).toBeVisible();
       expect(operational).toEqual([]);
       release();
       await ownData;

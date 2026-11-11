@@ -150,7 +150,7 @@ test("onboarding gate keeps pathname and search in the expired-session login lin
   await page.route("**/api/backend/notifications/me", async (route) => route.fulfill({ json: [] }));
 
   await page.goto("/requests?tab=sent#local-section");
-  const loginLink = page.getByRole("link", { name: "Vai all'accesso" });
+  const loginLink = page.getByRole("link", { name: "Accedi per continuare", exact: true });
   await expect(loginLink).toBeVisible();
 
   const href = await loginLink.getAttribute("href");
