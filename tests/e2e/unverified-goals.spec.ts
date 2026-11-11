@@ -51,7 +51,7 @@ test('goal and skill reads wait for account and prelaunch policy before mounting
   await page.route('**/api/backend/matching/**',route=>route.fulfill({status:403,json:{detail:'Verify your email before searching profiles or using matching'}}));
   try{
     await page.goto('/goal');
-    await expect(page.getByText('Verifica dell’accesso…',{exact:true})).toBeVisible();
+    await expect(page.getByRole('heading',{name:'Verifica dell’accesso',exact:true})).toBeVisible();
     expect(goalsRead || skillsRead).toBe(false);
   }finally{release();}
   await expect(page.getByRole('heading',{name:'Cosa vuoi imparare?',exact:true})).toBeVisible();
@@ -71,7 +71,7 @@ test('a previous account verification response cannot start protected matching r
   try{
     await page.goto('/goal');
     await expect.poll(()=>authReads).toBe(1);
-    await expect(page.getByText('Verifica dell’accesso…',{exact:true})).toBeVisible();
+    await expect(page.getByRole('heading',{name:'Verifica dell’accesso',exact:true})).toBeVisible();
     await page.evaluate(()=>{localStorage.setItem('socra-session-change','another-account');document.dispatchEvent(new Event('visibilitychange'));});
     await expect(page.getByRole('heading',{name:'Cosa vuoi imparare?',exact:true})).toBeVisible();
     const previousResponse=page.waitForResponse(async response=>response.url().endsWith('/api/backend/auth/me')&&(await response.json()).email_verified===true);
@@ -138,7 +138,7 @@ for(const [endpoint,status,flags] of [
     let fail=true;
     await page.route(`**/api/backend${endpoint}`,route=>fail?route.fulfill({status,json:{detail:status===401?'Authentication required':'Read temporarily unavailable'}}):route.fallback());
     await page.goto('/goal');
-    if(status===401)await expect(page.getByRole('link',{name:"Vai all'accesso",exact:true})).toHaveAttribute('href', /accesso=1/);
+    if(status===401)await expect(page.getByRole('link',{name:"Accedi per continuare",exact:true})).toHaveAttribute('href', /accesso=1/);
     else await expect(page.locator('main').getByRole('alert')).toBeVisible();
     await expect(page.getByRole('button',{name:/Salva e continua|Aggiorna e vedi i mentor/})).toHaveCount(0);
     expect(state.selectionWrites).toBe(0);

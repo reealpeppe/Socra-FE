@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AccessRecovery } from "@/components/AccessRecovery";
 import { EmailVerificationGate } from "@/components/EmailVerificationGate";
 import { PersonalAppContent, PersistentAppShell } from "@/components/AppShell";
 import { PrelaunchArea, PrelaunchFrame } from "@/components/PrelaunchArea";
@@ -47,12 +47,9 @@ export function PrelaunchGate({ children }: { children: React.ReactNode }) {
     if (destination !== pathname) router.replace(destination);
   }, [destination, pathname, router]);
 
-  if (!user) return <main className={styles.page} id="main-content"><div className={styles.content}>
-    {error === 401 ? <><h1>Accedi per continuare</h1><Link className="button dark"
-      href={"/login?accesso=1&next=" + encodeURIComponent(pathname + window.location.search)}>Vai all&apos;accesso</Link></>
-      : error ? <><p role="alert">Non riusciamo a verificare l’accesso.</p><button className="button secondary" onClick={refreshClientSession}>Riprova</button></>
-      : <p role="status">Verifica dell’accesso…</p>}
-  </div></main>;
+  if (!user) return <AccessRecovery state={error === 401 ? "expired" : error ? "unavailable" : "loading"}
+    loginHref={"/login?accesso=1&next=" + encodeURIComponent(pathname + (typeof window === "undefined" ? "" : window.location.search))}
+    onRetry={refreshClientSession} />;
 
   if (!user.prelaunch_blocked) return <PersistentAppShell><EmailVerificationGate>{children}</EmailVerificationGate></PersistentAppShell>;
   if (destination !== pathname) return <main className={styles.areaMain} id="main-content"><p role="status">Ti accompagniamo alla tua area…</p></main>;

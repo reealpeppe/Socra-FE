@@ -1,0 +1,18 @@
+.frame { min-height: 100svh; display: flex; flex-direction: column; background: var(--paper); color: var(--ink); }
+.header { background: var(--card); border-bottom: 1px solid var(--line); }
+.bar { width: min(100% - 48px, 1120px); min-height: 76px; margin-inline: auto; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.brand { display: inline-flex; align-items: center; min-height: 44px; border-radius: 8px; }
+.main { flex: 1; display: grid; place-items: center; padding: clamp(32px, 6vw, 64px) 24px; }
+.content { width: min(100%, 600px); padding: clamp(28px, 5vw, 44px); background: var(--card); border: 1px solid var(--line); border-radius: 16px; }
+.icon { display: inline-grid; place-items: center; width: 48px; height: 48px; border-radius: 12px; color: var(--brand-blue); background: var(--brand-blue-soft); }
+.title { font-size: clamp(1.8rem, 4vw, 2.65rem); font-weight: 600; line-height: 1.2; letter-spacing: -.03em; color: var(--brand-blue); text-wrap: balance; margin: 20px 0 12px; }
+.message { margin: 0; color: var(--muted); font-size: 1rem; line-height: 1.65; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 28px; }
+.actions > a, .actions > button { min-height: 48px; justify-content: center; }
+.frame :is(a, button):focus-visible { outline: 3px solid var(--focus-ring); outline-offset: 4px; }
+.frame ::selection { background: var(--honey-soft); color: var(--ink); }
+@media (max-width: 560px) {
+  .bar { width: calc(100% - 32px); }
+  .main { padding-inline: 16px; }
+  .actions { align-items: stretch; flex-direction: column; }
+}

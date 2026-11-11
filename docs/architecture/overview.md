@@ -1,5 +1,11 @@
 # Architettura frontend Socra
 
+## Recupero sessione — variante locale 11/11/2026
+
+`fix/session-recovery-20261111`, basi FE `2b6acee60d24b41f70ae9874dfa160a790e7484b` e BE `4b32add69328b04cb83e5603f7ee7dc5cadee49f`. [AccessRecovery](../../components/AccessRecovery.tsx) presenta gli stati senza account del confine privato esistente, prima del montaggio della shell autenticata: header con marchio e Home, accesso dopo HTTP401, retry per errori temporanei, caricamento esplicito. Non usa la navbar pubblica e non avvia altre letture di sessione. Riceve solo stato, destinazione locale di login e callback di retry, senza dati personali.
+
+Conservati pathname/query del ritorno e le regole del login: dashboard in pre-lancio, destinazione locale validata a community aperta. Nessuna modifica a TTL, cookie, cache, API o permessi. Wiki14 backend registra il copy; wiki13 verifica gli stessi nodi e confini, senza nuovi collegamenti architetturali, provider o attivazioni. [Collaudo locale](../testing/2026-11-11-session-recovery.md). Questa variante non attesta un deploy.
+
 Revisione inviti10/11 **pubblicata e verificata**, applicazione FE `7be58529e9e4fc4d2a78214e32a8a2f35eb27e3e` / BE `e3768b200fb0fb10d64e7a18a256a8adc0337eaf`:  la scheda personale integra il badge nella testata e legge importo e coin effettivamente ottenuti dai nuovi campi privati `referrals.bonus_per_person`/`earned_bonus`. Senza quei campi conserva la variante neutra, per aggiornamenti progressivi. Le condizioni pubbliche e la policy breve seguono la wiki14 della slice BE `fix/prelaunch-referrals-20261110`; nessun nuovo BFF, permesso o collegamento cloud/provider nel FE. [Prove e stato](../testing/2026-11-10-prelaunch-referrals.md); schemi condivisi proprietari in wiki13 backend.
 
 Revisione provider07/11: informative generale/pre-lancio e termini dichiarano Resend primario e Scaleway TEM di riserva. Nessuna chiave provider o selezione nel FE; API/BFF/sessione invariati. Il proprietario di gateway, schema e diagramma è [Socra-BE wiki13](https://github.com/reealpeppe/Socra-BE/blob/feature/scaleway-fallback-20261107/docs/wiki/13-architettura-schemi.md#gateway-email--revisione-07112026), con regole in wiki09 e contratto wiki07 del medesimo ramo. Non sono attivati promemoria o campagne.
