@@ -288,10 +288,10 @@ function SharePanel({ code, accepted, bonusPerPerson, earnedBonus, featured }: {
   return <section className={styles.panel + (featured ? " " + styles.shareFeatured : "")} aria-labelledby="invites-heading">
     <h2 id="invites-heading">{featured ? "Invita chi vuoi su Socra" : "I tuoi inviti"}</h2>
     {bonusPerPerson ? <p>Invita una persona su Socra: quando si iscrive dal tuo link, verifica l’email e completa il profilo, ricevete <strong>{bonusPerPerson} coin a testa</strong>.</p>
-      : <p>Condividi il tuo link. Chi lo apre vedrà il tuo username e potrà accettare l’invito riservando un posto.</p>}
+      : <p>Condividi il tuo link. Chi lo apre vedrà il tuo username e potrà accettare l’invito al pre-lancio.</p>}
     {featured ? <ol className={styles.inviteSteps}>
       <li><strong>Condividi il link</strong><span>Su WhatsApp, email o social.</span></li>
-      <li><strong>Riservano il posto</strong><span>Accettano il tuo invito e confermano l’email.</span></li>
+      <li><strong>Accettano l’invito</strong><span>Si iscrivono dal tuo link e confermano l’email.</span></li>
       <li><strong>Completano il profilo</strong><span>{bonusPerPerson ? `${bonusPerPerson} coin a testa, da usare al lancio.` : "La community cresce insieme a te."}</span></li>
     </ol> : null}
     <label className={styles.field} htmlFor="share-link">Il tuo link di invito</label>

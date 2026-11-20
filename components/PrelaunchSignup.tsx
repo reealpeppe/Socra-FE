@@ -67,26 +67,30 @@ export function PrelaunchSignup() {
   return <main className={styles.page} id="main-content"><div className={styles.signup}>
     <header className={styles.signupIntro}>
       {date && <p className={styles.date}>Apertura prevista il {date}</p>}
-      <h1>Socra sta arrivando.<br />Riserva il tuo posto.</h1>
-      <p>La community dove la conoscenza finanziaria passa da persona a persona. Lascia la tua email: ci vogliono cinque secondi.</p>
+      <h1>Socra sta arrivando.<br />Entra tra i primi.</h1>
+      <p>La community dove la conoscenza finanziaria passa da persona a persona. Lascia la tua email per iniziare.</p>
+      {state?.phase !== "open" ? <ul className={styles.signupBenefits}>
+        <li>Ottieni il badge <strong>Membro fondatore</strong> quando completi il profilo e verifichi l’email.</li>
+        {state && state.registration_bonus > 0 ? <li>Crea e verifica il tuo account prima del lancio per ricevere <strong>{state.registration_bonus} coin extra all’apertura</strong>.</li> : null}
+      </ul> : null}
     </header>
     {state?.phase === "open" ? <div className={styles.success}><p>Socra è aperta. Puoi creare il tuo account.</p><Link className="button dark" href="/register">Entra nella community</Link></div> :
       <form onSubmit={submit} className={styles.reservationForm}>
         {inviter && <p className={styles.inviteNotice}><strong>{inviter} ti ha invitato su Socra.</strong> Lascia la tua email e accetta l’invito.</p>}
         {inviteState === "loading" && <p role="status">Verifica dell’invito…</p>}
-        {inviteState === "invalid" && <p role="status">Questo invito non è disponibile. Puoi comunque riservare un posto.</p>}
+        {inviteState === "invalid" && <p role="status">Questo invito non è disponibile. Puoi comunque richiedere il tuo link.</p>}
         <label className={styles.field} htmlFor="launch-email">La tua email</label>
         <div className={styles.reservationRow}>
           <input id="launch-email" name="email" type="email" autoComplete="email" spellCheck={false} placeholder="nome@esempio.it" required maxLength={255} value={email} onChange={e => setEmail(e.target.value)} disabled={busy} />
           <button className="button dark" type="submit" disabled={busy || !state || unavailable || inviteState === "loading"} aria-busy={busy}>
-            {busy ? "Invio…" : inviter ? "Accetta l’invito" : "Riservami un posto"}
+            {busy ? "Invio…" : inviter ? "Accetta l’invito" : "Ricevi il link"}
           </button>
         </div>
         <div className={styles.honeypot} aria-hidden="true"><label>Sito web
           <input name="website" tabIndex={-1} autoComplete="off" value={website} onChange={e => setWebsite(e.target.value)} />
         </label></div>
         <label className={styles.consent}><input name="accepted" type="checkbox" required checked={accepted} onChange={e => setAccepted(e.target.checked)} disabled={busy} />
-          <span>Richiedo il posto e dichiaro di aver letto l’<Link href="/prelancio/privacy">informativa privacy</Link>.</span>
+          <span>Richiedo il link e dichiaro di aver letto l’<Link href="/prelancio/privacy">informativa privacy</Link>.</span>
         </label>
         <label className={styles.consent}><input name="updates_opt_in" type="checkbox" checked={updates} onChange={e => setUpdates(e.target.checked)} disabled={busy} />
           <span>Voglio ricevere aggiornamenti e promemoria sul lancio <span className={styles.optional}>(facoltativo)</span>.</span>
@@ -100,6 +104,6 @@ export function PrelaunchSignup() {
         <p className={styles.fine}>Riceverai un link personale per confermare il tuo indirizzo. <Link href="/prelancio/condizioni">Condizioni del pre-lancio</Link>.</p>
         {state && !state.email_delivery_enabled && <p className={styles.fine}>Anteprima locale. L’invio delle email è disattivato.</p>}
       </form>}
-    <p className={styles.returnLink}>Hai già riservato il posto? <Link href="/login?accesso=1">Accedi</Link></p>
+    <p className={styles.returnLink}>Hai già un account? <Link href="/login?accesso=1">Accedi</Link></p>
   </div></main>;
 }

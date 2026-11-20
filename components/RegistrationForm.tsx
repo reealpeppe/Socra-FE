@@ -12,7 +12,11 @@ import styles from "@/app/(public)/login/auth.module.css";
 
 export type PrelaunchProof = { kind: "email"; token: string; email: string } | { kind: "browser"; email: string };
 
-export function RegistrationForm({ proof, emailAction }: { proof?: PrelaunchProof; emailAction?: React.ReactNode }) {
+export function RegistrationForm({ proof, emailAction, emailConfirmed = false }: {
+  proof?: PrelaunchProof;
+  emailAction?: React.ReactNode;
+  emailConfirmed?: boolean;
+}) {
   const router = useRouter();
   const [form, setForm] = useState({
     first_name: "",
@@ -58,6 +62,12 @@ export function RegistrationForm({ proof, emailAction }: { proof?: PrelaunchProo
     }
   }
 
+  const emailIntro = emailConfirmed
+    ? "L’indirizzo è confermato. Inserisci i tuoi dati per preparare il profilo."
+    : emailAction
+      ? "Puoi confermare solo l’indirizzo oppure completare il profilo e confermarlo in un unico passaggio."
+      : "Inserisci i tuoi dati per preparare il profilo. L’indirizzo sarà confermato insieme alla registrazione.";
+
   return (
     <div className={styles.page}>
       <main className={styles.main} id="main-content" tabIndex={-1}>
@@ -70,7 +80,7 @@ export function RegistrationForm({ proof, emailAction }: { proof?: PrelaunchProo
           <h1 className={styles.title} id="register-title">{proof ? "Completa il tuo profilo" : "Crea il tuo account"}</h1>
           <p className={styles.subtitle}>
             {proof?.kind === "browser" ? "Inserisci i tuoi dati e scegli una password per ritrovare il profilo. Alla fine ti chiederemo di confermare l’indirizzo."
-              : proof ? "Il link conferma già la tua email. Inserisci i tuoi dati per iniziare a preparare il profilo."
+              : proof ? emailIntro
               : invitationNext ? "Usa l’indirizzo che ha ricevuto l’invito: il link conferma già la tua email. Dopo la registrazione, ti guidiamo verso il percorso." : "Entra nella community, completa la survey e definisci il primo obiettivo su cui vuoi confrontarti."}
           </p>
           {emailAction}

@@ -10,7 +10,8 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <>      <main className={styles.main} id="main-content" tabIndex={-1}>
+    <>
+      <main className={styles.main} id="main-content" tabIndex={-1}>
         <header className={styles.hero}>
           <div className={styles.heroInner}>
             <p className={styles.eyebrow}>Regole della community</p>
@@ -35,9 +36,9 @@ export default function TermsPage() {
           <section className={styles.section}>
             <h2>1. Che cos’è Socra</h2>
             <p>
-              Socra è una community peer-to-peer e uno strumento tecnico di incontro tra
-              persone maggiorenni. Permette di indicare un obiettivo generale, incontrare
-              possibili mentor o apprendisti, proporre un percorso e scambiarsi feedback.
+              Socra mette in contatto persone maggiorenni che vogliono imparare e persone che
+              vogliono insegnare. Mentor e apprendisti sono responsabili di ciò che condividono
+              e delle proprie decisioni.
             </p>
             <p className={styles.callout}>
               Socra non presta consulenza finanziaria, non approva ciò che un utente dice,
@@ -58,6 +59,12 @@ export default function TermsPage() {
 
           <section className={styles.section}>
             <h2>3. Cosa non è consentito</h2>
+            <p>Chi si propone come mentor si impegna a rispettare tre regole.</p>
+            <ul>
+              <li>Condividi esperienza e insegna a fare. Non dire all’apprendista cosa comprare, vendere o tenere.</li>
+              <li>Lascia denaro, conti e credenziali a chi impara.</li>
+              <li>Astieniti dal proporre prodotti, servizi a pagamento o link da cui guadagni.</li>
+            </ul>
             <ul>
               <li>Frode, impersonificazione, molestie, minacce o contenuti illeciti.</li>
               <li>Pressioni commerciali, spam, promesse di rendimento o inviti a investire.</li>
@@ -133,6 +140,7 @@ export default function TermsPage() {
             </div>
           </section>
         </div>
-      </main>    </>
+      </main>
+    </>
   );
 }

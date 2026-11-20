@@ -33,10 +33,10 @@ test('single email entry leads to a dedicated thank you page', async ({page}) =>
   await page.route('**/api/prelaunch/reservation', route => route.fulfill({json:{email:'lead@example.com'}}));
   await page.goto('/prelancio');
   await page.getByLabel('La tua email', {exact:true}).fill('lead@example.com');
-  await page.getByRole('checkbox',{name:'Richiedo il posto',exact:false}).check();
-  await page.getByRole('button', {name:'Riservami un posto',exact:true}).click();
+  await page.getByRole('checkbox',{name:'Richiedo il link',exact:false}).check();
+  await page.getByRole('button', {name:'Ricevi il link',exact:true}).click();
   await expect(page).toHaveURL(/\/prelancio\/grazie$/);
-  await expect(page.getByRole('heading',{name:'Sei dentro. Il tuo posto è riservato.'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'Sei tra i primi.'})).toBeVisible();
   await expect(page.getByRole('link',{name:'Completa ora'})).toBeVisible();
   await expect(page.getByRole('button',{name:'Continuerò più tardi'})).toBeVisible();
   expect(await page.locator('body').evaluate(el => el.scrollWidth <= window.innerWidth)).toBeTruthy();
@@ -49,15 +49,15 @@ test('registration link and optional launch updates are separate choices',async(
   await page.goto('/prelancio');
   await expect(page.getByRole('complementary',{name:'Pre-lancio Socra'})).toHaveCount(0);
   await page.getByLabel('La tua email',{exact:true}).fill('lead@example.test');
-  const link=page.getByRole('checkbox',{name:'Richiedo il posto',exact:false});
+  const link=page.getByRole('checkbox',{name:'Richiedo il link',exact:false});
   const updates=page.getByRole('checkbox',{name:'Voglio ricevere aggiornamenti',exact:false});
   await expect(link).not.toBeChecked();await expect(updates).not.toBeChecked();
   await expect(updates).not.toHaveAttribute('required');
-  await link.check();await page.getByRole('button',{name:'Riservami un posto',exact:true}).click();
+  await link.check();await page.getByRole('button',{name:'Ricevi il link',exact:true}).click();
   await expect(page).toHaveURL(/\/prelancio\/grazie$/);
   expect(submitted?.accepted).toBe(true);expect(submitted?.updates_opt_in).toBe(false);
   await page.goto('/prelancio');await page.getByLabel('La tua email',{exact:true}).fill('other@example.test');
-  await link.check();await updates.check();await page.getByRole('button',{name:'Riservami un posto',exact:true}).click();
+  await link.check();await updates.check();await page.getByRole('button',{name:'Ricevi il link',exact:true}).click();
   await expect(page).toHaveURL(/\/prelancio\/grazie$/);expect(submitted?.updates_opt_in).toBe(true);
   await page.goto('/prelancio/condizioni');await expect(page.getByText(/versione/i)).toHaveCount(0);
 });
@@ -75,7 +75,7 @@ test('invitation survives reload and can be explicitly discarded', async ({page}
   await page.reload();
   await expect(page.getByText('marta ti ha invitato su Socra.')).toBeVisible();
   await page.getByLabel('La tua email', {exact:true}).fill('invited@example.test');
-  await page.getByRole('checkbox', {name:'Richiedo il posto',exact:false}).check();
+  await page.getByRole('checkbox', {name:'Richiedo il link',exact:false}).check();
   await page.getByRole('button', {name:'Accetta l’invito',exact:true}).click();
   await expect(page).toHaveURL(/prelancio\/grazie$/);
   expect(submitted?.referral).toBe('signed-public-invitation');
@@ -83,7 +83,7 @@ test('invitation survives reload and can be explicitly discarded', async ({page}
   await expect(page.getByText('marta ti ha invitato su Socra.')).toBeVisible();
   await page.getByRole('button', {name:'Continua senza invito',exact:true}).click();
   await page.reload();
-  await expect(page.getByRole('button', {name:'Riservami un posto',exact:true})).toBeVisible();
+  await expect(page.getByRole('button', {name:'Ricevi il link',exact:true})).toBeVisible();
   await expect(page.getByText('marta ti ha invitato su Socra.')).toHaveCount(0);
 });
 
@@ -94,7 +94,7 @@ test('prelaunch login is distinct from registration email entry',async({page})=>
   await expect(page.getByRole('button',{name:'Accedi',exact:true})).toBeVisible();
   await page.goto('/register');
   await expect(page.getByLabel('La tua email',{exact:true})).toBeVisible();
-  await expect(page.getByRole('button',{name:'Riservami un posto',exact:true})).toBeVisible();
+  await expect(page.getByRole('button',{name:'Ricevi il link',exact:true})).toBeVisible();
   await expect(page.getByRole('button',{name:'Crea account',exact:true})).toHaveCount(0);
 });
 

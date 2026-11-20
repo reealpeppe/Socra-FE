@@ -78,3 +78,20 @@ test("completed paths never create a new Meet room", async ({ page, baseURL }) =
   await expect(page.getByText("Riunione chiusa", { exact: true })).toBeVisible();
   expect(creates).toBe(0);
 });
+
+test("each participant gets the right first-meeting reminder and the learner can open reporting", async ({ page, baseURL }) => {
+  await setup(page, baseURL!);
+  await page.goto("/paths/flow-path");
+  const reminder = page.getByRole("region", { name: "Prima del primo incontro" });
+  await expect(reminder).toContainText("Stai per iniziare un percorso con Anna.");
+  await expect(reminder).toContainText("Le decisioni sui tuoi soldi restano tue");
+  await reminder.getByRole("button", { name: "Segnala un problema" }).click();
+  await expect(page.getByLabel("Descrizione", { exact: true })).toBeVisible();
+
+  await page.unroute("**/api/backend/**");
+  await setup(page, baseURL!, "mentor");
+  await page.reload();
+  await expect(reminder).toContainText("Stai per iniziare un percorso con Luca.");
+  await expect(reminder).toContainText("Ricorda le tre regole");
+  await expect(reminder.getByRole("button", { name: "Segnala un problema" })).toHaveCount(0);
+});

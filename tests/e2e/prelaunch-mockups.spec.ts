@@ -13,7 +13,7 @@ test('a reservation receipt shows the mockup confirmation and two choices', asyn
   await page.route('**/api/prelaunch/reservation', route => route.fulfill({ json: { email: 'lead@example.test' } }));
   await page.goto('/prelancio/grazie');
   await expect(page.getByText('Il primo passo è fatto', { exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Sei dentro. Il tuo posto è riservato.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Sei tra i primi.' })).toBeVisible();
   await expect(page.getByText('lead@example.test', { exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Completa ora' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Continuerò più tardi' })).toBeVisible();
@@ -25,7 +25,7 @@ test('return without a receipt offers inline login without account disclosure', 
   await publicPage(page);
   await page.route('**/api/prelaunch/reservation', route => route.fulfill({ status: 410, json: { detail: 'Expired' } }));
   await page.goto('/prelancio/grazie');
-  await expect(page.getByRole('heading', { name: 'Il tuo posto è già riservato.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Riprendi da dove eri rimasto.' })).toBeVisible();
   await expect(page.getByLabel('Username o email')).toHaveValue('');
   await expect(page.getByLabel('Password', { exact: true })).toBeVisible();
   await expect(page.getByRole('link', { name: 'Completa ora' })).toHaveCount(0);
@@ -82,4 +82,27 @@ test('prelaunch conditions describe the invitation bonus separately from signup 
   await expect(page.getByRole('heading', { name: '1 coin a testa per ogni nuovo invito completato' })).toBeVisible();
   await expect(page.getByText(/si aggiunge al bonus di registrazione/)).toBeVisible();
   await expect(page.getByText(/Condividere il link non dà diritto a crediti aggiuntivi/)).toHaveCount(0);
+});
+
+test('prelaunch names the founder badge and signup bonus', async ({ page }) => {
+  await publicPage(page);
+  await page.goto('/prelancio');
+  await expect(page.getByRole('heading', { name: /Entra tra i primi/ })).toBeVisible();
+  await expect(page.getByText(/Membro fondatore/)).toBeVisible();
+  await expect(page.getByText(/2 coin extra all’apertura/)).toBeVisible();
+});
+
+test('the email landing gives confirmation its own prominent action', async ({ page }) => {
+  await publicPage(page);
+  await page.route('**/api/prelaunch/profile-link', route => route.fulfill({ json: { email: 'reader@example.test', confirm_only: true } }));
+  await page.route('**/api/prelaunch/reservation-confirm', route => route.fulfill({ json: { confirmed: true } }));
+  await page.goto('/prelancio/completa-profilo#token=valid-test-link');
+  const confirmEmail = page.getByRole('button', { name: 'Conferma solo l’indirizzo' });
+  await expect(confirmEmail).toBeVisible();
+  await expect(page.getByText(/Puoi confermare solo l’indirizzo oppure completare il profilo/)).toBeVisible();
+  expect((await confirmEmail.boundingBox())?.height).toBeGreaterThanOrEqual(52);
+  await expect(confirmEmail).toHaveCSS('background-color', 'rgb(237, 137, 56)');
+  await confirmEmail.click();
+  await expect(page.getByRole('status').filter({ hasText: 'Indirizzo confermato.' })).toBeVisible();
+  await expect(page.getByText(/L’indirizzo è confermato\. Inserisci i tuoi dati/)).toBeVisible();
 });

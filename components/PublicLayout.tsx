@@ -166,7 +166,7 @@ export function PublicFooter() {
           <Link prefetch={true} className={styles.brandLink} href="/" aria-label="Socra, pagina iniziale">
             <Brand variant="light" />
           </Link>
-          <p className={styles.footerTagline}>Incontri tra persone, obiettivi chiari e responsabilità reciproca.</p>
+          <p className={styles.footerTagline}>Socra mette in contatto chi vuole imparare e chi vuole insegnare. Non fornisce consulenza finanziaria. Le decisioni restano a chi le prende.</p>
         </div>
         <div className={styles.footerNavGroup}>
           <p className={styles.footerNavLabel}>Esplora</p>

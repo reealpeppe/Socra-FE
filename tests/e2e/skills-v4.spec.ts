@@ -698,3 +698,30 @@ test("approved matching keeps covered activities visible and retains an explicit
   expect(attempts).toBe(2);
   expect(sent).toMatchObject({ agreed_objective_codes: ["etf_compare"], goal_id: "g1", email_sharing_accepted: true });
 });
+
+test("a learner can save experience without the rules and must accept them to offer help", async ({ page }) => {
+  let submitted: Record<string, unknown> | null = null;
+  await page.route("**/api/backend/surveys/onboarding/me", route => route.fulfill({
+    json: { user_id: "u1", latest_answer_id: null, mentor_rules_version: null },
+  }));
+  await page.route("**/api/backend/skills/me", route => {
+    if (route.request().method() === "GET") return route.fulfill({ json: null });
+    submitted = route.request().postDataJSON();
+    return route.fulfill({ json: { ...submitted, version: 1, section_d: context, mentor_available: true } });
+  });
+  await page.goto("/onboarding");
+  const save = page.getByRole("button", { name: "Conferma le risposte" });
+  const checkbox = page.getByRole("checkbox", { name: "Ho letto le tre regole e mi impegno a rispettarle." });
+  await page.getByRole("checkbox", { name: "So: Leggere la scheda di un ETF", exact: true }).check();
+  await expect(checkbox).toHaveCount(0);
+  await expect(save).toBeEnabled();
+  await page.getByRole("checkbox", { name: "Posso aiutare: Leggere la scheda di un ETF", exact: true }).check();
+  await expect(checkbox).not.toBeChecked();
+  await expect(save).toBeDisabled();
+  expect(submitted).toBeNull();
+  await checkbox.check();
+  await save.click();
+  await expect.poll(() => submitted).toMatchObject({
+    mentor_skills: ["etf_read"], mentor_rules_version: "mentor-rules-2026-11-20",
+  });
+});

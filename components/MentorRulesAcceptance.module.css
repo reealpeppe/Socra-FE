@@ -1,0 +1,14 @@
+.rules {
+  display: grid;
+  gap: .75rem;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--paper);
+}
+
+.rules h3, .rules p, .rules ul { margin: 0; }
+.rules h3 { font-size: 1.07rem; }
+.rules ul { display: grid; gap: .5rem; padding-inline-start: 1.3rem; }
+.rules label { display: flex; gap: .6rem; align-items: start; font-weight: 650; cursor: pointer; }
+.rules input { flex: none; width: 1.1rem; height: 1.1rem; margin: .18rem 0 0; accent-color: var(--brand-blue); }

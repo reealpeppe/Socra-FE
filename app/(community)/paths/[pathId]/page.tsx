@@ -6,7 +6,7 @@ import { EmailSharingNotice } from "@/components/EmailSharingNotice";
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, ChevronLeft, Copy, ExternalLink, RefreshCcw, UserRound, Video } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { OnboardingGate } from "@/components/OnboardingGate";
@@ -55,6 +55,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
   const [user, setUser] = useState<UserMe | null>(null);
   const [notes, setNotes] = useState("");
   const [report, setReport] = useState("");
+  const reportDisclosure = useRef<HTMLDetailsElement>(null);
   const [loading, setLoading] = useState(true);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -281,6 +282,23 @@ function PathDetailContent({ pathId }: { pathId: string }) {
             </div>
           </div>
 
+          {role && path.status === "open" && !path.first_call_completed ? <section className="card stack" aria-labelledby="path-reminder-title">
+            <h2 id="path-reminder-title" style={{ fontSize: "1.15rem", margin: 0 }}>Prima del primo incontro</h2>
+            {role === "mentee" ? <>
+              <p>Stai per iniziare un percorso con <strong>{path.mentor?.nickname || "il tuo mentor"}</strong>.</p>
+              <p>Il tuo mentor ti insegna come si fa e ti racconta la sua esperienza. Le decisioni sui tuoi soldi restano tue: nessun mentor può dirti cosa comprare, gestire il tuo denaro o proporti prodotti e servizi a pagamento.</p>
+              <p>Se succede, <button className="button secondary" type="button" onClick={() => {
+                const disclosure = reportDisclosure.current;
+                if (!disclosure) return;
+                disclosure.open = true;
+                disclosure.querySelector("summary")?.focus();
+              }}>Segnala un problema</button></p>
+            </> : <>
+              <p>Stai per iniziare un percorso con <strong>{path.mentee?.nickname || "chi vuole imparare"}</strong>.</p>
+              <p>Ricorda le tre regole: insegni a fare, non consigli cosa comprare, non gestisci soldi altrui e non vendi nulla. Se ti chiedono «Tu cosa faresti con i miei soldi?», spiega quali criteri usare per confrontare le opzioni e lascia la scelta a chi impara.</p>
+            </>}
+          </section> : null}
+
           {role ? <section className="card stack" aria-labelledby="path-contacts-title">
             <div><p className="eyebrow">Privato tra voi</p><h2 id="path-contacts-title" style={{ fontSize: "1.15rem", margin: 0 }}>Contatti per il percorso</h2></div>
             {path.contacts ? <>
@@ -441,7 +459,7 @@ function PathDetailContent({ pathId }: { pathId: string }) {
             </div>
           ) : null}
 
-          <details className="card" style={{ borderColor: "#fda29b" }}>
+          <details ref={reportDisclosure} className="card" style={{ borderColor: "#fda29b" }}>
             <summary style={{ alignItems: "center", cursor: "pointer", display: "flex", gap: "8px", fontWeight: 650 }}>
                 <AlertTriangle size={18} color="#c43f31" aria-hidden />
                 Segnala un problema

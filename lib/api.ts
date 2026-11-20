@@ -193,6 +193,7 @@ const ERROR_TRANSLATIONS: Record<string, string> = {
   "Only L1 or L2 users can opt in as mentors": "Il tuo profilo non può ancora attivare la disponibilità come mentor.",
   "Only L1-L5 users can opt in as mentors": "Il tuo profilo non può ancora attivare la disponibilità come mentor.",
   "V2 instrument competence survey not found": "Completa la survey iniziale prima di modificare le preferenze per strumento.",
+  "Per offrirti come mentor devi accettare le tre regole.": "Per offrirti come mentor devi accettare le tre regole. Se la spunta non compare, aggiorna la pagina.",
   "Mentor topic preferences are incompatible with the competence snapshot": "Una o più preferenze non sono compatibili con le risposte della survey.",
   "User not found": "Profilo non disponibile.",
   "topic and goal_tag are required": "Scegli un argomento e un obiettivo di apprendimento.",

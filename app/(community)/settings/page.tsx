@@ -13,6 +13,7 @@ import { instrumentOptions } from "@/lib/options";
 import type { OwnProfile, SkillProfile, TopicCompetenceSnapshot, TopicCompetenceSnapshotItem, UserMe } from "@/lib/types";
 import { SkillCatalogBoundary } from "@/components/SkillCatalogBoundary";
 import { SkillMentorPreferences } from "@/components/SkillMentorPreferences";
+import { MENTOR_RULES_VERSION, MentorRulesAcceptance } from "@/components/MentorRulesAcceptance";
 import { ProfileCompletionBanner, incompleteProfileCompletion } from "@/components/ProfileCompletionBanner";
 import { PersonalContext } from "@/components/PersonalContext";
 import { MentorAlerts } from "@/components/MentorAlerts";
@@ -36,12 +37,16 @@ export default function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [savingMentorStatus, setSavingMentorStatus] = useState(false);
+  const [mentorRulesChecked, setMentorRulesChecked] = useState(false);
   const [competences, setCompetences] = useState<TopicCompetenceSnapshot | null>(null);
   const [skills, setSkills] = useState<SkillProfile | null | undefined>(() => cachedClientValue<SkillProfile | null>("/skills/me"));
   const [savingTopic, setSavingTopic] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
   const [loading, setLoading] = useState(() => !hasCachedClientValues("/auth/me", "/skills/me", "/profiles/me"));
   const [retryVersion, setRetryVersion] = useState(0);
+  const needsMentorRules = me?.mentor_rules_version === null;
+  const mentorRulesVersion = needsMentorRules && mentorRulesChecked ? MENTOR_RULES_VERSION : undefined;
+  const mentorRulesAllowed = !needsMentorRules || !!mentorRulesVersion;
   const sharing = competences?.onboarding_policy === ONBOARDING_POLICY;
   const topicEligible = (item: TopicCompetenceSnapshotItem) => sharing ? item.mentor_eligible === true : isMentorEligible(item);
 
@@ -63,6 +68,7 @@ export default function SettingsPage() {
         if (active) {
           setInitiallyReady(area?.preparation.next_step === "ready");
           setMe(user);
+          setMentorRulesChecked(false);
           setCompetences(topicSnapshot);
           setSkills(skillProfile);
           setProfile(ownProfile);
@@ -96,14 +102,14 @@ export default function SettingsPage() {
   }
 
   async function updateMentorStatus(isCoach: boolean) {
-    if (!me || savingMentorStatus) return;
+    if (!me || savingMentorStatus || (isCoach && !mentorRulesAllowed)) return;
     const previous = me;
     setSavingMentorStatus(true);
     setError(null);
     setMessage(null);
     setMe({ ...me, is_coach: isCoach });
     try {
-      const updated = await clientPatch<UserMe>("/profiles/me/mentor-status", { is_coach: isCoach });
+      const updated = await clientPatch<UserMe>("/profiles/me/mentor-status", { is_coach: isCoach, mentor_rules_version: isCoach ? mentorRulesVersion : undefined });
       setMe(updated);
       setMessage(isCoach ? "Disponibilità come mentor attivata." : "Disponibilità come mentor disattivata.");
     } catch (err) {
@@ -117,12 +123,15 @@ export default function SettingsPage() {
   async function saveMentorTopics(nextItems: TopicCompetenceSnapshotItem[], changedTopic: string) {
     if (!competences || savingTopic) return;
     const previous = competences;
+    const wantsToMentor = nextItems.find(item => item.topic === changedTopic)?.wants_to_mentor;
+    const submittedVersion = wantsToMentor ? mentorRulesVersion : undefined;
     setSavingTopic(changedTopic);
     setError(null);
     setMessage(null);
     setCompetences({ ...competences, instruments: nextItems });
     try {
       const updated = await clientPut<TopicCompetenceSnapshot>("/surveys/competences-v2/me/mentor-topics", {
+        mentor_rules_version: submittedVersion,
         topics: instrumentOptions.map((option) => {
           const item = nextItems.find((candidate) => candidate.topic === option.value);
           return {
@@ -133,7 +142,7 @@ export default function SettingsPage() {
         }),
       });
       setCompetences(updated);
-      setMe((current) => current ? { ...current, is_coach: updated.is_coach } : current);
+      setMe((current) => current ? { ...current, is_coach: updated.is_coach, mentor_rules_version: updated.mentor_rules_version ?? current.mentor_rules_version } : current);
       setMessage("Disponibilità per strumento aggiornata.");
     } catch (err) {
       setCompetences(previous);
@@ -260,6 +269,9 @@ export default function SettingsPage() {
 
         {!prelaunch ? <div className="card settings-card">
           <h2 className="settings-section-title">Disponibilità come mentor</h2>
+          {needsMentorRules && (skills?.known_skills.length || competences) ? <MentorRulesAcceptance
+            checked={mentorRulesChecked} onChange={setMentorRulesChecked}
+            disabled={savingMentorStatus || savingTopic !== null} /> : null}
           <div className="settings-switch-row">
             <label htmlFor="mentor-availability">
               <strong>Ricevi richieste compatibili</strong>
@@ -279,18 +291,18 @@ export default function SettingsPage() {
                 aria-label="Disponibilità come mentor"
                 aria-describedby="mentor-availability-hint"
                 checked={!!me?.is_coach}
-                disabled={!me || savingMentorStatus || (!me.is_coach && !canEnableMentor)}
+                disabled={!me || savingMentorStatus || (!me.is_coach && (!canEnableMentor || !mentorRulesAllowed))}
                 onChange={(event) => updateMentorStatus(event.target.checked)}
               />
               <span aria-hidden />
             </label>
           </div>
           {savingMentorStatus ? <p className="settings-account-note" role="status">Salvataggio preferenza…</p> : null}
-          {skills ? <SkillCatalogBoundary legacy={null}>{catalog => <SkillMentorPreferences catalog={catalog} profile={skills} onSaved={next => {
+          {skills ? <SkillCatalogBoundary legacy={null}>{catalog => <SkillMentorPreferences catalog={catalog} profile={skills} rulesAllowed={mentorRulesAllowed} rulesVersion={mentorRulesVersion} onSaved={(next, acceptedVersion) => {
             setSkills(next);
             setMessage(me?.is_coach && !next.mentor_available ? "Disponibilità come mentor disattivata." : null);
             setError(null);
-            setMe(current => current ? { ...current, is_coach: next.mentor_available } : current);
+            setMe(current => current ? { ...current, is_coach: next.mentor_available, mentor_rules_version: acceptedVersion ?? current.mentor_rules_version } : current);
           }} />}</SkillCatalogBoundary> : skills === null ? <p className="settings-account-note">Indica le attività che sai svolgere per scegliere quelle da offrire. <Link href="/competenze">Aggiorna la tua esperienza</Link></p> : null}
           {competences ? (
             <div className="settings-topic-preferences">
@@ -325,7 +337,7 @@ export default function SettingsPage() {
                           role="switch"
                           aria-label={`Mentorship su ${option.label}`}
                           checked={item.wants_to_mentor}
-                          disabled={savingTopic !== null || readOnly}
+                          disabled={savingTopic !== null || readOnly || (!item.wants_to_mentor && !mentorRulesAllowed)}
                           onChange={(event) => updateTopicPreference(option.value, event.target.checked)}
                         />
                         <span aria-hidden />
@@ -342,7 +354,7 @@ export default function SettingsPage() {
                               name={`settings-safety-${option.value}`}
                               value={answerOption.value}
                               checked={item.safety_scenario_answer === answerOption.value}
-                              disabled={savingTopic !== null}
+                              disabled={savingTopic !== null || (!mentorRulesAllowed && item.safety_scenario_passed !== true)}
                               onChange={() => updateTopicSafety(option.value as "forex" | "derivatives", answerOption.value)}
                             />
                             <span>{answerOption.label}</span>

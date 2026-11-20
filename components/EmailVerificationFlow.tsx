@@ -8,6 +8,7 @@ import { accountPost, clientGet, ClientApiError, refreshClientSession } from "@/
 import { launchPost } from "@/lib/prelaunch";
 import type { UserMe } from "@/lib/types";
 import styles from "@/app/(public)/login/auth.module.css";
+import launchStyles from "./Prelaunch.module.css";
 
 type Context = { email: string; requires_login: boolean; verified: boolean; prelaunch: boolean };
 
@@ -89,7 +90,7 @@ export function EmailVerificationFlow({ token: suppliedToken, email, kind = "acc
       <h1 className={styles.title} id="email-proof-title">{phase === "success" ? context?.prelaunch ? "Email confermata." : "Email verificata." : "Conferma la tua email"}</h1>
       {phase === "loading" ? <p role="status">Verifica del link…</p> : <>
         {phase === "success" ? <p role="status">{context?.prelaunch
-          ? "Il tuo posto su Socra è riservato. Nella tua area puoi ritrovare il profilo e prepararti al lancio."
+          ? "Nella tua area puoi ritrovare il profilo e prepararti al lancio."
           : "Email verificata. Puoi continuare su Socra."}</p>
           : context && <p className={styles.subtitle}>{phase === "login"
             ? <>Hai preparato il profilo per <strong>{context.email}</strong>. Inserisci la password scelta: confermeremo l’email senza farti riaprire il link.</>
@@ -101,7 +102,7 @@ export function EmailVerificationFlow({ token: suppliedToken, email, kind = "acc
             setOwnerSession(true);
             await confirm();
           }} />}
-        {phase === "confirm" && <button className={styles.submit} disabled={busy} onClick={() => void confirm()}>{busy ? "Conferma…" : "Conferma email"}</button>}
+        {phase === "confirm" && <button className={kind === "prelaunch" ? launchStyles.confirmEmail : styles.submit} disabled={busy} onClick={() => void confirm()}>{busy ? "Conferma…" : "Conferma email"}</button>}
         {phase === "error" && hasToken && <button className="button secondary" onClick={() => { setPhase("loading"); setAttempt(value => value + 1); }}>Riprova</button>}
         {phase === "error" && <p><Link href="/login">Accedi per richiedere un nuovo link</Link></p>}
         {phase === "success" && <p className={styles.footerText}><Link className={styles.footerLink}

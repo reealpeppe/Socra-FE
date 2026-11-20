@@ -12,6 +12,7 @@ export type UserMe = {
   nickname: string | null;
   level: string;
   is_coach: boolean;
+  mentor_rules_version?: string | null;
   role: string;
   account_status: string;
   email_verified: boolean;
@@ -274,6 +275,7 @@ export type TopicCompetenceSnapshotItem = TopicCompetenceInput & {
 };
 
 export type TopicCompetenceSnapshot = {
+  mentor_rules_version?: string | null;
   onboarding_policy?: string;
   instruments: TopicCompetenceSnapshotItem[];
   eligible_mentor_topics?: string[];

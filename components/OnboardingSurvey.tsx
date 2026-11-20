@@ -32,11 +32,13 @@ import type {
 import styles from "./OnboardingSurvey.module.css";
 import { SkillCatalogBoundary } from "./SkillCatalogBoundary";
 import { SkillSurvey } from "./SkillSurvey";
+import { MENTOR_RULES_VERSION, MentorRulesAcceptance } from "./MentorRulesAcceptance";
 
 type OnboardingState = {
   user_id: string;
   latest_answer_id: string | null;
   is_coach: boolean;
+  mentor_rules_version?: string | null;
 };
 type SavedDraft = { answers: Record<string, unknown>; updated_at?: string };
 type LocalDraft = { answers: Record<string, unknown>; savedAt: number };
@@ -64,6 +66,11 @@ function LegacyOnboardingSurvey({
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [mentorRulesVersion, setMentorRulesVersion] = useState<string | null | undefined>();
+  const [mentorRulesChecked, setMentorRulesChecked] = useState(false);
+  const [existingMentorTopics, setExistingMentorTopics] = useState<string[]>([]);
+  const needsMentorRules = mentorRulesVersion === null && answers.selected.some(topic =>
+    answers.topics[topic]?.wants_to_mentor && !existingMentorTopics.includes(topic));
   const heading = useRef<HTMLHeadingElement>(null);
   const draftKey = useRef<string | null>(null);
   const [initial, setInitial] = useState("");
@@ -85,9 +92,14 @@ function LegacyOnboardingSurvey({
         if (reassessment) {
           const snapshot = await clientGet<{
             answers: Record<string, unknown> | null;
+            mentor_rules_version?: string | null;
+            mentor_offered_topics?: string[];
           }>("/competences-v3/me");
           if (!active) return;
           const restored = restoreAnswers(snapshot.answers || {});
+          setExistingMentorTopics(snapshot.mentor_offered_topics ?? []);
+          setMentorRulesVersion(snapshot.mentor_rules_version);
+          setMentorRulesChecked(false);
           setAnswers(restored.answers);
           setInitial(JSON.stringify(restored.answers));
           const hasSavedAnswers = !!snapshot.answers && Object.keys(snapshot.answers).length > 0;
@@ -101,6 +113,8 @@ function LegacyOnboardingSurvey({
           if (!active) return;
           if (stateResult.status === "rejected") throw stateResult.reason;
           const state = stateResult.value;
+          setMentorRulesVersion(state.mentor_rules_version);
+          setMentorRulesChecked(false);
           draftKey.current = `socra_onboarding_draft:${state.user_id}`;
           if (state.latest_answer_id) {
             setDone(true);
@@ -295,6 +309,7 @@ function LegacyOnboardingSurvey({
     go(route[currentIndex + 1] || "review");
   }
   async function submit() {
+    if (needsMentorRules && !mentorRulesChecked) return;
     if (!surveyComplete(answers)) {
       setError(
         "Manca qualche risposta. Rivedi il riepilogo e completa le voci mancanti prima di confermare.",
@@ -315,8 +330,10 @@ function LegacyOnboardingSurvey({
           ? {
               answers: submittedAnswers(answers),
               idempotency_key: idempotencyKey.current,
+              mentor_rules_version: needsMentorRules ? MENTOR_RULES_VERSION : undefined,
             }
-          : { section: "onboarding", answers: submittedAnswers(answers) },
+          : { section: "onboarding", answers: submittedAnswers(answers),
+              mentor_rules_version: needsMentorRules ? MENTOR_RULES_VERSION : undefined },
       );
       try {
         if (draftKey.current) sessionStorage.removeItem(draftKey.current);
@@ -694,6 +711,8 @@ function LegacyOnboardingSurvey({
                       }}>Torna al riepilogo</button>
                     </div>
                   ) : null}
+                  {screen === "review" && needsMentorRules ? <MentorRulesAcceptance
+                    checked={mentorRulesChecked} onChange={setMentorRulesChecked} disabled={submitting} /> : null}
                   <div className={styles.footer}>
                     {screen !== "welcome" ? (
                       <button
@@ -714,7 +733,7 @@ function LegacyOnboardingSurvey({
                     <button
                       className="button primary"
                       type="button"
-                      disabled={submitting}
+                      disabled={submitting || (screen === "review" && needsMentorRules && !mentorRulesChecked)}
                       onClick={screen === "review" ? submit : next}
                     >
                       {submitting
