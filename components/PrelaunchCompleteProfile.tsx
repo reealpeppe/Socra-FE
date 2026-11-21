@@ -56,10 +56,10 @@ export function PrelaunchCompleteProfile({ browser = false }: { browser?: boolea
     <p><Link href="/dashboard">Se hai già effettuato l’accesso, vai alla tua area</Link></p>
   </div></main>;
 
-  if (proof) return <RegistrationForm proof={proof} emailAction={confirmOnly && (
+  if (proof) return <RegistrationForm proof={proof} emailConfirmed={confirmed} emailAction={confirmOnly && (
     <div className={styles.confirmOnly}>
       {confirmed ? <p role="status">Indirizzo confermato. Puoi completare il profilo ora o riprendere dal link ricevuto.</p> :
-        <button className="button secondary" type="button" disabled={busy} onClick={async () => {
+        <button className={styles.confirmEmail} type="button" disabled={busy} onClick={async () => {
           if (!personalToken.current || busy) return;
           setBusy(true);
           setError(null);

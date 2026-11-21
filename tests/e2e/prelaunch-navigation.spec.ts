@@ -23,14 +23,14 @@ test('Accedi opens real credentials without requiring an accesso query parameter
   await page.goto('/login');
   await expect(page.getByRole('heading', { name: 'Bentornato su Socra' })).toBeVisible();
   await expect(page.getByLabel('Username o email')).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Riservami un posto', exact: true })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Ricevi il link', exact: true })).toHaveCount(0);
 });
 
 test('registered visitor sees access form when a new browser cannot resume reservation', async ({ page }) => {
   await setup(page);
   await page.route('**/api/prelaunch/reservation', route => route.fulfill({ status: 400, json: { detail: 'Open email link' } }));
   await page.goto('/prelancio/grazie');
-  await expect(page.getByRole('heading', { name: 'Il tuo posto è già riservato.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Riprendi da dove eri rimasto.' })).toBeVisible();
   await expect(page.getByLabel('Username o email')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'Completa il profilo ora' })).toHaveCount(0);
 });
@@ -116,6 +116,6 @@ test('a temporary reservation failure never claims that a place already exists',
   await page.route('**/api/prelaunch/reservation', route => route.fulfill({status:503,json:{detail:'Unavailable'}}));
   await page.goto('/prelancio/grazie');
   await expect(page.getByRole('main').getByRole('alert')).toContainText('Non riusciamo a recuperare la tua prenotazione');
-  await expect(page.getByRole('heading',{name:'Il tuo posto è già riservato.'})).toHaveCount(0);
+  await expect(page.getByRole('heading',{name:'Riprendi da dove eri rimasto.'})).toHaveCount(0);
   await expect(page.getByRole('button',{name:'Riprova',exact:true})).toBeVisible();
 });

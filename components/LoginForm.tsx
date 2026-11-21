@@ -75,7 +75,7 @@ export function LoginForm({ onSuccess, initialIdentifier = "", compact = false, 
     <p className={styles.footerText}><Link className={styles.footerLink} href="/forgot-password">Password dimenticata?</Link></p>
     {!compact && <p className={styles.footerText}>Non hai un account? <Link className={styles.footerLink}
       href={state?.phase === "prelaunch" ? "/prelancio" : invitationNext ? `/register?next=${invitationNext}` : "/register"}>
-      {state?.phase === "prelaunch" ? "Riserva il tuo posto" : "Crea il tuo profilo"}</Link></p>}
+      {state?.phase === "prelaunch" ? "Entra tra i primi" : "Crea il tuo profilo"}</Link></p>}
   </>;
 
   if (compact) return form;

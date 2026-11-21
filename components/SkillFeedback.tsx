@@ -3,9 +3,10 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AppShell } from "@/components/AppShell";
+import { MENTOR_RULES_VERSION, MentorRulesAcceptance } from "./MentorRulesAcceptance";
 import { clientGet, clientPost } from "@/lib/api";
 import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes-guard";
-import type { PathItem, UserMe } from "@/lib/types";
+import type { PathItem, SkillProfile, UserMe } from "@/lib/types";
 import styles from "./SkillLearning.module.css";
 
 type Result = "yes" | "partly" | "no";
@@ -13,25 +14,36 @@ type Outcome = { code: string; result: Result | ""; can_help: Result | null; sha
 
 export function PathFeedbackBoundary({ actor, legacy }: { actor: "mentee" | "mentor"; legacy: ReactNode }) {
   const { pathId } = useParams<{ pathId: string }>();
-  const [path, setPath] = useState<PathItem | null>(null);
+  const [feedbackContext, setFeedbackContext] = useState<{ path: PathItem; rulesRequired: boolean; currentOffers: string[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let active = true;
-    Promise.all([clientGet<PathItem>(`/paths/${pathId}`), clientGet<UserMe>("/auth/me")]).then(([next, user]) => {
+    Promise.all([
+      clientGet<PathItem>(`/paths/${pathId}`),
+      clientGet<UserMe>("/auth/me"),
+      actor === "mentee" ? clientGet<SkillProfile | null>("/skills/me").catch(() => null) : null,
+    ]).then(([next, user, profile]) => {
       if (next[`${actor}_id`] !== user.id) throw new Error("Questo feedback è riservato al partecipante del percorso.");
       if (next.skill_model && !next[`${actor}_closed_at`]) throw new Error("Chiudi prima il tuo lato del percorso.");
       if (next.skill_model && next[`${actor}_feedback_submitted`]) throw new Error("Hai già inviato il feedback per questo percorso.");
-      if (active) setPath(next);
+      if (active) setFeedbackContext({ path: next, rulesRequired: user.mentor_rules_version === null,
+        currentOffers: profile?.mentor_skills ?? [] });
     }).catch(err => { if (active) setError(err instanceof Error ? err.message : "Feedback non disponibile."); });
     return () => { active = false; };
   }, [pathId, actor, attempt]);
   if (error) return <AppShell><div className="card stack" role="alert"><p>{error}</p><button className="button secondary" onClick={() => { setError(null); setAttempt(value => value + 1); }}>Riprova</button></div></AppShell>;
-  if (!path) return <AppShell><div className="card" role="status">Caricamento feedback…</div></AppShell>;
-  return path.skill_model ? <SkillFeedback key={`${path.id}:${actor}`} path={path} actor={actor} /> : legacy;
+  if (!feedbackContext) return <AppShell><div className="card" role="status">Caricamento feedback…</div></AppShell>;
+  const { path, rulesRequired, currentOffers } = feedbackContext;
+  return path.skill_model ? <SkillFeedback key={`${path.id}:${actor}`} path={path} actor={actor} rulesRequired={rulesRequired} currentOffers={currentOffers} /> : legacy;
 }
 
-function SkillFeedback({ path, actor }: { path: PathItem; actor: "mentee" | "mentor" }) {
+function SkillFeedback({ path, actor, rulesRequired, currentOffers }: {
+  path: PathItem;
+  actor: "mentee" | "mentor";
+  rulesRequired: boolean;
+  currentOffers: string[];
+}) {
   const router = useRouter();
   const learner = actor === "mentee";
   const [outcomes, setOutcomes] = useState<Outcome[]>(() => (path.agreed_objective_codes || []).map(code => ({ code, result: "", can_help: null, share_skill: false })));
@@ -42,6 +54,8 @@ function SkillFeedback({ path, actor }: { path: PathItem; actor: "mentee" | "men
   const [comment, setComment] = useState("");
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState(false);
+  const [mentorRulesChecked, setMentorRulesChecked] = useState(false);
+  const needsMentorRules = learner && rulesRequired && outcomes.some(item => item.share_skill && !currentOffers.includes(item.code));
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const dirty = outcomes.some(item => item.result) || !!clarity || !!repeat || !!promotion || !!engagement || !!comment || !!note;
@@ -57,6 +71,7 @@ function SkillFeedback({ path, actor }: { path: PathItem; actor: "mentee" | "men
   }
   async function submit(event: React.FormEvent) {
     event.preventDefault();
+    if (needsMentorRules && !mentorRulesChecked) return;
     const complete = outcomes.length > 0 && outcomes.every(item => item.result && (!learner || item.result !== "yes" || item.can_help));
     if (!complete || (learner ? !clarity || !repeat || !promotion : !engagement) || busy) { setError("Rispondi per ciascun obiettivo e completa le valutazioni richieste."); return; }
     setBusy(true); setError(null);
@@ -65,6 +80,7 @@ function SkillFeedback({ path, actor }: { path: PathItem; actor: "mentee" | "men
         answers: learner ? { objective_outcomes: outcomes, clarity, would_repeat: repeat, external_promotion: promotion === "yes" }
           : { objective_outcomes: outcomes.map(({ code, result }) => ({ code, result })), engagement },
         text_note: note.trim() || null,
+        mentor_rules_version: needsMentorRules ? MENTOR_RULES_VERSION : undefined,
         ...(learner ? { public_comment: comment.trim() || null } : {}),
       });
       setSent(true); router.push(`/paths/${path.id}?feedback=sent`);
@@ -78,6 +94,8 @@ function SkillFeedback({ path, actor }: { path: PathItem; actor: "mentee" | "men
       {learner && outcome.result === "yes" ? <label className={styles.field}>Sapresti aiutare un’altra persona su questa attività?<select className="input select" aria-label={`Sai aiutare: ${label}`} value={outcome.can_help || ""} required disabled={busy} onChange={event => update(index, { can_help: event.target.value as Result })}><option value="">Scegli una risposta</option><option value="yes">Sì</option><option value="partly">In parte</option><option value="no">No</option></select></label> : null}
       {learner && outcome.result === "yes" && outcome.can_help === "yes" ? <label className={styles.check}><input type="checkbox" aria-label={`Offri: ${label}`} checked={outcome.share_skill} disabled={busy} onChange={event => update(index, { share_skill: event.target.checked })} /><span>Voglio offrire questa capacità come mentor. La disponibilità globale in pausa rimane in pausa.</span></label> : null}
     </div></section>; })}
+    {needsMentorRules ? <MentorRulesAcceptance checked={mentorRulesChecked}
+      onChange={setMentorRulesChecked} disabled={busy} /> : null}
     <section className={styles.section}><h2>Il confronto</h2><div className={styles.fields}>{learner ? <>
       <label className={styles.field}>Chiarezza del confronto<select className="input select" required value={clarity} disabled={busy} onChange={event => setClarity(event.target.value)}><option value="">Scegli una risposta</option><option value="clear">Chiaro</option><option value="mixed">In parte chiaro</option><option value="unclear">Poco chiaro</option></select></label>
       <label className={styles.field}>Rifaresti questo percorso?<select className="input select" required value={repeat} disabled={busy} onChange={event => setRepeat(event.target.value)}><option value="">Scegli una risposta</option><option value="yes">Sì</option><option value="no">No</option></select></label>
@@ -87,6 +105,6 @@ function SkillFeedback({ path, actor }: { path: PathItem; actor: "mentee" | "men
     </div></section>
     {learner ? <section className={styles.section}><label className={styles.field}>Commento pubblico facoltativo<textarea className="input" rows={4} maxLength={2000} value={comment} disabled={busy} onChange={event => setComment(event.target.value)} aria-describedby="public-comment-visibility" /></label><p className={styles.notice} id="public-comment-visibility">Sarà visibile alla community sul profilo del mentor, con il tuo nome e la data, dopo il completamento bilaterale. Puoi raccontare anche cosa non ha funzionato. Evita recapiti e informazioni personali.</p></section> : null}
     {error ? <p className="error" role="alert">{error}</p> : null}
-    <div className={styles.actions}><button type="submit" className="button dark" disabled={busy || !outcomes.length}>{busy ? "Invio…" : "Invia feedback"}</button></div>
+    <div className={styles.actions}><button type="submit" className="button dark" disabled={busy || !outcomes.length || (needsMentorRules && !mentorRulesChecked)}>{busy ? "Invio…" : "Invia feedback"}</button></div>
   </form></AppShell>;
 }

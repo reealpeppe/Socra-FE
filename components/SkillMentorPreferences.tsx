@@ -9,7 +9,13 @@ import { useUnsavedChangesGuard } from "@/lib/use-unsaved-changes-guard";
 import { MentorOfferHelp } from "./MentorOfferHelp";
 import styles from "./SkillLearning.module.css";
 
-export function SkillMentorPreferences({ catalog, profile, onSaved }: { catalog: SkillCatalog; profile: SkillProfile; onSaved: (profile: SkillProfile) => void }) {
+export function SkillMentorPreferences({ catalog, profile, rulesAllowed, rulesVersion, onSaved }: {
+  catalog: SkillCatalog;
+  profile: SkillProfile;
+  rulesAllowed: boolean;
+  rulesVersion?: string;
+  onSaved: (profile: SkillProfile, acceptedVersion?: string) => void;
+}) {
   const [offered, setOffered] = useState(profile.mentor_skills);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
@@ -17,9 +23,11 @@ export function SkillMentorPreferences({ catalog, profile, onSaved }: { catalog:
   const key = useRef("");
   const { confirm, confirmationDialog } = useConfirmation();
   const dirty = offered.join(",") !== profile.mentor_skills.join(",");
+  const addsOffers = offered.some(skill => !profile.mentor_skills.includes(skill));
+  const needsRules = addsOffers && !rulesAllowed;
   useUnsavedChangesGuard(dirty && !busy);
   async function save() {
-    if (busy) return;
+    if (busy || needsRules) return;
     setBusy(true); setError(null); setMessage("");
     if (profile.mentor_skills.length && !offered.length && !await confirm("Stai rimuovendo tutte le attività su cui offri aiuto. La tua disponibilità come mentor verrà disattivata e non riceverai nuove richieste. I percorsi già aperti continueranno. Vuoi salvare questa modifica?")) {
       setBusy(false);
@@ -27,8 +35,12 @@ export function SkillMentorPreferences({ catalog, profile, onSaved }: { catalog:
     }
     if (!key.current) key.current = crypto.randomUUID();
     try {
-      const next = await clientPut<SkillProfile>("/skills/me", { known_skills: profile.known_skills, mentor_skills: offered, idempotency_key: key.current });
-      onSaved(next); setOffered(next.mentor_skills); setMessage("Capacità offerte aggiornate.");
+      const acceptedVersion = addsOffers ? rulesVersion : undefined;
+      const next = await clientPut<SkillProfile>("/skills/me", {
+        known_skills: profile.known_skills, mentor_skills: offered, idempotency_key: key.current,
+        mentor_rules_version: acceptedVersion,
+      });
+      onSaved(next, acceptedVersion); setOffered(next.mentor_skills); setMessage("Capacità offerte aggiornate.");
     } catch (err) { setError(err instanceof Error ? err.message : "Capacità non salvate."); }
     finally { setBusy(false); }
   }
@@ -38,6 +50,6 @@ export function SkillMentorPreferences({ catalog, profile, onSaved }: { catalog:
     {!profile.known_skills.length ? <p>Non hai ancora indicato capacità da offrire.</p> : null}
     <Link href="/competenze">Aggiorna la tua esperienza</Link>
     {error ? <p className="error" role="alert">{error}</p> : null}{message ? <p role="status">{message}</p> : null}
-    <button type="button" className="button secondary" disabled={busy || !dirty} onClick={save}>{busy ? "Salvataggio…" : "Salva capacità offerte"}</button>
+    <button type="button" className="button secondary" disabled={busy || !dirty || needsRules} onClick={save}>{busy ? "Salvataggio…" : "Salva capacità offerte"}</button>
   </div>;
 }

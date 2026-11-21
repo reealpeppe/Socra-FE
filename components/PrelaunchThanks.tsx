@@ -35,7 +35,7 @@ export function PrelaunchThanks() {
 
   if (!email) return <main className={styles.page} id="main-content"><div className={styles.returnContent}>
     <header className={styles.center}>
-      <h1>Il tuo posto è già riservato.</h1>
+      <h1>Riprendi da dove eri rimasto.</h1>
       <p>Se hai già creato il tuo account, accedi per ritrovare il profilo e continuare da dove eri rimasto.</p>
     </header>
     <div className={styles.returnForm}><LoginForm compact /></div>
@@ -46,7 +46,7 @@ export function PrelaunchThanks() {
     <header className={styles.center}>
       <span className={styles.confirmMark}><Check size={30} strokeWidth={2.4} aria-hidden="true" /></span>
       <p className={styles.eyebrow}>Il primo passo è fatto</p>
-      <h1>Sei dentro. Il tuo posto è riservato.</h1>
+      <h1>Sei tra i primi.</h1>
       {state?.email_delivery_enabled === false ? <p role="status">Anteprima locale. La richiesta è registrata e l’invio delle email è disattivato.</p>
         : <p>Cerca l’email per confermare l’indirizzo nella casella <strong>{email}</strong>. Puoi farlo anche più tardi. Controlla anche la posta indesiderata.</p>}
     </header>
@@ -64,7 +64,7 @@ export function PrelaunchThanks() {
         </section>
         <section className={styles.choicePanel}>
           <h2>Lo faccio dopo</h2>
-          <p>Nessun problema, il tuo posto resta riservato. Quando hai tempo, riprendi dal link nella tua email o accedi se hai già creato l’account.</p>
+          <p>Quando hai tempo, riprendi dal link nella tua email o accedi se hai già creato l’account.</p>
           {later ? <p className={styles.later} role="status">A presto. Puoi chiudere questa pagina.</p>
             : <button className="button secondary" onClick={() => setLater(true)}>Continuerò più tardi</button>}
         </section>

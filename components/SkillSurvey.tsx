@@ -7,6 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { useConfirmation } from "@/components/ConfirmationDialog";
 import { PersonalContext } from "./PersonalContext";
 import { MentorOfferHelp } from "./MentorOfferHelp";
+import { MENTOR_RULES_VERSION, MentorRulesAcceptance } from "./MentorRulesAcceptance";
 import { SkillPreparation } from "@/components/SkillPreparation";
 import { clientGet, clientPost, clientPut } from "@/lib/api";
 import { emptySkillAnswers, restoreSkillAnswers, type SkillAnswers } from "@/lib/skills";
@@ -35,6 +36,8 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
   const [answers, setAnswers] = useState<SkillAnswers>(emptySkillAnswers);
   const [loaded, setLoaded] = useState(false);
   const [existing, setExisting] = useState(false);
+  const [mentorRulesVersion, setMentorRulesVersion] = useState<string | null | undefined>();
+  const [mentorRulesChecked, setMentorRulesChecked] = useState(false);
   const [contextStep, setContextStep] = useState(false);
   const [invitationReturn,setInvitationReturn] = useState<string|null>(null);
   const [invitation,setInvitation] = useState<InvitationDetail|null>(null);
@@ -49,8 +52,10 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
   const finalizing = useRef(false);
   const requestKey = useRef("");
   const ownerRef = useRef<SurveyOwner | null>(null);
-  const initialOffers = useRef<string[]>([]);
+  const [initialOffers, setInitialOffers] = useState<string[]>([]);
   const initiallyReady = useRef(false);
+  const needsMentorRules = mentorRulesVersion === null
+    && answers.mentor_skills.some(skill => !initialOffers.includes(skill));
   const { confirm, confirmationDialog } = useConfirmation();
   const ownsSession = useCallback((owner: SurveyOwner | null) =>
     owner !== null && ownerRef.current === owner && owner.sessionMarker === sessionMarker(), []);
@@ -68,7 +73,7 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
       return clientGet<InvitationDetail>(`/invitations/${next.split("/")[2]}`);
     }).catch(()=>null) : Promise.resolve(null);
     Promise.all([
-      clientGet<{ user_id: string }>("/surveys/onboarding/me"),
+      clientGet<{ user_id: string; mentor_rules_version?: string | null }>("/surveys/onboarding/me"),
       clientGet<SkillProfile | null>("/skills/me"),
       reassessment ? Promise.resolve(null) : clientGet<Draft | null>("/surveys/onboarding/me/draft").catch(() => null),
       proposal,
@@ -80,9 +85,11 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
       draftKey.current = `socra_skills_draft:${user.user_id}:${reassessment ? "edit" : "onboarding"}`;
       userId.current = user.user_id;
       setContextOwner(user.user_id);
+      setMentorRulesVersion(user.mentor_rules_version);
+      setMentorRulesChecked(false);
       requestKey.current = crypto.randomUUID();
       const saved = restoreSkillAnswers(profile, catalog);
-      initialOffers.current = saved.mentor_skills;
+      setInitialOffers(saved.mentor_skills);
       let raw: unknown = profile || draft?.answers?.skill_flow;
       try {
         const local = JSON.parse(sessionStorage.getItem(draftKey.current) || "null") as { answers: SkillAnswers; savedAt: number; baseVersion?: number } | null;
@@ -155,9 +162,9 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
     event.preventDefault();
     const owner = ownerRef.current;
     if (!ownsSession(owner)) return;
-    if (busy) return;
+    if (busy || (needsMentorRules && !mentorRulesChecked)) return;
     setBusy(true); setError(null);
-    if (initialOffers.current.length && !answers.mentor_skills.length && !await confirm(prelaunch ? "Stai rimuovendo tutte le attività su cui vuoi aiutare. Se hai scelto di insegnare, dovrai indicarne almeno una per completare la preparazione. Vuoi salvare questa modifica?" : "Stai rimuovendo tutte le attività su cui offri aiuto. La tua disponibilità come mentor verrà disattivata e non riceverai nuove richieste. I percorsi già aperti continueranno. Vuoi salvare questa modifica?")) {
+    if (initialOffers.length && !answers.mentor_skills.length && !await confirm(prelaunch ? "Stai rimuovendo tutte le attività su cui vuoi aiutare. Se hai scelto di insegnare, dovrai indicarne almeno una per completare la preparazione. Vuoi salvare questa modifica?" : "Stai rimuovendo tutte le attività su cui offri aiuto. La tua disponibilità come mentor verrà disattivata e non riceverai nuove richieste. I percorsi già aperti continueranno. Vuoi salvare questa modifica?")) {
       if (ownsSession(owner)) setBusy(false);
       return;
     }
@@ -166,7 +173,11 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
     try {
       await saveChain.current;
       if (!ownsSession(owner)) return;
-      const profile = await clientPut<SkillProfile>("/skills/me", { ...answers, idempotency_key: requestKey.current });
+      const profile = await clientPut<SkillProfile>("/skills/me", {
+        ...answers,
+        idempotency_key: requestKey.current,
+        mentor_rules_version: needsMentorRules ? MENTOR_RULES_VERSION : undefined,
+      });
       if (!ownsSession(owner)) return;
       try { sessionStorage.removeItem(draftKey.current); } catch { /* Saved on the server. */ }
       setInitial(JSON.stringify(answers));
@@ -236,9 +247,11 @@ export function SkillSurvey({ catalog, reassessment = false }: { catalog: SkillC
           {(invitationTopics.length?invitationTopics:catalog.topics).map(topicFields)}
           {invitationTopics.length&&otherTopics.length?<details className={styles.topic}><summary>Altre esperienze, facoltativo</summary>{otherTopics.map(topicFields)}</details>:null}
         </section>
+        {needsMentorRules ? <MentorRulesAcceptance checked={mentorRulesChecked}
+          onChange={setMentorRulesChecked} disabled={busy} /> : null}
         {existing && !prelaunch ? <p className={styles.notice}>Le modifiche non riattivano una disponibilità mentor messa in pausa. I percorsi già svolti restano nel tuo storico.</p> : null}
         {error ? <p className="error" role="alert">{error}</p> : null}
-        <div className={styles.actions}>{prelaunch ? <Link href="/dashboard">Torna alla tua area</Link> : null}<small className="muted" role="status">{saveMessage}</small><button className="button dark" disabled={busy} type="submit">{busy ? "Salvataggio…" : invitationReturn?'Salva e torna all’invito':"Conferma le risposte"}</button></div>
+        <div className={styles.actions}>{prelaunch ? <Link href="/dashboard">Torna alla tua area</Link> : null}<small className="muted" role="status">{saveMessage}</small><button className="button dark" disabled={busy || (needsMentorRules && !mentorRulesChecked)} type="submit">{busy ? "Salvataggio…" : invitationReturn?'Salva e torna all’invito':"Conferma le risposte"}</button></div>
       </form>}
   </div></AppShell>;
 }

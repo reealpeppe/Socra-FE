@@ -72,13 +72,17 @@ const sections = [
       },
       {
         q: "Cosa succede dopo una segnalazione?",
-        a: "La segnalazione e gli eventuali segnali anomali vengono inviati a revisione manuale. Non esiste un blocco automatico né viene promesso un tempo fisso di risposta.",
+        a: "Il team Socra esamina la segnalazione e può chiedere chiarimenti. Se accerta una violazione, decide come intervenire in base alla gravità del caso.",
       },
     ],
   },
   {
     label: "Sicurezza",
     faqs: [
+      {
+        q: "Cosa può fare un mentor su Socra?",
+        a: "Può spiegarti come confrontare due ETF, quali costi leggere e come usare gli strumenti. La decisione resta a te. I mentor si impegnano a non dirti cosa comprare, vendere o tenere, a non chiedere credenziali o gestire soldi altrui e a non usare Socra per vendere prodotti, servizi o condividere link da cui guadagnano.",
+      },
       {
         q: "Le call vengono registrate?",
         a: "No. Socra non registra audio o video e oggi non acquisisce trascrizioni. Quando l’integrazione Meet è attiva, per la prima call conserva soltanto i metadati disponibili di presenza e durata, senza accedere al contenuto della conversazione.",
@@ -89,7 +93,7 @@ const sections = [
       },
       {
         q: "Dove segnalo un problema?",
-        a: "L'azione “Segnala problema” è disponibile nel dettaglio del percorso e può essere usata in qualsiasi momento.",
+        a: "Apri il dettaglio del percorso e usa “Segnala un problema”. Puoi farlo, ad esempio, se il mentor ti dice cosa comprare, ti chiede le credenziali o prova a venderti un servizio.",
       },
     ],
   },

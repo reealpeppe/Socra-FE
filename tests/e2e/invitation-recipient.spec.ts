@@ -6,11 +6,16 @@ const token='s'.repeat(43);
 const preview={inviter_username:'Giulia',topic:'ETF',objective_labels:['Leggere la scheda di un ETF'],discussion_mode_label:'Guidami passo passo',status:'claimed',expires_at:'2026-10-24T10:00:00',mentee_cost:0,mentor_reward:1,bonus_new_users_only:true};
 async function recipient(page:Page,baseURL:string,ready=false,profileMissing=false){
   await fixture(page,baseURL,{profileMissing});
-  const state={accepts:0,declines:0,ready,available:ready,availabilityWrites:0,expired:false,uncertain:false,path:null as string|null};
+  const state={accepts:0,declines:0,ready,available:ready,availabilityWrites:0,rulesRequired:false,rulesVersion:undefined as string|undefined,expired:false,uncertain:false,path:null as string|null};
   const detail=()=>({...preview,id,role:'recipient',status:state.expired?'expired':state.path?'accepted':state.declines?'declined':'claimed',path_id:state.path,
     bonus_eligible:true,delivery_status:null,recipient_email:null,creation_key:null,
-    prerequisite_state:{email_verified:true,onboarded:state.ready,skills_offered:state.ready,mentor_available:state.available}});
-  await page.route('**/api/backend/profiles/me/mentor-status',route=>{state.available=true;state.availabilityWrites++;return route.fulfill({json:{is_coach:true}});});
+    prerequisite_state:{email_verified:true,onboarded:state.ready,skills_offered:state.ready,mentor_available:state.available,mentor_rules_required:state.rulesRequired}});
+  await page.route('**/api/backend/profiles/me/mentor-status',route=>{
+    state.available=true;
+    state.availabilityWrites++;
+    state.rulesVersion=route.request().postDataJSON().mentor_rules_version;
+    return route.fulfill({json:{is_coach:true}});
+  });
   await page.route('**/api/invitations/context',route=>route.fulfill({json:preview}));
   await page.route('**/api/invitations/claim',route=>route.fulfill({json:{invitation:detail()}}));
   await page.route('**/api/backend/invitations**',route=>{
@@ -34,16 +39,21 @@ test('invitation preparation has one next action without the application navigat
   await expect(page.locator('main .button.primary')).toHaveCount(1);
 });
 
-test('paused mentor accepts with explicit availability and contact consent in one action',async({page,baseURL})=>{
-  const state=await recipient(page,baseURL!,true);state.available=false;
+test('paused mentor accepts with availability, mentor rules and contact consent in one action',async({page,baseURL})=>{
+  const state=await recipient(page,baseURL!,true);state.available=false;state.rulesRequired=true;
   await page.goto('/inviti/'+id);
   const submit=page.getByRole('button',{name:'Accetta e inizia il percorso',exact:true});
   await expect(submit).toBeDisabled();
   await page.getByRole('checkbox',{name:'Accetto di condividere la mia email dopo l’accettazione.'}).check();
   await expect(submit).toBeDisabled();
   await page.getByRole('checkbox',{name:'Rendi disponibile il mio profilo come mentor',exact:true}).check();
+  await expect(submit).toBeDisabled();
+  const rules = page.getByRole('checkbox', { name: 'Ho letto le tre regole e mi impegno a rispettarle.' });
+  await expect(rules).not.toBeChecked();
+  await rules.check();
   await submit.click();await expect(page).toHaveURL(/\/paths\/new-invitation-path/);
   expect(state.availabilityWrites).toBe(1);expect(state.accepts).toBe(1);
+  expect(state.rulesVersion).toBe('mentor-rules-2026-11-20');
 });
 
 test('invited survey saves explicit offers and returns without the optional personal context',async({page,baseURL})=>{

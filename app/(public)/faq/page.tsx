@@ -13,7 +13,8 @@ export const metadata: Metadata = {
 
 export default function FaqPage() {
   return (
-    <>      <main id="main-content" tabIndex={-1} style={{ paddingTop: "64px" }}>
+    <>
+      <main id="main-content" tabIndex={-1} style={{ paddingTop: "64px" }}>
         <section style={{
           background: "var(--navy-950)",
           padding: "clamp(56px,8vw,96px) clamp(16px,4vw,40px)",
@@ -153,7 +154,7 @@ export default function FaqPage() {
                   Problema in un percorso
                 </h3>
                 <p style={{ color: "var(--muted)", fontSize: "0.875rem", lineHeight: 1.55, margin: 0 }}>
-                  Apri il dettaglio del percorso e usa “Segnala problema”. La segnalazione entra nella coda di revisione manuale.
+                  Apri il dettaglio del percorso e usa “Segnala un problema”. Il team Socra esamina la segnalazione.
                 </p>
                 <Link className={publicStyles.textLink} href="/paths" style={{ marginTop: "auto" }}>
                   Apri i tuoi percorsi
@@ -199,6 +200,7 @@ export default function FaqPage() {
             `}</style>
           </div>
         </section>
-      </main>    </>
+      </main>
+    </>
   );
 }
