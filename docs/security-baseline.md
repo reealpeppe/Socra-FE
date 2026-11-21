@@ -1,5 +1,9 @@
 # Standard web Socra
 
+## Dipendenze del candidato 21/11/2026
+
+La CI del pre-lancio blocca Next.js 16.4.2 per nuove segnalazioni di sicurezza. Il candidato usa la patch [Next.js 16.4.6](https://github.com/vercel/next.js/releases/tag/v16.4.6). ESLint e gli override già revisionati mantengono le versioni precedenti. Il gate continua a richiedere zero segnalazioni nell’audit completo e runtime. [Fonte proprietaria della baseline](https://github.com/reealpeppe/Socra-BE/blob/release/v3-20260919/docs/wiki/12-security-baseline.md).
+
 Il candidato22/10 aggiorna Next.js e il config ESLint a16.4.2 per risolvere le tre advisory rilevate dalla CI su16.3.8. Gate invariato: audit completo0/runtime0/eccezioni0;124 test sicurezza locali passati. Gli override già revisionati restano attivi e verificati. Fonte proprietaria: Socra-BE `docs/wiki/12-security-baseline.md`, sezione dipendenze22/10; i controlli della build e del browser vanno ripetuti prima della pubblicazione.
 
 Dal 17/10 le pagine e i redirect del proxy usano `Cache-Control: private, no-store, no-transform`: gli intermediari devono preservare il markup per l'hydration React. Il riscontro live del footer ha mostrato Cloudflare Email Obfuscation riscrivere testo e `mailto:`, causando React418. La direttiva impedisce la trasformazione all'origine senza modificare CSP o configurazione Cloudflare; le API conservano `private, no-store` e gli asset statici esclusi dal proxy la cache esistente. Decisione canonica: Socra-BE `docs/decisions/ADR-ssr-no-transform-20261017.md`.
